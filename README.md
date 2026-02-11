@@ -127,7 +127,7 @@ To do so, you only need to remove the 4 screews at the top left and right sides 
 You now have access to the bluepill board, but you need to bend the 4 pins of the programmation header to the top so that you can plug Dupont wires to that header:
 ![Bend pins](./doc/st-link-connection.jpg)
 
-You can now launch the [STM32CubeProgrammer software](https://www.st.com/en/development-tools/stm32cubeprog.html) click `Connect`, click `Open File`, select the `gpsdo.bin` file downloaded in the [Release section](./releases) and hit `Download` in STM32CubeProgrammer:
+You can now launch the [STM32CubeProgrammer software](https://www.st.com/en/development-tools/stm32cubeprog.html) click `Connect`, click `Open File`, select the `gpsdo.bin` file downloaded in the [Release section](./../../releases) and hit `Download` in STM32CubeProgrammer:
 ![Bend pins](./doc/stm32-cube-programmer.png)
 
 For video instructions, you can check [Tony Albus's BH3SAP GPSDO review at 7'20''](https://www.youtube.com/watch?v=FxD5QzaOiZ4&t=440s): 
