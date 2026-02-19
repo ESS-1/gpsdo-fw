@@ -89,7 +89,11 @@ void gpsdo(void)
         ee_storage.trend_h_scale = 1;
     }
     trend_h_scale = ee_storage.trend_h_scale;
-
+    // Boot menu
+    if (ee_storage.boot_menu == 0xff) {
+        ee_storage.boot_menu = 0; // Default to main screen
+    }
+    menu_set_current_menu(ee_storage.boot_menu);
     // Check for custom gps baudrate
     if (ee_storage.gps_baudrate == 0xffffffff) {
         ee_storage.gps_baudrate = GPS_DEFAULT_BAUDRATE;

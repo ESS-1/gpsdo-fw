@@ -18,6 +18,7 @@ typedef struct
     uint8_t  trend_auto_v;
     uint32_t trend_v_scale;
     uint32_t trend_h_scale;
+    uint8_t  boot_menu;
     uint32_t gps_baudrate;
     uint32_t gps_time_offset;
     uint8_t  gps_date_format;

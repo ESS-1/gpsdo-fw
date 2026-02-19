@@ -6,55 +6,107 @@
             "hidden": true,
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/${presetName}",
-		    "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
+            "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
             "cacheVariables": {
             }
         },
         {
-            "name": "Debug",
+            "name": "Debug-AutoSave",
             "inherits": "default",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
+                "CMAKE_BUILD_TYPE": "Debug",
+                "EEPROM_AUTO_SAVE": "1"
             }
         },
         {
-            "name": "RelWithDebInfo",
+            "name": "Debug-NoAutoSave",
             "inherits": "default",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+                "CMAKE_BUILD_TYPE": "Debug",
+                "EEPROM_AUTO_SAVE": "0"
             }
         },
         {
-            "name": "Release",
+            "name": "RelWithDebInfo-AutoSave",
             "inherits": "default",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "EEPROM_AUTO_SAVE": "1"
             }
         },
         {
-            "name": "MinSizeRel",
+            "name": "RelWithDebInfo-NoAutoSave",
             "inherits": "default",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "MinSizeRel"
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "EEPROM_AUTO_SAVE": "0"
+            }
+        },
+        {
+            "name": "Release-AutoSave",
+            "inherits": "default",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "EEPROM_AUTO_SAVE": "1"
+            }
+        },
+        {
+            "name": "Release-NoAutoSave",
+            "inherits": "default",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "EEPROM_AUTO_SAVE": "0"
+            }
+        },
+        {
+            "name": "MinSizeRel-AutoSave",
+            "inherits": "default",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "MinSizeRel",
+                "EEPROM_AUTO_SAVE": "1"
+            }
+        },
+        {
+            "name": "MinSizeRel-NoAutoSave",
+            "inherits": "default",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "MinSizeRel",
+                "EEPROM_AUTO_SAVE": "0"
             }
         }
     ],
     "buildPresets": [
         {
-            "name": "Debug",
-            "configurePreset": "Debug"
+            "name": "Debug-AutoSave",
+            "configurePreset": "Debug-AutoSave"
         },
         {
-            "name": "RelWithDebInfo",
-            "configurePreset": "RelWithDebInfo"
+            "name": "Debug-NoAutoSave",
+            "configurePreset": "Debug-NoAutoSave"
         },
         {
-            "name": "Release",
-            "configurePreset": "Release"
+            "name": "RelWithDebInfo-AutoSave",
+            "configurePreset": "RelWithDebInfo-AutoSave"
         },
         {
-            "name": "MinSizeRel",
-            "configurePreset": "MinSizeRel"
+            "name": "RelWithDebInfo-NoAutoSave",
+            "configurePreset": "RelWithDebInfo-NoAutoSave"
+        },
+        {
+            "name": "Release-AutoSave",
+            "configurePreset": "Release-AutoSave"
+        },
+        {
+            "name": "Release-NoAutoSave",
+            "configurePreset": "Release-NoAutoSave"
+        },
+        {
+            "name": "MinSizeRel-AutoSave",
+            "configurePreset": "MinSizeRel-AutoSave"
+        },
+        {
+            "name": "MinSizeRel-NoAutoSave",
+            "configurePreset": "MinSizeRel-NoAutoSave"
         }
     ]
 }

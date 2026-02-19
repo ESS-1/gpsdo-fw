@@ -1,6 +1,7 @@
 #include "gps.h"
 #include "LCD.h"
 #include "main.h"
+#include "menu.h"
 #include "stm32f1xx_hal_uart.h"
 #include "usart.h"
 #include "eeprom.h"
@@ -568,6 +569,7 @@ void gps_parse(char* line)
         if(model_found && (ee_storage.gps_model != gps_model))
         {   // Save changes
             ee_storage.gps_model = gps_model;
+            on_config_changed();
         }
     }
     // Store last received frame for debug purpose
