@@ -1293,8 +1293,8 @@ void menu_run()
                     if(ee_storage.contrast != contrast)
                     {   // Contrast has changed => save it to eeprom
                         ee_storage.contrast = contrast;
+                        on_config_changed();
                     }
-                    on_config_changed();
                     menu_level = 0;
                     break;
                 case SCREEN_PPB:
