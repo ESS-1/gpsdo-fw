@@ -887,7 +887,6 @@ static void menu_draw()
 
 void menu_run()
 {
-
     // Detect rotary encoder value change
     uint32_t new_encoder_value = TIM3->CNT / 2;
     if(new_encoder_value != last_encoder_value)
@@ -911,7 +910,7 @@ void menu_run()
             // If EEPROM_AUTO_SAVE feature is enabled, hide the SCREEN_SAVE_CONFIG menu item
             if (current_menu_screen == SCREEN_SAVE_CONFIG)
             {
-                ++current_menu_screen;
+                encoder_increment > 0 ? ++current_menu_screen : --current_menu_screen;
             }
 #endif
 
