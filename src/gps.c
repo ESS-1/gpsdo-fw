@@ -105,16 +105,13 @@ static void gps_start_comm_rx()
 }
 
 // ATGM336H set baudrate commands
-static const char*	atgm336h_baudcommands[] = {
+static const char* atgm336h_baudcommands[] = {
     "$PCAS01,1*1D\r\n",     // 9600bps
     "$PCAS01,2*1E\r\n",     // 19200bps
     "$PCAS01,3*1F\r\n",     // 38400bps
     "$PCAS01,4*18\r\n",     // 57600bps
     "$PCAS01,5*19\r\n"      // 115200bps
 };
-
-// ATGM336H save configuration command
-const char*	atgm336h_savecommand = "$PCAS00*01\r\n";
 
 static void gps_sendcommand(const char* cmd, size_t len)
 {
@@ -124,9 +121,9 @@ static void gps_sendcommand(const char* cmd, size_t len)
     while (huart3.gState != HAL_UART_STATE_READY);
 }
 
-int	gps_configure_module_uart(uint32_t baudrate)
+int gps_configure_module_uart(uint32_t baudrate)
 {
-    const char*	command = NULL;
+    const char* command = NULL;
     switch(gps_model)
     {
         case GPS_MODEL_ATGM336H:
@@ -164,7 +161,7 @@ int	gps_configure_module_uart(uint32_t baudrate)
         gps_sendcommand(command, len);
     }
 
-    return	0;
+    return 0;
 }
 
 void gps_reconfigure_uart(uint32_t baudrate)
@@ -582,7 +579,7 @@ void gps_parse(char* line)
     last_frame_receive_time = HAL_GetTick();
 }
 
-#define	SEND_BUFFER_SIZE	FIFO_BUFFER_SIZE
+#define SEND_BUFFER_SIZE FIFO_BUFFER_SIZE
 uint8_t send_buf[SEND_BUFFER_SIZE];
 uint8_t gps_send_buf[SEND_BUFFER_SIZE];
 uint8_t comm_send_buf[SEND_BUFFER_SIZE];

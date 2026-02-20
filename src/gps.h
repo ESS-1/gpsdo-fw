@@ -37,7 +37,7 @@ void gps_start_it();
 void gps_parse(char* line);
 void gps_read();
 
-int	 gps_configure_module_uart(uint32_t baudrate);
+int  gps_configure_module_uart(uint32_t baudrate);
 void gps_reconfigure_uart(uint32_t baudrate);
 
 #endif
