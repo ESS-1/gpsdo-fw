@@ -226,7 +226,7 @@ void gps_start_it()
 static double gps_parse_coordinate(char* nmea_string, char* coord_string, size_t size)
 {
     double result = 0;
-    char* dot_substring = strstr(nmea_string,".");
+    char* dot_substring = nmea_string != NULL ? strstr(nmea_string, ".") : NULL;
     if(dot_substring != NULL)
     {
         uint8_t i = 0;
@@ -296,7 +296,7 @@ static bool change_time(char* time_source, char* time_dest, int correction, int 
     {
         value = 0;
         overlap = true;
-    } 
+    }
     time_dest[0] = (char)((value/10)+'0');
     time_dest[1] = (char)((value%10)+'0');
     return overlap;
@@ -311,97 +311,104 @@ void gps_parse(char* line)
 
         pch = strtok(NULL, ","); // Time
 
-        // GPSDO screen is updated once every second, when receiving the PPS signal
-        // BUT, the GGA frame is received a fraction of second AFTER the PPS pulse
-        // To achieve accurate time display, we will add one second to the received time
-        // to compensate this delay
-
-        // Let's start with seconds value, to propagate overlap to minutes and hours if needed
-        bool overlap = change_time(pch+4,gps_time+6,1,59);
-        if(overlap)
-        {   // Need to propagate overlap to minutes
-            overlap = change_time(pch+2,gps_time+3,1,59);
-        }
-        else
+        if (pch != NULL && strlen(pch) >= 6)
         {
-            gps_time[3] = pch[2];
-            gps_time[4] = pch[3];
-        }
+            // GPSDO screen is updated once every second, when receiving the PPS signal
+            // BUT, the GGA frame is received a fraction of second AFTER the PPS pulse
+            // To achieve accurate time display, we will add one second to the received time
+            // to compensate this delay
 
-        if (gps_time_offset == 0 && !overlap) 
-        {   // Leave hour unchanged
-	        gps_time[0] = pch[0];
-	        gps_time[1] = pch[1];
-		} 
-        else 
-        {   // Need to fix hour
-			char p0 = pch[0] - '0';
-			char p1 = pch[1] - '0';
-			int hour = p0 * 10 + p1;
-            int relative_hour = (hour + (int)gps_time_offset);
+            // Let's start with seconds value, to propagate overlap to minutes and hours if needed
+            bool overlap = change_time(pch+4,gps_time+6,1,59);
             if(overlap)
-            {   // Propagate second / minute overlap
-                relative_hour+=1;
-            }
-            if(relative_hour >= 24)
-            {
-                hour = relative_hour - 24;
-                gps_day_offset = 1;
-            }
-            else if(relative_hour < 0)
-            {
-                hour = relative_hour + 24;
-                gps_day_offset = -1;
+            {   // Need to propagate overlap to minutes
+                overlap = change_time(pch+2,gps_time+3,1,59);
             }
             else
             {
-                hour = relative_hour;
-                gps_day_offset = 0;
+                gps_time[3] = pch[2];
+                gps_time[4] = pch[3];
             }
-	        gps_time[0] = (char)((hour / 10) + '0');
-	        gps_time[1] = (char)((hour % 10) + '0');
-		}
-        // Add separators
-        gps_time[2] = ':';
-        gps_time[5] = ':';
-        // Terminaute time string
-        gps_time[8] = '\0';
 
-        pch = strtok(NULL, ","); // Latitude
-        gps_latitude_double = gps_parse_coordinate(pch,gps_latitude,sizeof(gps_latitude));
-        pch = strtok(NULL, ","); // N/S
-        if(strlen(pch)<sizeof(gps_n_s))
-        {
-            strcpy(gps_n_s,pch);
-            if(gps_n_s[0] == 'S')
-                gps_latitude_double*=-1;
+            if (gps_time_offset == 0 && !overlap) 
+            {   // Leave hour unchanged
+              gps_time[0] = pch[0];
+              gps_time[1] = pch[1];
+            } 
+            else 
+            {   // Need to fix hour
+                char p0 = pch[0] - '0';
+                char p1 = pch[1] - '0';
+                int hour = p0 * 10 + p1;
+                int relative_hour = (hour + (int)gps_time_offset);
+                if(overlap)
+                {   // Propagate second / minute overlap
+                    relative_hour+=1;
+                }
+                if(relative_hour >= 24)
+                {
+                    hour = relative_hour - 24;
+                    gps_day_offset = 1;
+                }
+                else if(relative_hour < 0)
+                {
+                    hour = relative_hour + 24;
+                    gps_day_offset = -1;
+                }
+                else
+                {
+                    hour = relative_hour;
+                    gps_day_offset = 0;
+                }
+                gps_time[0] = (char)((hour / 10) + '0');
+                gps_time[1] = (char)((hour % 10) + '0');
+            }
+
+            // Add separators
+            gps_time[2] = ':';
+            gps_time[5] = ':';
+            // Terminate time string
+            gps_time[8] = '\0';
+
+            pch = strtok(NULL, ","); // Latitude
+            gps_latitude_double = gps_parse_coordinate(pch,gps_latitude,sizeof(gps_latitude));
+            pch = strtok(NULL, ","); // N/S
+            if(pch!=NULL && strlen(pch)<sizeof(gps_n_s))
+            {
+                strcpy(gps_n_s,pch);
+                if(gps_n_s[0] == 'S')
+                    gps_latitude_double*=-1;
+            }
+            pch = strtok(NULL, ","); // Longitude
+            gps_longitude_double = gps_parse_coordinate(pch,gps_longitude,sizeof(gps_longitude));
+            pch = strtok(NULL, ","); // E/W
+            if(pch!=NULL && strlen(pch)<sizeof(gps_e_w))
+            {
+                strcpy(gps_e_w,pch);
+                if(gps_e_w[0] == 'W')
+                    gps_longitude_double*=-1;
+            }
+            gps_compute_locator(gps_latitude_double,gps_longitude_double);
+            strtok(NULL, ","); // Fix
+
+            pch = strtok(NULL, ",");
+            num_sats = pch != NULL ? atoi(pch) : 0; // Num sats used
+
+            pch = strtok(NULL, ","); // HDOP
+            if(pch!=NULL && strlen(pch)<sizeof(gps_hdop))
+            {
+                strcpy(gps_hdop,pch);
+            }
+
+            pch = strtok(NULL, ",");
+            gps_msl_altitude = pch != NULL ? atof(pch) : 0.0; // MSL Elevation
+            strtok(NULL, ","); // Unit
+            pch = strtok(NULL, ",");
+            gps_geoid_separation = pch != NULL ? atof(pch) : 0.0; // Geoid Separation
+            // strtok(NULL, ","); // Unit
+
+            gga_frames++;
         }
-        pch = strtok(NULL, ","); // Longitude
-        gps_longitude_double = gps_parse_coordinate(pch,gps_longitude,sizeof(gps_longitude));
-        pch = strtok(NULL, ","); // E/W
-        if(strlen(pch)<sizeof(gps_e_w))
-        {
-            strcpy(gps_e_w,pch);
-            if(gps_e_w[0] == 'W')
-                gps_longitude_double*=-1;
-        }
-        gps_compute_locator(gps_latitude_double,gps_longitude_double);
-        strtok(NULL, ","); // Fix
-
-        num_sats = atoi(strtok(NULL, ",")); // Num sats used
-
-        pch = strtok(NULL, ","); // HDOP
-        if(strlen(pch)<sizeof(gps_hdop))
-        {
-            strcpy(gps_hdop,pch);
-        }
-        
-        gps_msl_altitude = atof(strtok(NULL, ",")); // MSL Elevation
-        strtok(NULL, ","); // Unit
-        gps_geoid_separation = atof(strtok(NULL, ",")); // Geoid Separation
-        // strtok(NULL, ","); // Unit
-
-        gga_frames++;
     } 
     else if (strstr(line, "RMC") == line+3) 
     {
@@ -417,7 +424,7 @@ void gps_parse(char* line)
         pch = strtok(NULL, ","); // Orientation
         pch = strtok(NULL, ","); // Date
 
-        if(strlen(pch)>=6)
+        if(pch!=NULL && strlen(pch)>=6)
         {   // Ignore empty dates
             char day0;
             char day1;
@@ -589,10 +596,10 @@ void gps_read()
 {
     send_size = 0;
     uint8_t c;
-    while (fifo_read(&fifo_buffer_gps, &c)) {
+    while (send_size < SEND_BUFFER_SIZE && fifo_read(&fifo_buffer_gps, &c)) {
         gps_line[gps_line_len++] = c;
         send_buf[send_size++]    = c;
-        if (c == '\n') {
+        if (c == '\n' && gps_line_len < MAX_GPS_LINE) {
             gps_line[gps_line_len] = '\0';
             gps_parse(gps_line);
             gps_line_len = 0;
@@ -612,7 +619,7 @@ void gps_read()
     }
 
     send_size = 0;
-    while (fifo_read(&fifo_buffer_comm, &c)) {
+    while (send_size < SEND_BUFFER_SIZE && fifo_read(&fifo_buffer_comm, &c)) {
         send_buf[send_size++] = c;
     }
     
