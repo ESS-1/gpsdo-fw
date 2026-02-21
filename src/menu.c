@@ -235,7 +235,7 @@ void menu_set_correction_algorithm(correction_algo_type algo)
 
 void menu_set_current_menu(uint8_t current_menu)
 {
-    if (current_menu > 0 && current_menu < SCREEN_MAX) {
+    if (current_menu < SCREEN_MAX) {
         current_menu_screen = current_menu;
     }
 }
@@ -315,6 +315,7 @@ static void add_trend_value(uint32_t value)
     }
     else
     {
+        // TODO: Should we always increment 'ppb_trend_size', or only when not wrapping around?
         ppb_trend_size++;
     }
 }
@@ -486,12 +487,10 @@ static void menu_draw()
                     break;
                 case SCREEN_TREND_AUTO_V:
                     LCD_Puts(1, 0, menu_level == 1 ? "Auto-V:":"Auto-V?");
-                    LCD_Puts(0, 1, "        ");
                     LCD_Puts(0, 1, trend_auto_v ? "      ON" : "     OFF");
                     break;
                 case SCREEN_TREND_AUTO_H:
                     LCD_Puts(1, 0, menu_level == 1 ? "Auto-H:":"Auto-H?");
-                    LCD_Puts(0, 1, "        ");
                     LCD_Puts(0, 1, trend_auto_h ? "      ON" : "     OFF");
                     break;
                 case SCREEN_TREND_V_SCALE:
