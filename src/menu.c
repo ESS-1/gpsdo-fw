@@ -22,7 +22,7 @@
 #define BOOT_MENU_SAVE_TIME     3*1000
 
 // Firmware version tag
-#define FIRMWARE_VERSION        "v0.1.17"
+#define FIRMWARE_VERSION        "0.1.17"
 
 volatile uint32_t rotary_down_time      = 0;
 volatile uint32_t rotary_up_time        = 0;
@@ -874,12 +874,14 @@ static void menu_draw()
         break;
     case SCREEN_SAVE_CONFIG:
         //  Save configuration screen
-        LCD_Puts(1, 0,  " Save  ");
-        LCD_Puts(0, 1, " EEPROM ");
+        LCD_Puts(1, 0,  "Save   ");
+        LCD_Puts(0, 1, "Settings");
         break;
     case SCREEN_VERSION:
         LCD_Puts(1, 0, "Vers.:");
-        LCD_Puts(0, 1, FIRMWARE_VERSION);
+        // Add "/S" (Autosave feature enabled") or "/N" (no autosave)
+        snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%s/%s", FIRMWARE_VERSION, EEPROM_AUTO_SAVE ? "S" : "N");
+        LCD_Puts(0, 1, screen_buffer);
         break;
     }
 }
