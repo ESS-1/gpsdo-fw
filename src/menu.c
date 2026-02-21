@@ -29,7 +29,6 @@ volatile uint32_t rotary_up_time        = 0;
 volatile bool     rotary_press_detected = 0;
 
 
-
 bool rotary_is_down() { return rotary_down_time > rotary_up_time && (HAL_GetTick() - rotary_down_time) > DEBOUNCE_TIME; }
 
 bool rotary_get_click()
@@ -240,10 +239,20 @@ void menu_set_current_menu(uint8_t current_menu)
     }
 }
 
+void save_config()
+{
+    if (!EE_Write())
+    {
+        // Display EEPROM write error
+        LCD_Puts(0, 1, "EE FAIL!");
+        HAL_Delay(250);
+    }
+}
+
 void on_config_changed()
 {
 #if EEPROM_AUTO_SAVE
-    EE_Write();
+    save_config();
 #endif
 }
 
@@ -639,10 +648,18 @@ static void menu_draw()
         break;
     case SCREEN_PWM:
         // Screen with current PPM
-        LCD_Puts(1, 0, "PWM:   ");
-        LCD_Puts(0, 1, "        ");
-        snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", TIM1->CCR2);
-        LCD_Puts(0, 1, screen_buffer);
+        if(menu_level == 0)
+        {
+            LCD_Puts(1, 0, "PWM:   ");
+            LCD_Puts(0, 1, "        ");
+            snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", TIM1->CCR2);
+            LCD_Puts(0, 1, screen_buffer);
+        }
+        else
+        {
+            LCD_Puts(0, 0, " PRESS  ");
+            LCD_Puts(0, 1, EEPROM_AUTO_SAVE ? "TO SAVE " : " TO SET ");
+        }
         break;
     case SCREEN_GPS:
         if(menu_level == 0)
@@ -680,8 +697,8 @@ static void menu_draw()
                     double gps_latitude_double_abs = gps_latitude_double;
                     if (gps_latitude_double < 0.0)
                     {
-                            gps_latitude_double_abs *= -1.0;
-                            fmt = "-%d.%d";
+                        gps_latitude_double_abs *= -1.0;
+                        fmt = "-%d.%d";
                     }
                     double coord_int = floor(gps_latitude_double_abs);
                     double coord_frac = (gps_latitude_double_abs - coord_int)*1000000;
@@ -697,8 +714,8 @@ static void menu_draw()
                     double gps_longitude_double_abs = gps_longitude_double;
                     if (gps_longitude_double < 0.0)
                     {
-                            gps_longitude_double_abs *= -1.0;
-                            fmt = "-%d.%d";
+                        gps_longitude_double_abs *= -1.0;
+                        fmt = "-%d.%d";
                     }
                     double coord_int = floor(gps_longitude_double_abs);
                     double coord_frac = (gps_longitude_double_abs - coord_int)*1000000;
@@ -874,14 +891,33 @@ static void menu_draw()
         break;
     case SCREEN_SAVE_CONFIG:
         //  Save configuration screen
-        LCD_Puts(1, 0,  "Save   ");
-        LCD_Puts(0, 1, "Settings");
+        if(menu_level == 0)
+        {
+            LCD_Puts(1, 0,  "Save   ");
+            LCD_Puts(0, 1, "Settings");
+        }
+        else
+        {
+            LCD_Puts(0, 0, " PRESS  ");
+            LCD_Puts(0, 1, "TO SAVE ");
+        }
         break;
     case SCREEN_VERSION:
-        LCD_Puts(1, 0, "Vers.:");
-        // Add "/S" (Autosave feature enabled") or "/N" (no autosave)
-        snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%s/%s", FIRMWARE_VERSION, EEPROM_AUTO_SAVE ? "S" : "N");
-        LCD_Puts(0, 1, screen_buffer);
+        if(menu_level == 0)
+        {
+            LCD_Puts(1, 0, "Vers.:");
+            // Add "/S" (Autosave feature enabled") or "/N" (no autosave)
+            snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%s/%s", FIRMWARE_VERSION, EEPROM_AUTO_SAVE ? "S" : "N");
+            LCD_Puts(0, 1, screen_buffer);
+        }
+        else
+        {
+            // Print MCU info
+            snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "MCU %dK", *(uint16_t*)FLASHSIZE_BASE);
+            LCD_Puts(0, 0, screen_buffer);
+            snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%08lX", DBGMCU->IDCODE);
+            LCD_Puts(0, 1, screen_buffer);
+        }
         break;
     }
 }
@@ -944,6 +980,7 @@ void menu_run()
                     break;
                 case SCREEN_PWM:
                 case SCREEN_SAVE_CONFIG:
+                case SCREEN_VERSION:
                     // Go back to main menu
                     LCD_Clear();
                     menu_force_redraw();
@@ -1252,6 +1289,7 @@ void menu_run()
                 case SCREEN_CONTRAST:
                 case SCREEN_PPS:
                 case SCREEN_SAVE_CONFIG:
+                case SCREEN_VERSION:
                     menu_level = 1;
                     LCD_Clear();
                     break;
@@ -1359,7 +1397,7 @@ void menu_run()
                     }
                     break;
                 case SCREEN_SAVE_CONFIG:
-                    EE_Write();
+                    save_config();
                     menu_level = 0;
                     break;
                 default:
@@ -1584,20 +1622,7 @@ void menu_run()
             update_trend = false;
         }
 
-        if (menu_level > 0 && current_menu_screen == SCREEN_PWM)
-        {
-            LCD_Puts(0, 0, " PRESS  ");
-            LCD_Puts(0, 1, EEPROM_AUTO_SAVE ? "TO SAVE " : " TO SET ");
-        }
-        else if (menu_level > 0 && (current_menu_screen == SCREEN_SAVE_CONFIG))
-        {
-            LCD_Puts(0, 0, " PRESS  ");
-            LCD_Puts(0, 1, "TO SAVE ");
-        }
-        else
-        {
-            menu_draw();
-        }
+        menu_draw();
 
         // Check if we need resync or PWM save
         if(frequency_is_stable(0))
