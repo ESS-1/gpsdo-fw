@@ -38,8 +38,8 @@ void gpsdo(void)
             case OCXO_MODEL_ISOTEMP:
             case OCXO_MODEL_UNKNOWN:
             default:
-                startingPwm = 25000;
-                break;   
+                startingPwm = 26214; // 2V - typical center value of OCXO control voltage
+                break;
         }
     }
     else {
