@@ -453,7 +453,7 @@ void gps_parse(char* line)
                 // Quick and dirty poor man's gregorian calendar handling
                 bool is_leap_year = ((year % 4) == 0);
                 if((day > (is_leap_year ? 29 : 28)) && month == 2)
-                {   // Case of february
+                {   // Case of February
                     day = 1;
                     month = 3;
                 }
@@ -461,15 +461,11 @@ void gps_parse(char* line)
                 {   // Need to change year
                     day = 1;
                     month = 1;
-                    year += 1; 
+                    year += 1;
                 }
-                else if (day > 31 && (month == 1 || month == 3 || month == 5 || month == 7 || month == 8 || month == 10))
-                {   // Other month with 31 days
-                    day = 1;
-                    month++;
-                }
-                else if(day > 30)
-                {   // Months with 30 days
+                else if( (day > 31 && (month == 1 || month == 3 || month == 5 || month == 7 || month == 8 || month == 10)) || // Other month with 31 days
+                         (day > 30 && (month == 4 || month == 6 || month == 9 || month == 11)) )                              // Other month with 30 days
+                {
                     day = 1;
                     month++;
                 }
