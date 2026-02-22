@@ -391,8 +391,8 @@ void gps_parse(char* line)
             gps_compute_locator(gps_latitude_double,gps_longitude_double);
             strsep(&line, ","); // Fix
 
-            pch = strsep(&line, ",");
-            num_sats = pch != NULL ? atoi(pch) : 0; // Num sats used
+            pch = strsep(&line, ","); // Num sats used
+            num_sats = pch != NULL ? atoi(pch) : 0;
 
             pch = strsep(&line, ","); // HDOP
             if(pch!=NULL && strlen(pch)<sizeof(gps_hdop))
@@ -400,11 +400,11 @@ void gps_parse(char* line)
                 strcpy(gps_hdop,pch);
             }
 
-            pch = strsep(&line, ",");
-            gps_msl_altitude = pch != NULL ? atof(pch) : 0.0; // MSL Elevation
+            pch = strsep(&line, ","); // MSL Elevation
+            gps_msl_altitude = pch != NULL ? atof(pch) : 0.0;
             strsep(&line, ","); // Unit
-            pch = strsep(&line, ",");
-            gps_geoid_separation = pch != NULL ? atof(pch) : 0.0; // Geoid Separation
+            pch = strsep(&line, ","); // Geoid Separation
+            gps_geoid_separation = pch != NULL ? atof(pch) : 0.0;
             // strsep(&line, ","); // Unit
 
             gga_frames++;
