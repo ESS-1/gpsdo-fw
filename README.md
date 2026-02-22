@@ -1,14 +1,18 @@
-This is a modified version of [Fredzo's GPSDO firmware](https://github.com/fredzo/gpsdo-fw/) that minimizes MCU flash writes. In this firmware, settings are written to the microcontroller's flash memory only when the user manually selects this action via the device menu.
-
 ## Alternative firmware for the BH3SAP GPSDO
 
 This is an alternative firmware for the BH3SAP GPSDO sold on various platforms.
 
 ![Image of the GPSDO running this firmware](./doc/gpsdo.jpg)
 
+### Firmware Variants
+
+There are two firmware variants:
+- `AutoSave` – settings are saved to flash memory automatically.
+- `NoAutoSave` – settings are stored in RAM and are not saved automatically, minimizing MCU flash writes. This variant provides a `Save Settings` menu item that allows the user to store the settings permanently in flash memory.
+
 ### Usage
 
-Power on the device with GPS antenna connected. Wait a long while for the PPB to reach close to zero. When the PPB is stabilized close to zero, the GPSDO is considered locked (padlock icon) and it will automatically apply the current PWM value to the settings. To store it permanently in flash, use the `Save EEPROM` menu option.
+Power on the device with GPS antenna connected. Wait a long while for the PPB to reach close to zero. When the PPB is stabilized close to zero, the GPSDO is considered locked (padlock icon) and it will automatically apply the current PWM value to the settings.
 
 This PWM value will then be used on the next boot as a startup value.
 
@@ -49,7 +53,7 @@ Here is the menu tree :
       - For `Eric-H` algorithm, the default correction factor is 300, increasing it will slow down the PWM adjustment
       - For `Dankar` and `Fredzo` algorithms, the default correction factor is 10, a value bellow 10 will slow down PWM adjustment and a value above 10 will speed it up
   - `Millis`: the gap in milliseconds between GPS PPS reference and MCU calculated PPS (should be 0)
-  - `PWM auto set`: press to set the PWM auto-set status (when set to `ON`, PWM value will be applied to the settings the first time PPB mean value reaches 0)
+  - `PWM auto store`: press to set the PWM auto-store status (when set to `ON`, PWM value will be applied to the settings the first time PPB mean value reaches 0)
   - `PPS auto resync`: press to set the PWM auto-sync status (when set to `ON`, MCU Controlled PPS output will automatically be resynced to GPS PPS Output the first time PPB mean value reaches 0)
   - `PPB Lock Threshold`: press to set the PPB threshold value above which GPSDO is considered locked
   - `Exit`: press to exit the PPB sub-menu
@@ -79,11 +83,11 @@ Here is the menu tree :
   - `Shift milliseconds`: the shift between MCU PPS output and GPS PPS output in milliseconds
   - `Sync Count`: the number of times the MCU PPS output has been re-synced to the GPS PPS output
   - `Sync.`: press to set the synchronization activation status (when set to `ON` the MCU PPS Output will be resynced if it deviates from the GPS PPS output of more than `threshold` clock cycles during more than `delay` seconds)
-  - `Delay`: press to set the MCU PPS output synchronisation delay (in seconds)
-  - `Threshold`: press to set the MCU PPS output synchronisation threshold (in clock cycles)
+  - `Delay`: press to set the MCU PPS output synchronization delay (in seconds)
+  - `Threshold`: press to set the MCU PPS output synchronization threshold (in clock cycles)
   - `Force Sync`: press to force the MCU Controlled PPS output to be synched with the GPS PPS output
   - `Exit`: press to exit the PPS sub-menu
-- `Save EEPROM`: press the encoder twice to store the current settings permanently in flash
+- `Save Settings`: press the encoder twice to store the current settings permanently in flash memory. This menu item is available only in the `NoAutoSave` firmware variant.
 - `Version Screen` : shows the current firmware version
 
 #### Main screen
@@ -101,7 +105,8 @@ Trend menu gives access to trend navigation, and scale settings:
 ![Trend Menu](./doc/trend-menu.png)
 
 #### Boot Screen
-After boot, the GPSDO will display the `Main Screen`.
+After boot, the GPSDO with `AutoSave` firmware will automatically display the last used screen among `Main Screen`, `Date Screen`, `Date Time Screen`, and `Trend Screen`.
+The `NoAutoSave` firmware always starts with the `Main Screen`.
 
 #### GPSDO Lock
 GPSDO is considered locked when the mean PPB value (running average over 128 seconds) is above the `PPB Lock Threshold` setting in `PPB` menu.
@@ -124,10 +129,10 @@ To flash this alternative firmware in your GPSDO you will need :
 
 First you need to open it to access the bluepill board inside it.
 
-To do so, you only need to remove the 4 screews at the top left and right sides of the front and bacck pannels of your GPSDO:
+To do so, you only need to remove the 4 screws at the top left and right sides of the front and back panels of your GPSDO:
 ![Open Case](./doc/open-case.jpg)
 
-You now have access to the bluepill board, but you need to bend the 4 pins of the programmation header to the top so that you can plug Dupont wires to that header:
+You now have access to the bluepill board, but you need to bend the 4 pins of the programing interface header to the top so that you can plug Dupont wires to that header:
 ![Bend pins](./doc/st-link-connection.jpg)
 
 You can now launch the [STM32CubeProgrammer software](https://www.st.com/en/development-tools/stm32cubeprog.html) click `Connect`, click `Open File`, select the `gpsdo.bin` file downloaded in the [Release section](./../../releases) and hit `Download` in STM32CubeProgrammer:
@@ -176,8 +181,8 @@ The dedicated `PPS` menu allows monitoring the deviation between the MCU control
   - The `Shift milliseconds` entry shows the shift between MCU PPS output and GPS PPS output in milliseconds
   - The `Sync Count` entry shows the number of times the MCU PPS output has been re-synced to the GPS PPS output
   - The `Sync.` entry sets the synchronization activation status (when set to `ON` the MCU PPS Output will be resynced if it deviates from the GPS PPS output of more than `threshold` clock cycles during more than `delay` seconds)
-  - The `Delay` entry sets the MCU PPS output synchronisation delay (in seconds)
-  - The `Threshold` entry sets the MCU PPS output synchronisation threshold (in clock cycles)
+  - The `Delay` entry sets the MCU PPS output synchronization delay (in seconds)
+  - The `Threshold` entry sets the MCU PPS output synchronization threshold (in clock cycles)
   - The `Force Sync` entry can be used to force the MCU Controlled PPS output to be synched with the GPS PPS output
 
 ![PPS Out](./doc/pps-output.jpg)
@@ -192,7 +197,7 @@ These two pins and ground can be routed to an external header on the backside of
 
 #### GPS Lock and GPSDO Lock Outputs
 
-Pins `PA0` and `PA1` can be used to drive leds showing GPS Lock and GPSDO Lock status.
+Pins `PA0` and `PA1` can be used to drive LEDs showing GPS Lock and GPSDO Lock status.
 
 `PA0` will be pulled low as soon as the GPS module is locked and `PA1` will be pulled low when PPB mean value goes above the set threshold.
 
@@ -200,7 +205,7 @@ Pins `PA0` and `PA1` can be used to drive leds showing GPS Lock and GPSDO Lock s
 
 ### Theory of operation
 
-Most of this is based on reverse engineering the circuit, and which pins certain things were connected to. The base of the device is a [Bluepill board](https://os.mbed.com/users/hudakz/code/STM32F103C8T6_Hello/) with a STM32F103C8T6 MCU. The oscillator is an Isotemp [143-141 OCXO](./doc/OCXO-143-Series.pdf) which can be trimmed with a DC voltage. The output of the oscillator is buffered by a OPA692 and has an output resistor of 51 Ohms. The GPS differs between models, some have an [ATGM336H](./doc/2501061039_ZHONGKEWEI-ATGM336H-5N31_C90770.pdf) and others a u-blox Neo-6M (perhaps not authentic) ; both are communicating with Bluepill board trhough UART3 in [NMEA protocol](./doc/NMEA_Reference_Manual-Rev2.1-Dec07.pdf). The 1PPS output from the GPS is not buffered, so it has very high output impedande.
+Most of this is based on reverse engineering the circuit, and which pins certain things were connected to. The base of the device is a [Bluepill board](https://os.mbed.com/users/hudakz/code/STM32F103C8T6_Hello/) with a STM32F103C8T6 MCU. The oscillator is an Isotemp [143-141 OCXO](./doc/OCXO-143-Series.pdf) which can be trimmed with a DC voltage. The output of the oscillator is buffered by a OPA692 and has an output resistor of 51 Ohms. The GPS differs between models, some have an [ATGM336H](./doc/2501061039_ZHONGKEWEI-ATGM336H-5N31_C90770.pdf) and others a u-blox Neo-6M (perhaps not authentic); both are communicating with Bluepill board through UART3 in [NMEA protocol](./doc/NMEA_Reference_Manual-Rev2.1-Dec07.pdf). The 1PPS output from the GPS is not buffered, so it has very high output impedance.
 
 * The OCXO is connected to the OSC_IN on the Bluepill board. The MCU is configured to be driven by an oscillator, so the crystal mounted on the Bluepill does nothing.
 * The PPS is connected to the CH1 input on TIM1.
