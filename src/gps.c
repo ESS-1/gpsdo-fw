@@ -54,7 +54,7 @@ typedef enum { FIFO_WRITE, FIFO_READ } fifo_operation;
 volatile fifo_buffer_t fifo_buffer_gps  = { 0 };
 volatile fifo_buffer_t fifo_buffer_comm = { 0 };
 
-size_t fifo_next(volatile const fifo_buffer_t* fifo, fifo_operation op)
+static size_t fifo_next(volatile const fifo_buffer_t* fifo, fifo_operation op)
 {
     if (op == FIFO_WRITE) {
         return (fifo->write + 1) % FIFO_BUFFER_SIZE;
@@ -105,7 +105,7 @@ static void gps_start_comm_rx()
 }
 
 // ATGM336H set baudrate commands
-static const char* atgm336h_baudcommands[] = {
+static const char * const atgm336h_baudcommands[] = {
     "$PCAS01,1*1D\r\n",     // 9600bps
     "$PCAS01,2*1E\r\n",     // 19200bps
     "$PCAS01,3*1F\r\n",     // 38400bps
@@ -547,7 +547,7 @@ void gps_parse(char* line)
             }
             gps_date[8] = '\0';
         }
-    } 
+    }
     else if ((gps_model == GPS_MODEL_UNKNOWN) && strstr(line, "TXT") == line+3) 
     {
         bool model_found = false;
@@ -592,6 +592,7 @@ void gps_read()
 {
     send_size = 0;
     uint8_t c;
+
     while (send_size < SEND_BUFFER_SIZE && fifo_read(&fifo_buffer_gps, &c)) {
         gps_line[gps_line_len++] = c;
         send_buf[send_size++]    = c;
@@ -610,7 +611,7 @@ void gps_read()
     if (send_size) {
         while (huart2.gState != HAL_UART_STATE_READY)
             ;
-        memcpy(gps_send_buf, send_buf, SEND_BUFFER_SIZE);
+        memcpy(gps_send_buf, send_buf, send_size);
         HAL_UART_Transmit_IT(&huart2, gps_send_buf, send_size);
     }
 
@@ -618,12 +619,11 @@ void gps_read()
     while (send_size < SEND_BUFFER_SIZE && fifo_read(&fifo_buffer_comm, &c)) {
         send_buf[send_size++] = c;
     }
-    
+
     if (send_size) {
         while (huart3.gState != HAL_UART_STATE_READY)
             ;
-        memcpy(comm_send_buf, send_buf, SEND_BUFFER_SIZE);
+        memcpy(comm_send_buf, send_buf, send_size);
         HAL_UART_Transmit_IT(&huart3, comm_send_buf, send_size);
     }
-    
 }

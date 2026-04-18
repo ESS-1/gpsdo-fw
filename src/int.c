@@ -205,7 +205,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
         // Ignore first capture and do a sanity check on elapsed time since previous PPS
         if (!first && current_tick - last_pps < 1300) {
             // See if we need to resync MCU PPS Out
-            pps_error = (capture - pps_capture + /*(TIM1->ARR + 1)*/ 65536 * pps_overflows) - 70000000 /*HAL_RCC_GetHCLKFreq()*/;
+            pps_error = (capture - pps_capture + /*(TIM1->ARR + 1)*/ 65536 * pps_overflows) - TARGET_FREQ /*HAL_RCC_GetHCLKFreq()*/;
             if(pps_sync_on && (sync_pps_out ||(abs(pps_error) >= pps_sync_threshold)))
             {
                 pps_shift_count++;

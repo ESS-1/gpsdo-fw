@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define TARGET_FREQ 70000000
 #define CIRCULAR_BUFFER_LEN 128
 
 typedef struct circbuf_t {

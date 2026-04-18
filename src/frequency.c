@@ -46,7 +46,7 @@ int32_t frequency_get_error()
     if (!frequency) {
         return 0;
     } else {
-        int32_t error = frequency - 70000000 /*HAL_RCC_GetHCLKFreq()*/;
+        int32_t error = frequency - TARGET_FREQ /*HAL_RCC_GetHCLKFreq()*/;
         // Filter out obvious glitches, the OCXO should never be this far from the target frequency
         if (error > 2000 || error < -2000) {
             return 0;
