@@ -32,9 +32,10 @@ extern int8_t   gps_time_offset;
 extern int8_t   gps_day_offset;
 // Last tiem a frame was received
 extern uint32_t last_frame_receive_time;
+extern uint32_t gps_invalid_frames;
 
 void gps_start_it();
-void gps_parse(char* line);
+void gps_process(char* line);
 void gps_read();
 
 int  gps_configure_module_uart(uint32_t baudrate);

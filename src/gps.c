@@ -39,6 +39,7 @@ date_format     gps_date_format = DATE_FORMAT_UTC;
 
 // Store last frame receive time
 uint32_t last_frame_receive_time = 0;
+uint32_t gps_invalid_frames = 0;
 
 
 #define FIFO_BUFFER_SIZE 256
@@ -572,12 +573,55 @@ void gps_parse(char* line)
             on_config_changed();
         }
     }
+}
+
+bool gps_is_valid(const char* line)
+{
+    // Check the basic structure
+    if (line == NULL || line[0] != '$') {
+        return false;
+    }
+
+    const char *ptr = line + 1; // Skip the '$' sign
+    unsigned char calculated_checksum = 0;
+
+    // XOR all characters until '*' is found
+    while (*ptr != '*' && *ptr != '\0') {
+        calculated_checksum ^= (unsigned char)*ptr;
+        ++ptr;
+    }
+
+    // If we reached the end of the string without finding '*'
+    if (*ptr == '\0') {
+        return false;
+    }
+
+    // Read the expected checksum from the string (after '*')
+    ++ptr; // Skip the '*' sign
+
+    // Convert hex string to a numeric value
+    unsigned long received_checksum = strtoul(ptr, NULL, 16);
+
+    // Compare the calculated checksum with the received one
+    return (unsigned char)received_checksum == calculated_checksum;
+}
+
+void gps_process(char* line)
+{
+    // Validate and parse the frame
+    if (gps_is_valid(line)) {
+        gps_parse(line);
+    } else {
+        ++gps_invalid_frames;
+    }
+
     // Store last received frame for debug purpose
     if(strlen(line)>(sizeof(gps_last_frame)+3))
     {
         strncpy(gps_last_frame,line+3,sizeof(gps_last_frame)-1);
         gps_last_frame_changed = true;
     }
+
     // Get reception time
     last_frame_receive_time = HAL_GetTick();
 }
@@ -598,7 +642,7 @@ void gps_read()
         send_buf[send_size++]    = c;
         if (c == '\n' && gps_line_len < MAX_GPS_LINE) {
             gps_line[gps_line_len] = '\0';
-            gps_parse(gps_line);
+            gps_process(gps_line);
             gps_line_len = 0;
             continue;
         }
