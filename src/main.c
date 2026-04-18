@@ -117,7 +117,7 @@ void gpsdo(void)
     ppb_lock_threshold = ee_storage.ppb_lock_threshold;
     // Correction algorithm
     if (ee_storage.correction_algorithm == 0xff) {
-        ee_storage.correction_algorithm = CORRECTION_ALGO_ERIC_H;
+        ee_storage.correction_algorithm = CORRECTION_ALGO_ERIC_H_PLUS;
     }
     correction_algorithm = ee_storage.correction_algorithm;
     // Correction factor

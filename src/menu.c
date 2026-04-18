@@ -612,6 +612,9 @@ static void menu_draw()
                         case CORRECTION_ALGO_ERIC_H:
                             LCD_Puts(0, 1, "Eric H");
                             break;
+                        case CORRECTION_ALGO_ERIC_H_PLUS:
+                            LCD_Puts(0, 1, "Eric H+");
+                            break;
                         default:
                         case CORRECTION_ALGO_FREDZO:
                             LCD_Puts(0, 1, "Fredzo");
@@ -1135,8 +1138,8 @@ void menu_run()
                     break;
                 case SCREEN_PPB_ALGO:
                     { // Update algorithm
-                    displayed_correction_algorithm =  (displayed_correction_algorithm + encoder_increment) % (CORRECTION_ALGO_ERIC_H+1);
-                    if(displayed_correction_algorithm > CORRECTION_ALGO_ERIC_H) displayed_correction_algorithm = CORRECTION_ALGO_ERIC_H;
+                    displayed_correction_algorithm =  (displayed_correction_algorithm + encoder_increment) % (CORRECTION_ALGO_ERIC_H_PLUS+1);
+                    if(displayed_correction_algorithm > CORRECTION_ALGO_ERIC_H_PLUS) displayed_correction_algorithm = CORRECTION_ALGO_ERIC_H_PLUS;
                     LCD_Clear();
                     menu_force_redraw();
                     }

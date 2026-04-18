@@ -161,34 +161,49 @@ void fredzo_correction_algo(int32_t current_error)
     }
 }
 
-void eric_h_correction_algo()
+void eric_h_correction_algo(bool overshootSuppression, int32_t current_error)
 {
+    const float  ema_a      = 0.33f;
+    static float ema_err_hz = 0.0f;
+
     int32_t current_ppb = frequency_get_ppb();
     int32_t adjustment = 0;
 
-    if (    abs(current_ppb) > 0
-            && current_ppb != 0xFFFF)
+    if (current_ppb != 0xFFFF)
     {
-        const int factor = correction_factor;
-        int interval = 1;
+        ema_err_hz = overshootSuppression
+            ? ema_a * current_error + ((1 - ema_a) * ema_err_hz)
+            : 0.0f;
 
-        // Calculate adjustment.
-        adjustment = -current_ppb / factor;
-        if (adjustment == 0)
+        if (abs(current_ppb) > 0)
         {
-            // Adjustment is less than 1 per interval.
-            adjustment = current_ppb > 0 ? -1 : 1;
-            interval = factor / (abs(current_ppb) % factor);
-        }
+            const int factor = correction_factor;
+            int interval = 1;
 
-        // Apply adjustment.
-        if (device_uptime % interval == 0)
-        {
-            apply_adjustment(adjustment);
-        }
-        else
-        {
-            adjustment = 0;
+            // Calculate adjustment.
+            adjustment = -current_ppb / factor;
+            if (adjustment == 0)
+            {
+                // Adjustment is less than 1 per interval.
+                adjustment = current_ppb > 0 ? -1 : 1;
+                interval = factor / (abs(current_ppb) % factor);
+            }
+
+            if (overshootSuppression &&
+                (ema_err_hz == 0 || ((ema_err_hz > 0) != (current_ppb > 0))))
+            {
+                adjustment = 0;
+            }
+
+            // Apply adjustment.
+            if (device_uptime % interval == 0)
+            {
+                apply_adjustment(adjustment);
+            }
+            else
+            {
+                adjustment = 0;
+            }
         }
     }
     ppb_correction = adjustment;
@@ -234,13 +249,17 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
                 // - Dankar (original code from Dankar + added correction factor defaulted to values that match the original code)
                 // - Fredzo (same logic as dankar's algo, but with faster correction when frequency error is >= 2)
                 // - Eric-H (algo based on ppm value rather than frequency error (uses 128s rolling average rather than instant values))
+                // - Eric-H+ (Eric-H algorithm modified for control loop overshoot suppression)
                 switch(correction_algorithm)
                 {
                     case CORRECTION_ALGO_DANKAR:
                         dankar_correction_algo(current_error);
                         break;
                     case CORRECTION_ALGO_ERIC_H:
-                        eric_h_correction_algo();
+                        eric_h_correction_algo(false, current_error);
+                        break;
+                    case CORRECTION_ALGO_ERIC_H_PLUS:
+                        eric_h_correction_algo(true, current_error);
                         break;
                     default:
                     case CORRECTION_ALGO_FREDZO:
@@ -296,6 +315,7 @@ uint32_t get_default_correction_factor(correction_algo_type algo)
             return 10;
             break;
         case CORRECTION_ALGO_ERIC_H:
+        case CORRECTION_ALGO_ERIC_H_PLUS:
             return 300;
             break;
         default:
@@ -318,6 +338,7 @@ uint32_t increment_correction_factor_value(correction_algo_type algo, uint32_t v
             incFactor = 1;
             break;
         case CORRECTION_ALGO_ERIC_H:
+        case CORRECTION_ALGO_ERIC_H_PLUS:
             minVal = 10;
             maxVal = 600;
             incFactor = 10;

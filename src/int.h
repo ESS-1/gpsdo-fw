@@ -35,7 +35,7 @@ extern          bool     ppb_lock_status;
 typedef enum { OCXO_MODEL_ISOTEMP, OCXO_MODEL_OX256B, OCXO_MODEL_UNKNOWN } ocxo_model_type;
 extern ocxo_model_type ocxo_model;
 // Correction algorithms
-typedef enum { CORRECTION_ALGO_DANKAR, CORRECTION_ALGO_FREDZO, CORRECTION_ALGO_ERIC_H } correction_algo_type;
+typedef enum { CORRECTION_ALGO_DANKAR, CORRECTION_ALGO_FREDZO, CORRECTION_ALGO_ERIC_H, CORRECTION_ALGO_ERIC_H_PLUS } correction_algo_type;
 extern correction_algo_type correction_algorithm;
 extern uint32_t correction_factor;
 extern uint32_t warmup_time_seconds;

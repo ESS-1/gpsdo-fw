@@ -45,12 +45,13 @@ Here is the menu tree :
   - `PWM`: the current PWM value
   - `OCXO model`: press to set the OCXO model installed on your GPSDO to ISOTEMP or OX256B (this will adjust warmup time and default PWM value)
   - `Warm-up duration`: press to set the warmup duration is seconds (time to wait after boot to let the OCXO warm-up before starting PWM correction)
-  - `Algorithm selection`: press to select the algorithm used to adjust PWM value ; there are 3 available algorithms :
-      - `Eric-H` (default): Based on ppm value rather than frequency error (uses 128s rolling average rather than instant values)
+  - `Algorithm selection`: press to select the algorithm used to adjust PWM value ; there are 4 available algorithms :
+      - `Eric-H`: Based on ppm value rather than frequency error (uses 128s rolling average rather than instant values)
+      - `Eric-H+`(default): Eric-H algorithm modified for control loop overshoot suppression
       - `Dankar`: Original code from Dankar using square value of instant frequency error as PWM correction
       - `Fredzo`: Same logic as dankar's, but with faster correction when frequency error is >= 2
   - `Correction factor`: press to adjust the responsiveness of the correction algorithm :
-      - For `Eric-H` algorithm, the default correction factor is 300, increasing it will slow down the PWM adjustment
+      - For `Eric-H` and `Eric-H+` algorithms, the default correction factor is 300, increasing it will slow down the PWM adjustment
       - For `Dankar` and `Fredzo` algorithms, the default correction factor is 10, a value bellow 10 will slow down PWM adjustment and a value above 10 will speed it up
   - `Millis`: the gap in milliseconds between GPS PPS reference and MCU calculated PPS (should be 0)
   - `PWM auto store`: press to set the PWM auto-store status (when set to `ON`, PWM value will be applied to the settings the first time PPB mean value reaches 0)
