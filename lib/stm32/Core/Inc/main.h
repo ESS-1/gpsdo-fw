@@ -57,25 +57,24 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define LED1_Pin GPIO_PIN_13
-#define LED1_GPIO_Port GPIOC
 #define GPS_LOCK_OUTPUT_Pin GPIO_PIN_0
 #define GPS_LOCK_OUTPUT_GPIO_Port GPIOA
 #define PPB_LOCK_OUTPUT_Pin GPIO_PIN_1
 #define PPB_LOCK_OUTPUT_GPIO_Port GPIOA
-#define GPS_EXT_TX_Pin GPIO_PIN_2
-#define GPS_EXT_TX_GPIO_Port GPIOA
-#define GPS_EXT_RX_Pin GPIO_PIN_3
-#define GPS_EXT_RX_GPIO_Port GPIOA
-#define ROTARY_PRESS_Pin GPIO_PIN_5
-#define ROTARY_PRESS_GPIO_Port GPIOA
-#define ROTARY_PRESS_EXTI_IRQn EXTI9_5_IRQn
-#define ROTARY_A_Pin GPIO_PIN_6
-#define ROTARY_A_GPIO_Port GPIOA
-#define ROTARY_B_Pin GPIO_PIN_7
-#define ROTARY_B_GPIO_Port GPIOA
+#define LCD_CS_Pin GPIO_PIN_2
+#define LCD_CS_GPIO_Port GPIOA
+#define LCD_DC_Pin GPIO_PIN_3
+#define LCD_DC_GPIO_Port GPIOA
+#define LCD_RES_Pin GPIO_PIN_4
+#define LCD_RES_GPIO_Port GPIOA
+#define LCD_SCL_Pin GPIO_PIN_5
+#define LCD_SCL_GPIO_Port GPIOA
+#define LCD_SDA_Pin GPIO_PIN_7
+#define LCD_SDA_GPIO_Port GPIOA
 #define PPS_OUTPUT_Pin GPIO_PIN_1
 #define PPS_OUTPUT_GPIO_Port GPIOB
+#define LED1_Pin GPIO_PIN_2
+#define LED1_GPIO_Port GPIOB
 #define GPS_TX_Pin GPIO_PIN_10
 #define GPS_TX_GPIO_Port GPIOB
 #define GPS_RX_Pin GPIO_PIN_11
@@ -84,22 +83,21 @@ void Error_Handler(void);
 #define PPS_GPIO_Port GPIOA
 #define VCO_CONTROL_Pin GPIO_PIN_9
 #define VCO_CONTROL_GPIO_Port GPIOA
-#define LCD_CONTRAST_Pin GPIO_PIN_10
-#define LCD_CONTRAST_GPIO_Port GPIOA
-#define LCD_RW_Pin GPIO_PIN_3
-#define LCD_RW_GPIO_Port GPIOB
-#define LCD_D4_Pin GPIO_PIN_4
-#define LCD_D4_GPIO_Port GPIOB
-#define LCD_D5_Pin GPIO_PIN_5
-#define LCD_D5_GPIO_Port GPIOB
-#define LCD_D6_Pin GPIO_PIN_6
-#define LCD_D6_GPIO_Port GPIOB
-#define LCD_D7_Pin GPIO_PIN_7
-#define LCD_D7_GPIO_Port GPIOB
-#define LCD_EN_Pin GPIO_PIN_8
-#define LCD_EN_GPIO_Port GPIOB
-#define LCD_RS_Pin GPIO_PIN_9
-#define LCD_RS_GPIO_Port GPIOB
+#define LCD_BL_PWM_Pin GPIO_PIN_10
+#define LCD_BL_PWM_GPIO_Port GPIOA
+#define OCXO_EN_Pin GPIO_PIN_15
+#define OCXO_EN_GPIO_Port GPIOA
+#define ROTARY_PRESS_Pin GPIO_PIN_5
+#define ROTARY_PRESS_GPIO_Port GPIOB
+#define ROTARY_PRESS_EXTI_IRQn EXTI9_5_IRQn
+#define ROTARY_A_Pin GPIO_PIN_6
+#define ROTARY_A_GPIO_Port GPIOB
+#define ROTARY_B_Pin GPIO_PIN_7
+#define ROTARY_B_GPIO_Port GPIOB
+#define PLL_SCL_Pin GPIO_PIN_8
+#define PLL_SCL_GPIO_Port GPIOB
+#define PLL_SDA_Pin GPIO_PIN_9
+#define PLL_SDA_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
