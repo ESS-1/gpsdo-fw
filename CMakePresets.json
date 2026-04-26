@@ -11,102 +11,50 @@
             }
         },
         {
-            "name": "Debug-AutoSave",
+            "name": "Debug",
             "inherits": "default",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "EEPROM_AUTO_SAVE": "1"
+                "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
-            "name": "Debug-NoAutoSave",
+            "name": "RelWithDebInfo",
             "inherits": "default",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "EEPROM_AUTO_SAVE": "0"
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
             }
         },
         {
-            "name": "RelWithDebInfo-AutoSave",
+            "name": "Release",
             "inherits": "default",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-                "EEPROM_AUTO_SAVE": "1"
+                "CMAKE_BUILD_TYPE": "Release"
             }
         },
         {
-            "name": "RelWithDebInfo-NoAutoSave",
+            "name": "MinSizeRel",
             "inherits": "default",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-                "EEPROM_AUTO_SAVE": "0"
-            }
-        },
-        {
-            "name": "Release-AutoSave",
-            "inherits": "default",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "EEPROM_AUTO_SAVE": "1"
-            }
-        },
-        {
-            "name": "Release-NoAutoSave",
-            "inherits": "default",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "EEPROM_AUTO_SAVE": "0"
-            }
-        },
-        {
-            "name": "MinSizeRel-AutoSave",
-            "inherits": "default",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "MinSizeRel",
-                "EEPROM_AUTO_SAVE": "1"
-            }
-        },
-        {
-            "name": "MinSizeRel-NoAutoSave",
-            "inherits": "default",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "MinSizeRel",
-                "EEPROM_AUTO_SAVE": "0"
+                "CMAKE_BUILD_TYPE": "MinSizeRel"
             }
         }
     ],
     "buildPresets": [
         {
-            "name": "Debug-AutoSave",
-            "configurePreset": "Debug-AutoSave"
+            "name": "Debug",
+            "configurePreset": "Debug"
         },
         {
-            "name": "Debug-NoAutoSave",
-            "configurePreset": "Debug-NoAutoSave"
+            "name": "RelWithDebInfo",
+            "configurePreset": "RelWithDebInfo"
         },
         {
-            "name": "RelWithDebInfo-AutoSave",
-            "configurePreset": "RelWithDebInfo-AutoSave"
+            "name": "Release",
+            "configurePreset": "Release"
         },
         {
-            "name": "RelWithDebInfo-NoAutoSave",
-            "configurePreset": "RelWithDebInfo-NoAutoSave"
-        },
-        {
-            "name": "Release-AutoSave",
-            "configurePreset": "Release-AutoSave"
-        },
-        {
-            "name": "Release-NoAutoSave",
-            "configurePreset": "Release-NoAutoSave"
-        },
-        {
-            "name": "MinSizeRel-AutoSave",
-            "configurePreset": "MinSizeRel-AutoSave"
-        },
-        {
-            "name": "MinSizeRel-NoAutoSave",
-            "configurePreset": "MinSizeRel-NoAutoSave"
+            "name": "MinSizeRel",
+            "configurePreset": "MinSizeRel"
         }
     ]
 }

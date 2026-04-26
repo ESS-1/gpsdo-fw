@@ -13,10 +13,6 @@
 #include "int.h"
 #include "menu.h"
 
-#ifndef EEPROM_AUTO_SAVE
-#   error "EEPROM_AUTO_SAVE must be defined as 0 or 1"
-#endif
-
 /// All times in ms
 #define DEBOUNCE_TIME           50
 #define BOOT_MENU_SAVE_TIME     3*1000
@@ -95,10 +91,6 @@ static menu_ppb_screen current_menu_ppb_screen = SCREEN_PPB_MEAN;
 static menu_pps_screen current_menu_pps_screen = SCREEN_PPS_SHIFT;
 static uint8_t      menu_level          = 0;
 static uint32_t     last_encoder_value  = 0;
-
-#if EEPROM_AUTO_SAVE
-static uint32_t     last_menu_change    = 0;
-#endif
 
 static bool         auto_save_pwm_done  = false;
 static bool         auto_sync_pps_done  = false;
@@ -253,9 +245,6 @@ void save_config()
 
 void on_config_changed()
 {
-#if EEPROM_AUTO_SAVE
-    save_config();
-#endif
 }
 
 static void menu_force_redraw() { refresh_screen = true; }
@@ -663,7 +652,7 @@ static void menu_draw()
         else
         {
             LCD_Puts(0, 0, " PRESS  ");
-            LCD_Puts(0, 1, EEPROM_AUTO_SAVE ? "TO SAVE " : " TO SET ");
+            LCD_Puts(0, 1, " TO SET ");
         }
         break;
     case SCREEN_GPS:
@@ -916,9 +905,7 @@ static void menu_draw()
         if(menu_level == 0)
         {
             LCD_Puts(1, 0, "Vers.:");
-            // Add "/S" (Autosave feature enabled") or "/N" (no autosave)
-            snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%s/%s", FIRMWARE_VERSION, EEPROM_AUTO_SAVE ? "S" : "N");
-            LCD_Puts(0, 1, screen_buffer);
+            LCD_Puts(0, 1, FIRMWARE_VERSION);
         }
         else
         {
@@ -953,25 +940,10 @@ void menu_run()
         {   // Main menu => change menu screen
             current_menu_screen =  (current_menu_screen + encoder_increment) % SCREEN_MAX;
 
-#if EEPROM_AUTO_SAVE
-            // If EEPROM_AUTO_SAVE feature is enabled, hide the SCREEN_SAVE_CONFIG menu item
-            if (current_menu_screen == SCREEN_SAVE_CONFIG)
-            {
-                encoder_increment > 0 ? ++current_menu_screen : --current_menu_screen;
-            }
-#endif
-
             if(current_menu_screen >= SCREEN_MAX) current_menu_screen = SCREEN_MAX-1; // Roll over for first sceen - 1
-            uint32_t now = HAL_GetTick();
-
-#if EEPROM_AUTO_SAVE
-            if (current_menu_screen != previous_menu_screen) {
-                last_menu_change = now;
-            }
-#endif
 
             // Reset counter for date/time screen
-            last_hour_date_screen_update = now;
+            last_hour_date_screen_update = HAL_GetTick();
             LCD_Clear();
             menu_force_redraw();
         }
@@ -1668,7 +1640,7 @@ void menu_run()
             else if(did_pwm)
             {
                 LCD_Puts(0, 0, "  PWM   ");
-                LCD_Puts(0, 1, EEPROM_AUTO_SAVE ? " SAVED! " : "  SET!  ");
+                LCD_Puts(0, 1, "  SET!  ");
             }
         }
         bool new_ppb_lock_status = frequency_is_stable(ppb_lock_threshold);
@@ -1681,27 +1653,5 @@ void menu_run()
                 lcd_create_chars();
             }
         }
-
-#if EEPROM_AUTO_SAVE
-        // Check if boot menu has to be changed
-        if (last_menu_change != 0 && ((HAL_GetTick() - last_menu_change) > BOOT_MENU_SAVE_TIME)) { // Filter on eligible boot screens
-            switch (current_menu_screen) {
-            case SCREEN_MAIN:
-            case SCREEN_DATE:
-            case SCREEN_DATE_TIME:
-            case SCREEN_TREND:
-                if (ee_storage.boot_menu != current_menu_screen) {
-                    ee_storage.boot_menu = current_menu_screen;
-                    on_config_changed();
-                }
-                break;
-
-            default:
-                break;
-            }
-            last_menu_change = 0;
-        }
-#endif
-
     }
 }

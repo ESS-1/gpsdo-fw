@@ -27,20 +27,6 @@ enable_language(C ASM)
 project(${CMAKE_PROJECT_NAME})
 message("Build type: " ${CMAKE_BUILD_TYPE})
 
-# Define EEPROM_AUTO_SAVE
-if(NOT DEFINED EEPROM_AUTO_SAVE)
-  message(FATAL_ERROR "EEPROM_AUTO_SAVE must be defined (0 or 1)")
-endif()
-
-if(EEPROM_AUTO_SAVE STREQUAL "1")
-  add_compile_definitions(EEPROM_AUTO_SAVE=1)
-elseif(EEPROM_AUTO_SAVE STREQUAL "0")
-  add_compile_definitions(EEPROM_AUTO_SAVE=0)
-else()
-  message(FATAL_ERROR "EEPROM_AUTO_SAVE must be 0 or 1")
-endif()
-
-
 add_subdirectory(lib)
 
 # Create an executable object type
@@ -65,5 +51,4 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
     eeprom
-    LCD
 )
