@@ -15,7 +15,6 @@
 
 /// All times in ms
 #define DEBOUNCE_TIME           50
-#define BOOT_MENU_SAVE_TIME     3*1000
 
 // Firmware version tag
 #define FIRMWARE_VERSION        "0.1.18/MDO"
@@ -226,13 +225,6 @@ void menu_set_gps_baudrate(uint32_t baudrate)
 void menu_set_correction_algorithm(correction_algo_type algo)
 {
     displayed_correction_algorithm = algo;
-}
-
-void menu_set_current_menu(uint8_t current_menu)
-{
-    if (current_menu < SCREEN_MAX) {
-        current_menu_screen = current_menu;
-    }
 }
 
 void save_config()
