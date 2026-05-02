@@ -18,7 +18,9 @@
 #define BOOT_MENU_SAVE_TIME     3*1000
 
 // Firmware version tag
-#define FIRMWARE_VERSION        "0.1.18"
+#define FIRMWARE_VERSION        "0.1.18/MDO"
+
+#define ROTARY_INVERT
 
 volatile uint32_t rotary_down_time      = 0;
 volatile uint32_t rotary_up_time        = 0;
@@ -75,7 +77,7 @@ void lcd_create_chars()
     }
 }
 
-typedef enum { SCREEN_MAIN, SCREEN_DATE, SCREEN_DATE_TIME, SCREEN_TREND, SCREEN_PPB, SCREEN_PWM, SCREEN_GPS, SCREEN_UPTIME, SCREEN_FRAMES, SCREEN_CONTRAST, SCREEN_PPS, SCREEN_SAVE_CONFIG, SCREEN_VERSION, SCREEN_MAX } menu_screen;
+typedef enum { SCREEN_MAIN, SCREEN_DATE, SCREEN_DATE_TIME, SCREEN_TREND, SCREEN_PPB, SCREEN_PWM, SCREEN_GPS, SCREEN_UPTIME, SCREEN_FRAMES, SCREEN_BRIGHTNESS, SCREEN_PPS, SCREEN_SAVE_CONFIG, SCREEN_VERSION, SCREEN_MAX } menu_screen;
 typedef enum { SCREEN_TREND_MAIN, SCREEN_TREND_AUTO_V, SCREEN_TREND_AUTO_H, SCREEN_TREND_V_SCALE, SCREEN_TREND_H_SCALE, SCREEN_TREND_EXIT, SCREEN_TREND_MAX } menu_trend_screen;
 typedef enum { SCREEN_GPS_TIME, SCREEN_GPS_LATITUDE, SCREEN_GPS_LONGITUDE, SCREEN_GPS_LATITUDE_DEC, SCREEN_GPS_LONGITUDE_DEC, SCREEN_GPS_LOCATOR, SCREEN_GPS_ALTITUDE, SCREEN_GPS_GEOID, SCREEN_GPS_SATELITES, SCREEN_GPS_HDOP, SCREEN_GPS_BAUDRATE, SCREEN_GPS_INVALID_FRAMES, SCREEN_GPS_TIME_OFFSET, SCREEN_GPS_DATE_FORMAT, SCREEN_GPS_MODEL, SCREEN_GPS_LAST_FRAME, SCREEN_GPS_EXIT, SCREEN_GPS_MAX } menu_gps_screen;
 typedef enum { SCREEN_PPB_MEAN, SCREEN_PPB_INST, SCREEN_PPB_FREQUENCY, SCREEN_PPB_ERROR, SCREEN_PPB_CORRECTION, SCREEN_PPB_PWM, SCREEN_PPB_OCXO_MODEL, SCREEN_PPB_WARMUP_TIME, SCREEN_PPB_ALGO, SCREEN_PPB_CORRECTION_FACTOR, SCREEN_PPB_MILLIS, SCREEN_PPB_AUTO_SAVE_PWM, SCREEN_PPB_AUTO_SYNC_PPS, SCREEN_PPB_LOCK_THRESHOLD, SCREEN_PPB_EXIT, SCREEN_PPB_MAX } menu_ppb_screen;
@@ -815,10 +817,10 @@ static void menu_draw()
         snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", gga_frames);
         LCD_Puts(0, 1, screen_buffer);
         break;
-    case SCREEN_CONTRAST:
-        LCD_Puts(1, 0, menu_level == 0 ? "CNTRST:":"CNTRST?");
+    case SCREEN_BRIGHTNESS:
+        LCD_Puts(1, 0, menu_level == 0 ? "BRIGHT:":"BRIGHT?");
         LCD_Puts(0, 1, "        ");
-        snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%d", contrast);
+        snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%d", brightness);
         LCD_Puts(0, 1, screen_buffer);
         break;
     case SCREEN_PPS:
@@ -922,7 +924,12 @@ static void menu_draw()
 void menu_run()
 {
     // Detect rotary encoder value change
-    uint32_t new_encoder_value = TIM3->CNT / 2;
+    uint32_t new_encoder_value = TIM4->CNT / 2;
+
+#ifdef ROTARY_INVERT
+    new_encoder_value = -new_encoder_value;
+#endif
+
     if(new_encoder_value != last_encoder_value)
     {
         menu_screen previous_menu_screen = current_menu_screen;
@@ -986,12 +993,12 @@ void menu_run()
                         menu_force_redraw();
                     }
                     break;
-                case SCREEN_CONTRAST:
-                    // Update contrast
-                    contrast += encoder_increment;
-                    if(contrast < 0) contrast = 0;
-                    if(contrast > 100) contrast = 100;
-                    update_contrast();
+                case SCREEN_BRIGHTNESS:
+                    // Update brightness
+                    brightness += encoder_increment*5;
+                    if(brightness < 5) brightness = 5;
+                    if(brightness > 100) brightness = 100;
+                    update_brightness();
                     LCD_Clear();
                     menu_force_redraw();
                     break;
@@ -1268,7 +1275,7 @@ void menu_run()
                 case SCREEN_PPB:
                 case SCREEN_GPS:
                 case SCREEN_PWM:
-                case SCREEN_CONTRAST:
+                case SCREEN_BRIGHTNESS:
                 case SCREEN_PPS:
                 case SCREEN_SAVE_CONFIG:
                 case SCREEN_VERSION:
@@ -1310,10 +1317,10 @@ void menu_run()
                     on_config_changed();
                     menu_level = 0;
                     break;
-                case SCREEN_CONTRAST:
-                    if(ee_storage.contrast != contrast)
-                    {   // Contrast has changed => save it to eeprom
-                        ee_storage.contrast = contrast;
+                case SCREEN_BRIGHTNESS:
+                    if(ee_storage.brightness != brightness)
+                    {   // Brightness has changed => save it to eeprom
+                        ee_storage.brightness = brightness;
                         on_config_changed();
                     }
                     menu_level = 0;

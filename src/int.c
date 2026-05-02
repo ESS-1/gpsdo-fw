@@ -16,7 +16,7 @@ volatile uint32_t timer_overflows  = 0;
 volatile uint32_t pps_overflows    = 0;
 volatile uint32_t device_uptime    = 0;
 volatile uint8_t  first            = 1;
-volatile int8_t   contrast         = 0;
+volatile int8_t   brightness       = 0;
 volatile bool     pps_sync_on      = false;
 volatile uint32_t pps_sync_delay   = 10;
 volatile uint32_t pps_sync_threshold = 30000;
@@ -301,9 +301,9 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
     }
 }
 
-void update_contrast()
+void update_brightness()
 {
-    uint32_t pwm_value = 0xFFFF - (contrast * 0xFFFF / 100);
+    uint32_t pwm_value = brightness * 0xFFFF / 100;
     TIM1->CCR3 = pwm_value;
 }
 

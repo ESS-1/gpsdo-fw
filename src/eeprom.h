@@ -7,7 +7,7 @@
 typedef struct
 {
     uint16_t pwm;
-    uint8_t  contrast;
+    uint8_t  brightness;
     /* Reading boolean from EEPROM results in unpredictable behavior so we use a char and cast it to a boolean */
     uint8_t  pps_sync_on;
     uint32_t pps_sync_delay;

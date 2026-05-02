@@ -47,11 +47,11 @@ void gpsdo(void)
         startingPwm = ee_storage.pwm;
     }
     TIM1->CCR2 = startingPwm;
-    if (ee_storage.contrast == 0xff) {
-        ee_storage.contrast = 80;
+    if (ee_storage.brightness == 0xff) {
+        ee_storage.brightness = 50;
     }
-    contrast = ee_storage.contrast;
-    update_contrast();
+    brightness = ee_storage.brightness;
+    update_brightness();
     if (ee_storage.pps_sync_on == 0xff) {
         ee_storage.pps_sync_on = true;
     }
@@ -149,8 +149,8 @@ void gpsdo(void)
     HAL_Delay(100);
     frequency_start();
 
-    HAL_TIM_Base_Start(&htim3);
-    HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
+    HAL_TIM_Base_Start(&htim4);
+    HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
 
     bool vco_adjust_allowed = false;
 

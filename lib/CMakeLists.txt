@@ -16,6 +16,7 @@ target_sources(st7735 INTERFACE
 )
 target_include_directories(st7735 INTERFACE
     st7735
+    ../src
 )
 
 target_link_libraries(st7735 stm32cubemx)

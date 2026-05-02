@@ -10,7 +10,7 @@ extern volatile uint32_t num_samples;
 extern volatile uint32_t device_uptime;
 extern volatile uint32_t last_pps_out;
 extern volatile bool     pps_out_up;
-extern volatile int8_t   contrast;
+extern volatile int8_t   brightness;
 extern volatile bool     pps_sync_on;
 extern volatile uint32_t pps_sync_delay;
 extern volatile uint32_t pps_sync_threshold;
@@ -40,7 +40,7 @@ extern correction_algo_type correction_algorithm;
 extern uint32_t correction_factor;
 extern uint32_t warmup_time_seconds;
 
-void update_contrast();
+void update_brightness();
 
 uint32_t get_default_correction_factor(correction_algo_type algo);
 
