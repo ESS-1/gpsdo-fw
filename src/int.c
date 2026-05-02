@@ -242,7 +242,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
 
             int32_t current_error = frequency_get_error();
 
-            if (allow_adjustment) 
+            if (allow_adjustment)
             {   // No crrection during warmup
 
                 // Choos from 3 correction algorithms :
@@ -272,7 +272,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
             ppb_frequency = frequency;
             ppb_error = current_error;
             ppb_millis = current_tick - last_pps - 1000;
-            pps_millis = (pps_error/7); // Clock is 70 MHz and we want the value in 10s of microseconds so 10 0000 000 / 70 000 000 = 1/7
+            pps_millis = (pps_error*10/(TARGET_FREQ/1000000)); // Clock is 'TARGET_FREQ' Hz and we want the value in tenth of a microsecond so 10 000 000 / TARGET_FREQ
 
             if (allow_adjustment) 
             {   // Also remove warmup samples from circular buffer

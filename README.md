@@ -39,7 +39,7 @@ Here is the menu tree :
 - `PPB Menu`: displays current PPB value
   - `Mean value`: the mean PPB value (running average over 128 seconds)
   - `Instant value`: last calculated PPB value
-  - `Frequency`: the measured current MCU frequency (based on the number ot ticks counted between two GPS PPS pulses, should be around 70 000 000 for 70 MHz)
+  - `Frequency`: the measured current MCU frequency (based on the number ot ticks counted between two GPS PPS pulses, should be around 72 000 000 for 72 MHz)
   - `Error`: the last measured frequency error (in Hz)
   - `Correction`: the last correction applied to PWM value
   - `PWM`: the current PWM value
@@ -213,9 +213,9 @@ Most of this is based on reverse engineering the circuit, and which pins certain
 * The PPS is connected to the CH1 input on TIM1.
 * The VCO is controlled via PWM from CH2 of TIM1. The PWM signal is sent to a couple of low pass filters, giving a DC voltage.
 
-The MCU will PLL the clock up to 70MHz and then TIM1 is setup to count the internal 70MHz clock, while being gated by the PPS pulse from the GPS module. This means that it continually counts how many cycles on the clock passes between each PPS pulse. This is then used to adjust the VCO.
+The MCU will PLL the clock up to 72MHz and then TIM1 is setup to count the internal 72MHz clock, while being gated by the PPS pulse from the GPS module. This means that it continually counts how many cycles on the clock passes between each PPS pulse. This is then used to adjust the VCO.
 
-The VCO is simply adjusted by the error detected between two pulses. If 70000001 clocks are counted, the VCO voltage will drop a bit and so on. This is really simple, but due to the small adjustments, it will average out over time and it should work out since the counter is always running. If we are running at 70 000 000.01 we will get one more clock every 100 seconds, which will then cause a small adjustment (smallest adjustment possible).
+The VCO is simply adjusted by the error detected between two pulses. If 72000001 clocks are counted, the VCO voltage will drop a bit and so on. This is really simple, but due to the small adjustments, it will average out over time and it should work out since the counter is always running. If we are running at 72 000 000.01 we will get one more clock every 100 seconds, which will then cause a small adjustment (smallest adjustment possible).
 
 It's fairly slow to reach a steady state, and it can probably easily be sped up with a better algorithm.
 
