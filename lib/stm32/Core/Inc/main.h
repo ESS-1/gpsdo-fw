@@ -69,6 +69,8 @@ void Error_Handler(void);
 #define LCD_RES_GPIO_Port GPIOA
 #define LCD_SCL_Pin GPIO_PIN_5
 #define LCD_SCL_GPIO_Port GPIOA
+#define OCXO_EN_Pin GPIO_PIN_6
+#define OCXO_EN_GPIO_Port GPIOA
 #define LCD_SDA_Pin GPIO_PIN_7
 #define LCD_SDA_GPIO_Port GPIOA
 #define PPS_OUTPUT_Pin GPIO_PIN_1
@@ -85,8 +87,6 @@ void Error_Handler(void);
 #define VCO_CONTROL_GPIO_Port GPIOA
 #define LCD_BL_PWM_Pin GPIO_PIN_10
 #define LCD_BL_PWM_GPIO_Port GPIOA
-#define OCXO_EN_Pin GPIO_PIN_15
-#define OCXO_EN_GPIO_Port GPIOA
 #define ROTARY_PRESS_Pin GPIO_PIN_5
 #define ROTARY_PRESS_GPIO_Port GPIOB
 #define ROTARY_PRESS_EXTI_IRQn EXTI9_5_IRQn
