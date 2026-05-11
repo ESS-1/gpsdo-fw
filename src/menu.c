@@ -12,6 +12,7 @@
 #include "stm32f1xx_hal_gpio.h"
 #include "int.h"
 #include "menu.h"
+#include "trend8_t.h"
 
 #ifndef EEPROM_AUTO_SAVE
 #   error "EEPROM_AUTO_SAVE must be defined as 0 or 1"
@@ -22,7 +23,7 @@
 #define BOOT_MENU_SAVE_TIME     3*1000
 
 // Firmware version tag
-#define FIRMWARE_VERSION        "0.1.18"
+#define FIRMWARE_VERSION        "0.1.19"
 
 volatile uint32_t rotary_down_time      = 0;
 volatile uint32_t rotary_up_time        = 0;
@@ -103,12 +104,11 @@ static uint32_t     last_menu_change    = 0;
 static bool         auto_save_pwm_done  = false;
 static bool         auto_sync_pps_done  = false;
 
-#define TREND_MAX_SIZE      7208 // 112 * 64 (TREND_MAX_H_SCALE) + 40 (TREND_SCREEN_SIZE)
 #define TREND_SCREEN_SIZE   40
-#define TREND_UNSET_VALUE   0xFFFF
 #define TREND_MAX_H_SCALE   64
-#define TREND_MAX_SHIFT     7168 // 7208 (TREND_MAX_SIZE) - 40 (TREND_SCREEN_SIZE)
-static uint16_t     ppb_trend_values[TREND_MAX_SIZE];
+#define TREND_MAX_SIZE      (155*TREND_MAX_H_SCALE + TREND_SCREEN_SIZE) // 2 hours 46 minutes
+#define TREND_MAX_SHIFT     (TREND_MAX_SIZE - TREND_SCREEN_SIZE)
+static trend8_t     ppb_trend_values[TREND_MAX_SIZE];
 static uint32_t     ppb_trend_position = 0;
 static uint32_t     ppb_trend_size = 0;
 
@@ -264,35 +264,42 @@ void init_trend_values()
 {
     for(int i = 0 ; i < TREND_MAX_SIZE ; i++)
     {
-        ppb_trend_values[i] = TREND_UNSET_VALUE;
+        ppb_trend_values[i] = TREND_ENCODED_UNSET_VALUE;
     }
 }
 
-static uint32_t get_trend_data(uint32_t index)
+static uint32_t get_trend_data(uint32_t offset)
 {
-    int32_t read_index = (ppb_trend_position + index);
-    if(read_index<0)
+    if (offset > TREND_MAX_SIZE)
+    {   // We are trying to access a value outside the trend history range
+        // This can happen when trend_h_scale >= 2 and the trend is being scrolled
+        return TREND_UNSET_VALUE;
+    }
+
+    int32_t read_index = (int32_t)ppb_trend_position - (int32_t)offset;
+    if (read_index < 0)
     {   // Wrap around
         read_index = TREND_MAX_SIZE + read_index;
     }
-    return ppb_trend_values[read_index];
+
+    return decode_trend8_t(ppb_trend_values[read_index]);
 }
 
 static uint32_t get_trend_value(uint32_t position, uint32_t shift, uint32_t h_scale)
 {
     if(h_scale == 1)
     {   // No h scaling
-        return get_trend_data(position-TREND_SCREEN_SIZE-shift);
+        return get_trend_data(shift + TREND_SCREEN_SIZE - position);
     }
     else
     {   // Compute mean value over h-scale size
         uint32_t result = 0;
         uint32_t new_value;
         for(uint32_t i = 0 ; i < h_scale ; i ++)
-        {   // ' - (ppb_trend_position % h_scale)' : Use the same start position for each point in time within the given scale group
-            new_value = get_trend_data((position*h_scale) + i - (TREND_SCREEN_SIZE*h_scale) - (ppb_trend_position % h_scale) - shift);
+        {   // '(ppb_trend_position % h_scale)' : Use the same start position for each point in time within the given scale group
+            new_value = get_trend_data((ppb_trend_position%h_scale) + shift + (TREND_SCREEN_SIZE*h_scale) - (position*h_scale) - i);
             if(new_value == TREND_UNSET_VALUE)
-            {   // Don't compte mean value if one value is unset
+            {   // Don't compute mean value if one value is unset
                 return TREND_UNSET_VALUE;
             }
             result += new_value;
@@ -318,15 +325,15 @@ static uint32_t get_trend_peak_value(uint32_t shift)
 
 static void add_trend_value(uint32_t value)
 {
-    ppb_trend_values[ppb_trend_position]=value;
+    ppb_trend_values[ppb_trend_position] = encode_trend8_t(value);
     ppb_trend_position++;
     if(ppb_trend_position>=TREND_MAX_SIZE)
     {
         ppb_trend_position = 0;
     }
-    else
+
+    if (ppb_trend_size < TREND_MAX_SIZE)
     {
-        // TODO: Should we always increment 'ppb_trend_size', or only when not wrapping around?
         ppb_trend_size++;
     }
 }
@@ -353,25 +360,26 @@ static uint32_t menu_round_v_scale(uint32_t scale)
     return rounded_scale;
 }
 
-static uint32_t menu_roud_h_scale(uint32_t scale)
+static uint32_t menu_round_h_scale(uint32_t scale)
 {
     uint32_t rounded_scale = 0;
-    if(scale > TREND_MAX_H_SCALE)
+    if(scale >= TREND_MAX_H_SCALE)
     {
         rounded_scale = TREND_MAX_H_SCALE;
     }
-    else if(scale < 1)
+    else if(scale <= 1)
     {
         rounded_scale = 1;
     }
     else
-    {   // Only keep powers of 2
-        uint8_t shift = 6;
-        while(rounded_scale == 0)
-        {
-            rounded_scale = ((scale >> shift) << shift);
-            shift--;
-        }
+    {   // Ceil to power of 2
+        rounded_scale = scale - 1;
+
+        rounded_scale |= rounded_scale >> 1;
+        rounded_scale |= rounded_scale >> 2;
+        rounded_scale |= rounded_scale >> 4;
+
+        ++rounded_scale;
     }
     return rounded_scale;
 }
@@ -380,7 +388,7 @@ static void menu_draw_trend(uint32_t shift)
 {   // Horizontal autoscale
     if(trend_auto_h)
     {   // Need to zoom horizontally
-        trend_h_scale = menu_roud_h_scale(ppb_trend_size/TREND_SCREEN_SIZE);
+        trend_h_scale = menu_round_h_scale((ppb_trend_size+TREND_SCREEN_SIZE-1) / TREND_SCREEN_SIZE);
     }
     // Vertical auto-scale
     if(trend_auto_v)
@@ -1100,7 +1108,7 @@ void menu_run()
                 case SCREEN_TREND_H_SCALE:
                     // Update v scale
                     trend_h_scale = encoder_increment > 0 ? trend_h_scale * 2 : trend_h_scale/2;
-                    trend_h_scale = menu_roud_h_scale(trend_h_scale);
+                    trend_h_scale = menu_round_h_scale(trend_h_scale);
                     LCD_Clear();
                     menu_force_redraw();
                     break;
