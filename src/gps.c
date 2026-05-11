@@ -44,7 +44,8 @@ uint32_t gps_invalid_frames      = 0;
 uint32_t gps_fifo_overflow_gps   = 0;
 uint32_t gps_fifo_overflow_comm  = 0;
 
-#define FIFO_BUFFER_SIZE 256
+// TODO: Consider using a smaller buffer for the Comm port to save RAM
+#define FIFO_BUFFER_SIZE 1024
 
 typedef struct {
     uint8_t buffer[FIFO_BUFFER_SIZE];
