@@ -33,6 +33,8 @@ extern int8_t   gps_day_offset;
 // Last tiem a frame was received
 extern uint32_t last_frame_receive_time;
 extern uint32_t gps_invalid_frames;
+extern uint32_t gps_fifo_overflow_gps;
+extern uint32_t gps_fifo_overflow_comm;
 
 void gps_start_it();
 void gps_process(char* line);

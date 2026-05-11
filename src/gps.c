@@ -39,8 +39,10 @@ date_format     gps_date_format = DATE_FORMAT_UTC;
 
 // Store last frame receive time
 uint32_t last_frame_receive_time = 0;
-uint32_t gps_invalid_frames = 0;
 
+uint32_t gps_invalid_frames      = 0;
+uint32_t gps_fifo_overflow_gps   = 0;
+uint32_t gps_fifo_overflow_comm  = 0;
 
 #define FIFO_BUFFER_SIZE 256
 
@@ -207,12 +209,16 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 {
     if (huart == &huart3) {
         for (size_t i = 0; i < GPS_RX_BUFFER_SIZE; i++) {
-            fifo_write(&fifo_buffer_gps, gps_it_buf[i]);
+            if (!fifo_write(&fifo_buffer_gps, gps_it_buf[i])) {
+                ++gps_fifo_overflow_gps;
+            }
         }
         gps_start_gps_rx();
     } else if (huart == &huart2) {
         for (size_t i = 0; i < COMM_RX_BUFFER_SIZE; i++) {
-            fifo_write(&fifo_buffer_comm, comm_it_buf[i]);
+            if (!fifo_write(&fifo_buffer_comm, comm_it_buf[i])) {
+                ++gps_fifo_overflow_comm;
+            }
         }
         gps_start_comm_rx();
     }
