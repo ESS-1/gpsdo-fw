@@ -130,11 +130,14 @@ void gpsdo(void)
         ee_storage.warmup_time_seconds = get_default_warmup_time(ocxo_model);
     }
     warmup_time_seconds = ee_storage.warmup_time_seconds;
-
+    if (ee_storage.comm_baudrate == 0xffffffff) {
+        ee_storage.comm_baudrate = COMM_DEFAULT_BAUDRATE;
+    }
 
     gps_start_it();
 
     menu_set_gps_baudrate(ee_storage.gps_baudrate);
+    menu_set_comm_baudrate(ee_storage.comm_baudrate);
     menu_set_correction_algorithm(correction_algorithm);
 
     LCD_Init();
@@ -168,7 +171,7 @@ void gpsdo(void)
         }
         if((now - last_frame_receive_time) > GPS_FRAME_WAIT_DELAY)
         {   // We've not been receiving a frame from GPS for too long, try and restart UART
-            gps_reconfigure_uart(gps_baudrate);
+            gps_reconfigure_gps_uart(gps_baudrate);
             last_frame_receive_time = now;
         }
         

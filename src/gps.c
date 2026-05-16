@@ -103,7 +103,8 @@ static void gps_start_gps_rx()
 }
 static void gps_start_comm_rx()
 {
-    if (HAL_UART_Receive_DMA(&huart2, (uint8_t*)comm_it_buf, COMM_RX_BUFFER_SIZE) != HAL_OK) {
+    // 'comm_it_buf' is only 1 byte long, so DMA overhead is unnecessary
+    if (HAL_UART_Receive_IT(&huart2, (uint8_t*)comm_it_buf, COMM_RX_BUFFER_SIZE) != HAL_OK) {
         Error_Handler();
     }
 }
@@ -125,7 +126,7 @@ static void gps_sendcommand(const char* cmd, size_t len)
     while (huart3.gState != HAL_UART_STATE_READY);
 }
 
-int gps_configure_module_uart(uint32_t baudrate)
+int gps_change_module_baudrate(uint32_t baudrate)
 {
     const char* command = NULL;
     switch(gps_model)
@@ -168,42 +169,38 @@ int gps_configure_module_uart(uint32_t baudrate)
     return 0;
 }
 
-void gps_reconfigure_uart(uint32_t baudrate)
+void gps_reconfigure_gps_uart(uint32_t baudrate)
 {
-    HAL_UART_DeInit(&huart2);
-    HAL_UART_DeInit(&huart3);
+    reconfigure_uart(&huart3, baudrate);
+    gps_start_gps_rx();
+}
+
+void gps_reconfigure_comm_uart(uint32_t baudrate)
+{
+    reconfigure_uart(&huart2, baudrate);
+    gps_start_comm_rx();
+}
+
+static void reconfigure_uart(UART_HandleTypeDef *huart, uint32_t baudrate)
+{
+    HAL_UART_DeInit(huart);
     // Wait for buffers to be consumed
     HAL_Delay(50);
 
-    huart2.Instance = USART2;
-    huart2.Init.BaudRate = baudrate;
-    huart2.Init.WordLength = UART_WORDLENGTH_8B;
-    huart2.Init.StopBits = UART_STOPBITS_1;
-    huart2.Init.Parity = UART_PARITY_NONE;
-    huart2.Init.Mode = UART_MODE_TX_RX;
-    huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-    if (HAL_UART_Init(&huart2) != HAL_OK)
+    huart->Init.BaudRate = baudrate;
+    huart->Init.WordLength = UART_WORDLENGTH_8B;
+    huart->Init.StopBits = UART_STOPBITS_1;
+    huart->Init.Parity = UART_PARITY_NONE;
+    huart->Init.Mode = UART_MODE_TX_RX;
+    huart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    huart->Init.OverSampling = UART_OVERSAMPLING_16;
+    if (HAL_UART_Init(huart) != HAL_OK)
     {
       Error_Handler();
     }
 
-    huart3.Instance = USART3;
-    huart3.Init.BaudRate = baudrate;
-    huart3.Init.WordLength = UART_WORDLENGTH_8B;
-    huart3.Init.StopBits = UART_STOPBITS_1;
-    huart3.Init.Parity = UART_PARITY_NONE;
-    huart3.Init.Mode = UART_MODE_TX_RX;
-    huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    huart3.Init.OverSampling = UART_OVERSAMPLING_16;
-    if (HAL_UART_Init(&huart3) != HAL_OK)
-    {
-      Error_Handler();
-    }
-    // Wait Uarts to init
+    // Wait for UART to init
     HAL_Delay(50);
-    gps_start_gps_rx();
-    gps_start_comm_rx();
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)

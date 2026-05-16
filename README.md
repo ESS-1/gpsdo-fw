@@ -45,7 +45,7 @@ Here is the menu tree :
   - `PWM`: the current PWM value
   - `OCXO model`: press to set the OCXO model installed on your GPSDO to ISOTEMP or OX256B (this will adjust warmup time and default PWM value)
   - `Warm-up duration`: press to set the warmup duration is seconds (time to wait after boot to let the OCXO warm-up before starting PWM correction)
-  - `Algorithm selection`: press to select the algorithm used to adjust PWM value ; there are 4 available algorithms :
+  - `Algorithm selection`: press to select the algorithm used to adjust PWM value; there are 4 available algorithms:
       - `Eric-H`: Based on ppm value rather than frequency error (uses 128s rolling average rather than instant values)
       - `Eric-H+`(default): Eric-H algorithm modified for control loop overshoot suppression
       - `Dankar`: Original code from Dankar using square value of instant frequency error as PWM correction
@@ -70,17 +70,18 @@ Here is the menu tree :
   - `Geoid`: the Geoid-to-ellipsoid separation (in meters)
   - `Sat. #`: the numner of satellites
   - `HDOP`: the current Horizontal Dilution Of Precision value
-  - `Baudrate`(__*don't mess with this unless you know what you are doing !*__): set the GPS UART communication baudrate (for GPSDO equipped with ATGM336H GPS modules, changing this will also send a command to change the GPS module baudrate accordingly *BUT* ATGM336H modules installed in the GPSDO have been reported to have a weak battery and don't retain this setting for a very long time... passed this time the module will return to default 9600 bauds, breaking the communication with the bluepill (see [Troubleshooting section](#no-time-on-the-display)))
+  - `GPS BR`: (__*don't mess with this unless you know what you are doing !*__): sets the GPS UART communication baudrate (for GPSDO equipped with ATGM336H GPS modules, changing this will also send a command to change the GPS module baudrate accordingly *BUT* ATGM336H modules installed in the GPSDO have been reported to have a weak battery and don't retain this setting for a very long time... passed this time the module will return to default 9600 bauds, breaking the communication with the bluepill (see [Troubleshooting section](#no-time-on-the-display)))
+  - `PC BD`: sets the PC communication port baudrate; this rate should be higher than the GPS module's UART baudrate to prevent communication errors; the default value of 115200 is recommended
   - `GPS Err`: the total counts of invalid GPS frames and FIFO buffer overflows, in the following format: &lt;Invalid GPS Frames&gt;/&lt;GPS FIFO Overflows&gt;/&lt;Comm. Port FIFO Overflows&gt;
-  - `Time Zone offset`: set the number of hours (-14/+14) to shift the displayed time from UTC to match local time
-  - `Date Format`: set the date format (either `dd/mm/yy` (default value), `mm/dd/yy`, `yy/mm/dd`, `dd.mm.yy` or `yy-mm-dd`)
+  - `Time Zone offset`: sets the number of hours (-14/+14) to shift the displayed time from UTC to match local time
+  - `Date Format`: sets the date format (either `dd/mm/yy` (default value), `mm/dd/yy`, `yy/mm/dd`, `dd.mm.yy` or `yy-mm-dd`)
   - `Model`: displays the detected GPS module model, press to manually set the GPS module model
   - `Frame`: displays to first characters of the last frame received from the GPS module
   - `Exit`: press to exit the GPS sub-menu
 - `Uptime Screen` : displays the number of seconds elapsed since last boot
 - `GGA Frames Screen`: the number of GGA frames received from the GPS module since last boot
-- `Contrast Screen` : press the encoder to change the contrast value by turning the rotary encoder ; press again to exit (when editing contrast value, `?` is displayed after contrast)
-- `PPS Menu`: This menu is dedicated to the [MCU controlled PPS output](#mcu-controlled-pps-output) ; it shows the number of times the MCU PPS Output has been synced (top left) and the shift with GPS PPS output in clock cycles (bottom)
+- `Contrast Screen` : press the encoder to change the contrast value by turning the rotary encoder; press again to exit (when editing contrast value, `?` is displayed after contrast)
+- `PPS Menu`: This menu is dedicated to the [MCU controlled PPS output](#mcu-controlled-pps-output); it shows the number of times the MCU PPS Output has been synced (top left) and the shift with GPS PPS output in clock cycles (bottom)
   - `Shift`: the shift between MCU PPS output and GPS PPS output in clock cycles
   - `Shift milliseconds`: the shift between MCU PPS output and GPS PPS output in milliseconds
   - `Sync Count`: the number of times the MCU PPS output has been re-synced to the GPS PPS output
