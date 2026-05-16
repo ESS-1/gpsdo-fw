@@ -33,12 +33,12 @@ void gpsdo(void)
         switch(ocxo_model)
         {
             case OCXO_MODEL_OX256B:
-                startingPwm = 36000;
+                startingPwm = 38000; // about 2.5V - several of the OX256B units I have show zero error at this control voltage
                 break;
             case OCXO_MODEL_ISOTEMP:
             case OCXO_MODEL_UNKNOWN:
             default:
-                startingPwm = 26214; // 2V - typical center value of OCXO control voltage
+                startingPwm = 32000; // about 2V - typical center value of OCXO control voltage
                 break;
         }
     }
