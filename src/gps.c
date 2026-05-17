@@ -718,6 +718,8 @@ uint8_t send_buf[SEND_BUFFER_SIZE];
 uint8_t gps_send_buf[SEND_BUFFER_SIZE];
 uint8_t comm_send_buf[SEND_BUFFER_SIZE];
 
+uint32_t last_pgdos_generated_sec = 0;
+
 void gps_read()
 {
     size_t send_size = 0;
