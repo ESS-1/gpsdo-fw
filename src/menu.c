@@ -82,7 +82,7 @@ void lcd_create_chars()
 
 typedef enum { SCREEN_MAIN, SCREEN_DATE, SCREEN_DATE_TIME, SCREEN_TREND, SCREEN_PPB, SCREEN_PWM, SCREEN_GPS, SCREEN_UPTIME, SCREEN_FRAMES, SCREEN_CONTRAST, SCREEN_PPS, SCREEN_SAVE_CONFIG, SCREEN_VERSION, SCREEN_MAX } menu_screen;
 typedef enum { SCREEN_TREND_MAIN, SCREEN_TREND_AUTO_V, SCREEN_TREND_AUTO_H, SCREEN_TREND_V_SCALE, SCREEN_TREND_H_SCALE, SCREEN_TREND_EXIT, SCREEN_TREND_MAX } menu_trend_screen;
-typedef enum { SCREEN_GPS_TIME, SCREEN_GPS_LATITUDE, SCREEN_GPS_LONGITUDE, SCREEN_GPS_LATITUDE_DEC, SCREEN_GPS_LONGITUDE_DEC, SCREEN_GPS_LOCATOR, SCREEN_GPS_ALTITUDE, SCREEN_GPS_GEOID, SCREEN_GPS_SATELITES, SCREEN_GPS_HDOP, SCREEN_GPS_BAUDRATE, SCREEN_GPS_COMM_BAUDRATE, SCREEN_GPS_ERRORS, SCREEN_GPS_TIME_OFFSET, SCREEN_GPS_DATE_FORMAT, SCREEN_GPS_MODEL, SCREEN_GPS_LAST_FRAME, SCREEN_GPS_EXIT, SCREEN_GPS_MAX } menu_gps_screen;
+typedef enum { SCREEN_GPS_TIME, SCREEN_GPS_LATITUDE, SCREEN_GPS_LONGITUDE, SCREEN_GPS_LATITUDE_DEC, SCREEN_GPS_LONGITUDE_DEC, SCREEN_GPS_LOCATOR, SCREEN_GPS_ALTITUDE, SCREEN_GPS_GEOID, SCREEN_GPS_SATELITES, SCREEN_GPS_HDOP, SCREEN_GPS_BAUDRATE, SCREEN_GPS_COMM_BAUDRATE, SCREEN_GPS_COMM_PGDOX_FRM, SCREEN_GPS_ERRORS, SCREEN_GPS_TIME_OFFSET, SCREEN_GPS_DATE_FORMAT, SCREEN_GPS_MODEL, SCREEN_GPS_LAST_FRAME, SCREEN_GPS_EXIT, SCREEN_GPS_MAX } menu_gps_screen;
 typedef enum { SCREEN_PPB_MEAN, SCREEN_PPB_INST, SCREEN_PPB_FREQUENCY, SCREEN_PPB_ERROR, SCREEN_PPB_CORRECTION, SCREEN_PPB_PWM, SCREEN_PPB_OCXO_MODEL, SCREEN_PPB_WARMUP_TIME, SCREEN_PPB_ALGO, SCREEN_PPB_CORRECTION_FACTOR, SCREEN_PPB_MILLIS, SCREEN_PPB_AUTO_SAVE_PWM, SCREEN_PPB_AUTO_SYNC_PPS, SCREEN_PPB_LOCK_THRESHOLD, SCREEN_PPB_EXIT, SCREEN_PPB_MAX } menu_ppb_screen;
 typedef enum { SCREEN_PPS_SHIFT, SCREEN_PPS_SHIFT_MS, SCREEN_PPS_SYNC_COUNT, SCREEN_PPS_SYNC_MODE, SCREEN_PPS_SYNC_DELAY, SCREEN_PPS_SYNC_THRESHOLD, SCREEN_PPS_FORCE_SYNC, SCREEN_PPS_EXIT, SCREEN_PPS_MAX } menu_pps_screen;
 
@@ -433,7 +433,7 @@ static void menu_format_ppb(char* ppb_string, int32_t ppb_value)
 {
     int32_t ppb = abs(ppb_value);
 
-    if (ppb ==  0xFFFF) {
+    if (ppb == PPB_UNSET_VALUE) {
         strcpy(ppb_string, "   ?");
     } else if (ppb > 999999) {
         strcpy(ppb_string, ">10k");
@@ -511,8 +511,9 @@ static void menu_draw()
                     }
                     else
                     {   // Show value at the left of the screen
-                        menu_format_ppb(ppb_string,get_trend_value(TREND_SCREEN_SIZE-1,trend_shift,trend_h_scale));
-                        snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%03ld%c%s", trend_shift,trend_arrow,ppb_string);
+                        uint32_t trend_ppb = get_trend_value(TREND_SCREEN_SIZE - 1, trend_shift, trend_h_scale);
+                        menu_format_ppb(ppb_string, trend_ppb != TREND_UNSET_VALUE ? trend_ppb : PPB_UNSET_VALUE);
+                        snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%03ld%c%s", trend_shift, trend_arrow, ppb_string);
                         LCD_Puts(0, 0, screen_buffer);
                         menu_draw_trend(trend_shift);
                     }
@@ -570,7 +571,7 @@ static void menu_draw()
                 case SCREEN_PPB_INST:
                     {
                     LCD_Puts(1, 0, "Inst:");
-                    int32_t ppb_inst = (int64_t)ppb_error * 1000000000 * 100 / ((int64_t)HAL_RCC_GetHCLKFreq());
+                    int32_t ppb_inst = frequency_get_inst_ppb();
                     snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld.%02d", ppb_inst / 100, abs(ppb_inst) % 100);
                     LCD_Puts(0, 1, screen_buffer);
                     }
@@ -790,6 +791,10 @@ static void menu_draw()
                     LCD_Puts(1, 0, menu_level == 1 ? "PC BR:":"PC BR?");
                     snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", comm_baudrate);
                     LCD_Puts(0, 1, screen_buffer);
+                    break;
+                case SCREEN_GPS_COMM_PGDOX_FRM:
+                    LCD_Puts(1, 0, menu_level == 1 ? "$PGDOx:" : "$PGDOx?");
+                    LCD_Puts(0, 1, gps_comm_send_pgdox ? "      ON" : "     OFF");
                     break;
                 case SCREEN_GPS_ERRORS:
                     LCD_Puts(1, 0, "GPS Err");
@@ -1210,7 +1215,7 @@ void menu_run()
             }
         }
         else if(menu_level == 2 && current_menu_screen == SCREEN_GPS)
-        {   // Sub-sub menu for PPB screen
+        {   // Sub-sub menu for GPS screen
             switch(current_menu_gps_screen)
             {
                 case SCREEN_GPS_BAUDRATE:
@@ -1236,6 +1241,13 @@ void menu_run()
                         comm_baudrate_enum = (comm_baudrate_enum + encoder_increment) % BAUDRATE_MAX;
                         if(comm_baudrate_enum >= BAUDRATE_MAX) comm_baudrate_enum = BAUDRATE_MAX-1; // Roll over for first screen - 1
                         comm_baudrate = menu_get_baudrate_value(comm_baudrate_enum);
+                        LCD_Clear();
+                        menu_force_redraw();
+                    }
+                    break;
+                case SCREEN_GPS_COMM_PGDOX_FRM:
+                    { // Update custom $PGDOx NMEA frames sending option
+                        gps_comm_send_pgdox = !gps_comm_send_pgdox;
                         LCD_Clear();
                         menu_force_redraw();
                     }
@@ -1411,6 +1423,7 @@ void menu_run()
                         case SCREEN_GPS_TIME_OFFSET:
                         case SCREEN_GPS_BAUDRATE:
                         case SCREEN_GPS_COMM_BAUDRATE:
+                        case SCREEN_GPS_COMM_PGDOX_FRM:
                             menu_level = 2;
                             break;
                         case SCREEN_GPS_EXIT:
@@ -1574,6 +1587,13 @@ void menu_run()
                         on_config_changed();
                         // Reconfigure UART
                         gps_reconfigure_comm_uart(comm_baudrate);
+                    }
+                    break;
+                case SCREEN_GPS_COMM_PGDOX_FRM:
+                    if(ee_storage.gps_comm_send_pgdox != gps_comm_send_pgdox)
+                    {   // Save changes
+                        ee_storage.gps_comm_send_pgdox = gps_comm_send_pgdox;
+                        on_config_changed();
                     }
                     break;
                 case SCREEN_GPS_TIME_OFFSET:

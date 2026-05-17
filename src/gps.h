@@ -37,6 +37,8 @@ extern uint32_t gps_invalid_frames;
 extern uint32_t gps_fifo_overflow_gps;
 extern uint32_t gps_fifo_overflow_comm;
 
+extern volatile bool gps_comm_send_pgdox;
+
 void gps_start_it();
 void gps_process(char* line);
 void gps_read();

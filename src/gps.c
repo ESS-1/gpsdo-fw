@@ -5,10 +5,12 @@
 #include "stm32f1xx_hal_uart.h"
 #include "usart.h"
 #include "eeprom.h"
+#include "frequency.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <inttypes.h>
 #include <string.h>
 #include <math.h>
 
@@ -44,7 +46,8 @@ uint32_t gps_invalid_frames      = 0;
 uint32_t gps_fifo_overflow_gps   = 0;
 uint32_t gps_fifo_overflow_comm  = 0;
 
-// TODO: Consider using a smaller buffer for the Comm port to save RAM
+volatile bool gps_comm_send_pgdox = true;
+
 #define FIFO_BUFFER_SIZE 1024
 
 typedef struct {
@@ -169,19 +172,7 @@ int gps_change_module_baudrate(uint32_t baudrate)
     return 0;
 }
 
-void gps_reconfigure_gps_uart(uint32_t baudrate)
-{
-    reconfigure_uart(&huart3, baudrate);
-    gps_start_gps_rx();
-}
-
-void gps_reconfigure_comm_uart(uint32_t baudrate)
-{
-    reconfigure_uart(&huart2, baudrate);
-    gps_start_comm_rx();
-}
-
-static void reconfigure_uart(UART_HandleTypeDef *huart, uint32_t baudrate)
+static void gps_reconfigure_uart(UART_HandleTypeDef *huart, uint32_t baudrate)
 {
     HAL_UART_DeInit(huart);
     // Wait for buffers to be consumed
@@ -201,6 +192,18 @@ static void reconfigure_uart(UART_HandleTypeDef *huart, uint32_t baudrate)
 
     // Wait for UART to init
     HAL_Delay(50);
+}
+
+void gps_reconfigure_gps_uart(uint32_t baudrate)
+{
+    gps_reconfigure_uart(&huart3, baudrate);
+    gps_start_gps_rx();
+}
+
+void gps_reconfigure_comm_uart(uint32_t baudrate)
+{
+    gps_reconfigure_uart(&huart2, baudrate);
+    gps_start_comm_rx();
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
@@ -630,15 +633,82 @@ void gps_process(char* line)
     last_frame_receive_time = HAL_GetTick();
 }
 
+static char gps_hex_digit(uint8_t value)
+{
+    static const char digits[] = "0123456789ABCDEF";
+    return digits[value & 0x0Fu];
+}
+
+static uint8_t gps_sat_u8(uint32_t value)
+{
+    return (value > 0xFFu) ? 0xFFu : (uint8_t)value;
+}
+
+bool gps_add_pgdos_frame(uint8_t *buffer, size_t buffer_size, size_t *bytes_written)
+{
+    if (bytes_written != NULL) {
+        *bytes_written = 0u;
+    }
+
+    if (buffer == NULL || buffer_size == 0u) {
+        return false;
+    }
+
+    char device_state = frequency_adjustment_allowed() ? '+' : 'W';
+    char gps_state    = gps_lock_status ? '+' : 'N';
+
+    // Format $PGDOS frame
+    int payload_len = snprintf(
+        (char *)buffer,
+        buffer_size,
+        "$PGDOS,%c%c,%08" PRIX32 ",%02" PRIX8 ",%08" PRIX32 ",%08" PRIX32 ",%04" PRIX16 ",%02" PRIX8 "%02" PRIX8 "%02" PRIX8,
+        device_state,
+        gps_state,
+        device_uptime,
+        num_sats,
+        (uint32_t)frequency_get_ppb(),
+        (uint32_t)frequency_get_inst_ppb(),
+        (uint16_t)TIM1->CCR2,
+        gps_sat_u8(gps_invalid_frames),
+        gps_sat_u8(gps_fifo_overflow_gps),
+        gps_sat_u8(gps_fifo_overflow_comm));
+
+    if (payload_len < 0 || (size_t)payload_len >= buffer_size) {
+        return false;
+    }
+
+    // Calculate checksum
+    uint8_t checksum = 0u;
+    for (size_t i = 1u; i < (size_t)payload_len; i++) {
+        checksum ^= buffer[i];
+    }
+
+    size_t pos = (size_t)payload_len;
+    if (pos + 5u > buffer_size) {
+        return false;
+    }
+
+    buffer[pos++] = '*';
+    buffer[pos++] = (uint8_t)gps_hex_digit(checksum >> 4);
+    buffer[pos++] = (uint8_t)gps_hex_digit(checksum);
+    buffer[pos++] = '\r';
+    buffer[pos++] = '\n';
+
+    if (bytes_written != NULL) {
+        *bytes_written = pos;
+    }
+
+    return true;
+}
+
 #define SEND_BUFFER_SIZE FIFO_BUFFER_SIZE
 uint8_t send_buf[SEND_BUFFER_SIZE];
 uint8_t gps_send_buf[SEND_BUFFER_SIZE];
 uint8_t comm_send_buf[SEND_BUFFER_SIZE];
-size_t  send_size;
 
 void gps_read()
 {
-    send_size = 0;
+    size_t send_size = 0;
     uint8_t c;
 
     while (send_size < SEND_BUFFER_SIZE && fifo_read(&fifo_buffer_gps, &c)) {
@@ -654,6 +724,16 @@ void gps_read()
             gps_line_len = 0;
             return;
         }
+    }
+
+    // Insert a new $PGDOS frame
+    bool add_pgdos = gps_comm_send_pgdox && generate_pgdos_frm;
+    if (add_pgdos &&
+        // Ensure $PGDOS is sent between GPS module frames
+        send_size == 0 && gps_line_len == 0)
+    {
+        gps_add_pgdos_frame(send_buf, SEND_BUFFER_SIZE, & send_size);
+        generate_pgdos_frm = false;
     }
 
     if (send_size) {

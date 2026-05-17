@@ -39,7 +39,7 @@ int32_t circbuf_sum(volatile circbuf_t* circbuf)
 int32_t frequency_get_ppb()
 {
     if (num_samples == 0) {
-        return 0xFFFF;
+        return 0x7FFFFFFF;
     }
 
     // Get ratio of cumulative error / expected number of cycles. Multiply by 1e9 for PPB and by
@@ -58,7 +58,7 @@ int32_t alg(int32_t current_error)
     int32_t current_ppb = frequency_get_ppb();
     int32_t adjustment  = 0;
 
-    if (current_ppb != 0xFFFF) {
+    if (current_ppb != 0x7FFFFFFF) {
         ema_err_hz = ema_a * current_error + ((1 - ema_a) * ema_err_hz);
 
         if (abs(current_ppb) > 0) {

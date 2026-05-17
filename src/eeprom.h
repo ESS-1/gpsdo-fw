@@ -29,6 +29,7 @@ typedef struct
     uint32_t correction_factor;
     uint32_t warmup_time_seconds;
     uint32_t comm_baudrate;
+    uint8_t  gps_comm_send_pgdox;
 } ee_storage_t;
 
 extern ee_storage_t ee_storage;

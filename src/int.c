@@ -40,6 +40,8 @@ volatile bool     sync_pps_out     = false;
 volatile bool     pps_ppm_auto_sync= false;
 volatile bool     pwm_auto_save    = false;
 volatile bool     update_trend     = false;
+volatile bool     generate_pgdos_frm = false;
+
 // Lock outputs
 volatile bool     gps_lock_status  = false;
 bool              ppb_lock_status  = false;
@@ -169,7 +171,7 @@ void eric_h_correction_algo(bool overshootSuppression, int32_t current_error)
     int32_t current_ppb = frequency_get_ppb();
     int32_t adjustment = 0;
 
-    if (current_ppb != 0xFFFF)
+    if (current_ppb != PPB_UNSET_VALUE)
     {
         ema_err_hz = overshootSuppression
             ? ema_a * current_error + ((1 - ema_a) * ema_err_hz)
@@ -293,6 +295,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
         pps_spinner   = (pps_spinner + 1) % strlen(spinner);
         refresh_screen = true;
         update_trend = allow_adjustment;
+        generate_pgdos_frm = true;
         if(!gps_lock_status)
         {   // Update GPS lock status
             gps_lock_status = true;
