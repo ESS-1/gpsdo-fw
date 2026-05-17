@@ -136,19 +136,6 @@ uint32_t    ppb_lock_threshold = DEFAULT_PPB_LOCK_THRESHOLD;
 
 correction_algo_type displayed_correction_algorithm;
 
-static void menu_to_string_with_two_decimals(int value, char *buffer, size_t bufferSize)
-{
-    // Divide the value by 100 and keep the remainder.
-    int integerPart = abs(value / 100);
-    int decimalPart = abs(value % 100);
-
-    // Make sure negative values <0 are displayed correctly.
-    snprintf(buffer, bufferSize, "%s%d.%02d",
-             value < 0 ? "-" : "",
-             integerPart,
-             decimalPart);
-}
-
 uint32_t menu_get_baudrate_value(baudrate baudrate_enum)
 {
     uint32_t result;
@@ -426,25 +413,39 @@ static void menu_draw_trend(uint32_t shift)
     }
 }
 
-#define PPB_STRING_SIZE     5
-#define SCREEN_BUFFER_SIZE  14
-
-static void menu_format_ppb(char* ppb_string, int32_t ppb_value)
+static void menu_format_ppb(int32_t ppb, char *buffer, size_t bufferSize)
 {
-    int32_t ppb = abs(ppb_value);
-
     if (ppb == PPB_UNSET_VALUE) {
-        strcpy(ppb_string, "   ?");
-    } else if (ppb > 999999) {
-        strcpy(ppb_string, ">10k");
-    } else if (ppb > 9999) {
-        snprintf(ppb_string, PPB_STRING_SIZE, "%4ld", (ppb / 100));
-    } else if (ppb > 999) {
-        snprintf(ppb_string, PPB_STRING_SIZE, "%ld.%01ld", ppb / 100, ((ppb % 100)/10));
+        snprintf(buffer, bufferSize, "N/A");
     } else {
-        snprintf(ppb_string, PPB_STRING_SIZE, "%ld.%02ld", ppb / 100, ppb % 100);
+        // Divide the PPB value by 100 and keep the remainder.
+        int integerPart = abs(ppb / 100);
+        int decimalPart = abs(ppb % 100);
+
+        // Make sure negative values <0 are displayed correctly.
+        snprintf(buffer, bufferSize, "%s%d.%02d", ppb < 0 ? "-" : "", integerPart, decimalPart);
     }
 }
+
+static void menu_format_ppb_compact(int32_t ppb_signed, char* buffer, size_t bufferSize)
+{
+    int32_t ppb = abs(ppb_signed);
+
+    if (ppb == PPB_UNSET_VALUE) {
+        snprintf(buffer, bufferSize, "   ?");
+    } else if (ppb > 999999) {
+        snprintf(buffer, bufferSize, ">10k");
+    } else if (ppb > 9999) {
+        snprintf(buffer, bufferSize, "%4ld", (ppb / 100));
+    } else if (ppb > 999) {
+        snprintf(buffer, bufferSize, "%ld.%01ld", ppb / 100, ((ppb % 100)/10));
+    } else {
+        snprintf(buffer, bufferSize, "%ld.%02ld", ppb / 100, ppb % 100);
+    }
+}
+
+#define PPB_STRING_SIZE     5
+#define SCREEN_BUFFER_SIZE  14
 
 static void menu_draw()
 {
@@ -458,7 +459,7 @@ static void menu_draw()
     case SCREEN_DATE:
     case SCREEN_DATE_TIME:
         // Main screen with satellites, ppb and UTC time
-        menu_format_ppb(ppb_string,frequency_get_ppb());
+        menu_format_ppb_compact(frequency_get_ppb(), ppb_string, PPB_STRING_SIZE);
         snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%02d %s", num_sats, ppb_string);
         LCD_Puts(1, 0, screen_buffer);
         if(current_menu_screen == SCREEN_MAIN)
@@ -491,7 +492,7 @@ static void menu_draw()
         // Trend screen 
         if(menu_level == 0)
         {
-            menu_format_ppb(ppb_string,frequency_get_ppb());
+            menu_format_ppb_compact(frequency_get_ppb(), ppb_string, PPB_STRING_SIZE);
             snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%02d %s", num_sats, ppb_string);
             LCD_Puts(1, 0, screen_buffer);
             menu_draw_trend(0);
@@ -504,7 +505,7 @@ static void menu_draw()
                 case SCREEN_TREND_MAIN:
                     if(menu_level == 1)
                     {
-                        menu_format_ppb(ppb_string,frequency_get_ppb());
+                        menu_format_ppb_compact(frequency_get_ppb(), ppb_string, PPB_STRING_SIZE);
                         snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%02d/%s", num_sats, ppb_string);
                         LCD_Puts(1, 0, screen_buffer);
                         menu_draw_trend(0);
@@ -512,7 +513,7 @@ static void menu_draw()
                     else
                     {   // Show value at the left of the screen
                         uint32_t trend_ppb = get_trend_value(TREND_SCREEN_SIZE - 1, trend_shift, trend_h_scale);
-                        menu_format_ppb(ppb_string, trend_ppb != TREND_UNSET_VALUE ? trend_ppb : PPB_UNSET_VALUE);
+                        menu_format_ppb_compact(trend_ppb != TREND_UNSET_VALUE ? trend_ppb : PPB_UNSET_VALUE, ppb_string, PPB_STRING_SIZE);
                         snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%03ld%c%s", trend_shift, trend_arrow, ppb_string);
                         LCD_Puts(0, 0, screen_buffer);
                         menu_draw_trend(trend_shift);
@@ -552,7 +553,7 @@ static void menu_draw()
             ppb = frequency_get_ppb();
             LCD_Puts(1, 0, "PPB:   ");
             LCD_Puts(0, 1, "        ");
-            menu_to_string_with_two_decimals(ppb, screen_buffer, SCREEN_BUFFER_SIZE);
+            menu_format_ppb(ppb, screen_buffer, SCREEN_BUFFER_SIZE);
             LCD_Puts(0, 1, screen_buffer);
         }
         else
@@ -565,7 +566,7 @@ static void menu_draw()
                 case SCREEN_PPB_MEAN:
                     ppb = frequency_get_ppb();
                     LCD_Puts(1, 0, "Mean:");
-                    menu_to_string_with_two_decimals(ppb, screen_buffer, SCREEN_BUFFER_SIZE);
+                    menu_format_ppb(ppb, screen_buffer, SCREEN_BUFFER_SIZE);
                     LCD_Puts(0, 1, screen_buffer);
                     break;
                 case SCREEN_PPB_INST:

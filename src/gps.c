@@ -661,7 +661,7 @@ bool gps_add_pgdos_frame(uint8_t *buffer, size_t buffer_size, size_t *bytes_writ
     int payload_len = snprintf(
         (char *)buffer,
         buffer_size,
-        "$PGDOS,%c%c,%08" PRIX32 ",%02" PRIX8 ",%08" PRIX32 ",%08" PRIX32 ",%04" PRIX16 ",%02" PRIX8 "%02" PRIX8 "%02" PRIX8,
+        "$PGDOS,%c%c,%08"PRIX32",%02X,%08"PRIX32",%08"PRIX32",%04"PRIX16",%02X%02X%02X",
         device_state,
         gps_state,
         device_uptime,
@@ -706,6 +706,8 @@ uint8_t send_buf[SEND_BUFFER_SIZE];
 uint8_t gps_send_buf[SEND_BUFFER_SIZE];
 uint8_t comm_send_buf[SEND_BUFFER_SIZE];
 
+uint32_t last_pgdos_generated_sec = 0;
+
 void gps_read()
 {
     size_t send_size = 0;
@@ -727,13 +729,13 @@ void gps_read()
     }
 
     // Insert a new $PGDOS frame
-    bool add_pgdos = gps_comm_send_pgdox && generate_pgdos_frm;
+    bool add_pgdos = gps_comm_send_pgdox && (last_pgdos_generated_sec != device_uptime);
     if (add_pgdos &&
         // Ensure $PGDOS is sent between GPS module frames
         send_size == 0 && gps_line_len == 0)
     {
         gps_add_pgdos_frame(send_buf, SEND_BUFFER_SIZE, & send_size);
-        generate_pgdos_frm = false;
+        last_pgdos_generated_sec = device_uptime;
     }
 
     if (send_size) {
