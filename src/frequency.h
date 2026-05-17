@@ -8,6 +8,8 @@
 #define TARGET_FREQ 72000000
 #define CIRCULAR_BUFFER_LEN 128
 
+#define PPB_UNSET_VALUE     0x7FFFFFFF
+
 typedef struct circbuf_t {
     size_t  write;
     int32_t buf[CIRCULAR_BUFFER_LEN];
@@ -26,6 +28,7 @@ bool    frequency_adjustment_allowed();
 
 // Returns ppb * 100
 int32_t frequency_get_ppb();
+int32_t frequency_get_inst_ppb();
 
 bool    frequency_is_stable(int32_t threshold);
 

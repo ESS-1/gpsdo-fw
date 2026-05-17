@@ -5,6 +5,7 @@
 #include <stdbool.h>
 
 #define GPS_DEFAULT_BAUDRATE    9600
+#define COMM_DEFAULT_BAUDRATE   115200
 
 extern char     gps_time[];
 extern char     gps_date[];
@@ -33,12 +34,17 @@ extern int8_t   gps_day_offset;
 // Last tiem a frame was received
 extern uint32_t last_frame_receive_time;
 extern uint32_t gps_invalid_frames;
+extern uint32_t gps_fifo_overflow_gps;
+extern uint32_t gps_fifo_overflow_comm;
+
+extern volatile bool gps_comm_send_pgdox;
 
 void gps_start_it();
 void gps_process(char* line);
 void gps_read();
 
-int  gps_configure_module_uart(uint32_t baudrate);
-void gps_reconfigure_uart(uint32_t baudrate);
+int  gps_change_module_baudrate(uint32_t baudrate);
+void gps_reconfigure_gps_uart(uint32_t baudrate);
+void gps_reconfigure_comm_uart(uint32_t baudrate);
 
 #endif

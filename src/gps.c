@@ -5,10 +5,12 @@
 #include "stm32f1xx_hal_uart.h"
 #include "usart.h"
 #include "eeprom.h"
+#include "frequency.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <inttypes.h>
 #include <string.h>
 #include <math.h>
 
@@ -39,10 +41,15 @@ date_format     gps_date_format = DATE_FORMAT_UTC;
 
 // Store last frame receive time
 uint32_t last_frame_receive_time = 0;
-uint32_t gps_invalid_frames = 0;
 
+uint32_t gps_invalid_frames      = 0;
+uint32_t gps_fifo_overflow_gps   = 0;
+uint32_t gps_fifo_overflow_comm  = 0;
 
-#define FIFO_BUFFER_SIZE 256
+volatile bool gps_comm_send_pgdox = true;
+uint32_t gps_last_pgdos_generated_sec = 0;
+
+#define FIFO_BUFFER_SIZE 1024
 
 typedef struct {
     uint8_t buffer[FIFO_BUFFER_SIZE];
@@ -100,7 +107,8 @@ static void gps_start_gps_rx()
 }
 static void gps_start_comm_rx()
 {
-    if (HAL_UART_Receive_DMA(&huart2, (uint8_t*)comm_it_buf, COMM_RX_BUFFER_SIZE) != HAL_OK) {
+    // 'comm_it_buf' is only 1 byte long, so DMA overhead is unnecessary
+    if (HAL_UART_Receive_IT(&huart2, (uint8_t*)comm_it_buf, COMM_RX_BUFFER_SIZE) != HAL_OK) {
         Error_Handler();
     }
 }
@@ -122,7 +130,7 @@ static void gps_sendcommand(const char* cmd, size_t len)
     while (huart3.gState != HAL_UART_STATE_READY);
 }
 
-int gps_configure_module_uart(uint32_t baudrate)
+int gps_change_module_baudrate(uint32_t baudrate)
 {
     const char* command = NULL;
     switch(gps_model)
@@ -165,41 +173,37 @@ int gps_configure_module_uart(uint32_t baudrate)
     return 0;
 }
 
-void gps_reconfigure_uart(uint32_t baudrate)
+static void gps_reconfigure_uart(UART_HandleTypeDef *huart, uint32_t baudrate)
 {
-    HAL_UART_DeInit(&huart2);
-    HAL_UART_DeInit(&huart3);
+    HAL_UART_DeInit(huart);
     // Wait for buffers to be consumed
     HAL_Delay(50);
 
-    huart2.Instance = USART2;
-    huart2.Init.BaudRate = baudrate;
-    huart2.Init.WordLength = UART_WORDLENGTH_8B;
-    huart2.Init.StopBits = UART_STOPBITS_1;
-    huart2.Init.Parity = UART_PARITY_NONE;
-    huart2.Init.Mode = UART_MODE_TX_RX;
-    huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-    if (HAL_UART_Init(&huart2) != HAL_OK)
+    huart->Init.BaudRate = baudrate;
+    huart->Init.WordLength = UART_WORDLENGTH_8B;
+    huart->Init.StopBits = UART_STOPBITS_1;
+    huart->Init.Parity = UART_PARITY_NONE;
+    huart->Init.Mode = UART_MODE_TX_RX;
+    huart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    huart->Init.OverSampling = UART_OVERSAMPLING_16;
+    if (HAL_UART_Init(huart) != HAL_OK)
     {
       Error_Handler();
     }
 
-    huart3.Instance = USART3;
-    huart3.Init.BaudRate = baudrate;
-    huart3.Init.WordLength = UART_WORDLENGTH_8B;
-    huart3.Init.StopBits = UART_STOPBITS_1;
-    huart3.Init.Parity = UART_PARITY_NONE;
-    huart3.Init.Mode = UART_MODE_TX_RX;
-    huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    huart3.Init.OverSampling = UART_OVERSAMPLING_16;
-    if (HAL_UART_Init(&huart3) != HAL_OK)
-    {
-      Error_Handler();
-    }
-    // Wait Uarts to init
+    // Wait for UART to init
     HAL_Delay(50);
+}
+
+void gps_reconfigure_gps_uart(uint32_t baudrate)
+{
+    gps_reconfigure_uart(&huart3, baudrate);
     gps_start_gps_rx();
+}
+
+void gps_reconfigure_comm_uart(uint32_t baudrate)
+{
+    gps_reconfigure_uart(&huart2, baudrate);
     gps_start_comm_rx();
 }
 
@@ -207,12 +211,16 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 {
     if (huart == &huart3) {
         for (size_t i = 0; i < GPS_RX_BUFFER_SIZE; i++) {
-            fifo_write(&fifo_buffer_gps, gps_it_buf[i]);
+            if (!fifo_write(&fifo_buffer_gps, gps_it_buf[i])) {
+                ++gps_fifo_overflow_gps;
+            }
         }
         gps_start_gps_rx();
     } else if (huart == &huart2) {
         for (size_t i = 0; i < COMM_RX_BUFFER_SIZE; i++) {
-            fifo_write(&fifo_buffer_comm, comm_it_buf[i]);
+            if (!fifo_write(&fifo_buffer_comm, comm_it_buf[i])) {
+                ++gps_fifo_overflow_comm;
+            }
         }
         gps_start_comm_rx();
     }
@@ -626,15 +634,95 @@ void gps_process(char* line)
     last_frame_receive_time = HAL_GetTick();
 }
 
+static char gps_hex_digit(uint8_t value)
+{
+    static const char digits[] = "0123456789ABCDEF";
+    return digits[value & 0x0Fu];
+}
+
+static uint8_t gps_sat_u8(uint32_t value)
+{
+    return (value > 0xFFu) ? 0xFFu : (uint8_t)value;
+}
+
+static bool gps_add_pgdos_frame(uint8_t *buffer, size_t buffer_size, size_t *bytes_written)
+{
+    if (bytes_written != NULL) {
+        *bytes_written = 0u;
+    }
+
+    if (buffer == NULL || buffer_size == 0u) {
+        return false;
+    }
+
+    char device_state = frequency_adjustment_allowed() ? '+' : 'W';
+    char gps_state    = gps_lock_status ? '+' : 'N';
+
+    // Format $PGDOS frame
+    int payload_len = snprintf(
+        (char *)buffer,
+        buffer_size,
+        "$PGDOS,%c%c,%08"PRIX32",%02X,%08"PRIX32",%08"PRIX32",%04"PRIX16",%02X%02X%02X",
+        device_state,
+        gps_state,
+        device_uptime,
+        num_sats,
+        (uint32_t)frequency_get_ppb(),
+        (uint32_t)frequency_get_inst_ppb(),
+        (uint16_t)TIM1->CCR2,
+        gps_sat_u8(gps_invalid_frames),
+        gps_sat_u8(gps_fifo_overflow_gps),
+        gps_sat_u8(gps_fifo_overflow_comm));
+
+    if (payload_len < 0 || (size_t)payload_len >= buffer_size) {
+        return false;
+    }
+
+    // Calculate checksum
+    uint8_t checksum = 0u;
+    for (size_t i = 1u; i < (size_t)payload_len; i++) {
+        checksum ^= buffer[i];
+    }
+
+    size_t pos = (size_t)payload_len;
+    if (pos + 5u > buffer_size) {
+        return false;
+    }
+
+    buffer[pos++] = '*';
+    buffer[pos++] = (uint8_t)gps_hex_digit(checksum >> 4);
+    buffer[pos++] = (uint8_t)gps_hex_digit(checksum);
+    buffer[pos++] = '\r';
+    buffer[pos++] = '\n';
+
+    if (bytes_written != NULL) {
+        *bytes_written = pos;
+    }
+
+    return true;
+}
+
+static void gps_run_pgdos(uint8_t* buf, size_t* buf_offset, size_t buf_size)
+{
+    if (gps_comm_send_pgdox && (gps_last_pgdos_generated_sec != device_uptime)) {
+        size_t bytes_written = 0;
+        if (gps_add_pgdos_frame(buf + (*buf_offset), buf_size - (*buf_offset), &bytes_written)) {
+            (*buf_offset) += bytes_written;
+            gps_last_pgdos_generated_sec = device_uptime;
+        }
+    }
+}
+
 #define SEND_BUFFER_SIZE FIFO_BUFFER_SIZE
 uint8_t send_buf[SEND_BUFFER_SIZE];
 uint8_t gps_send_buf[SEND_BUFFER_SIZE];
 uint8_t comm_send_buf[SEND_BUFFER_SIZE];
-size_t  send_size;
+
+uint32_t last_pgdos_generated_sec = 0;
 
 void gps_read()
 {
-    send_size = 0;
+    size_t send_size = 0;
     uint8_t c;
 
     while (send_size < SEND_BUFFER_SIZE && fifo_read(&fifo_buffer_gps, &c)) {
@@ -644,12 +732,21 @@ void gps_read()
             gps_line[gps_line_len] = '\0';
             gps_process(gps_line);
             gps_line_len = 0;
+
+            // Try injecting a $PGDOS frame into the GPS data stream
+            gps_run_pgdos(send_buf, &send_size, SEND_BUFFER_SIZE);
+
             continue;
         }
         if (gps_line_len >= MAX_GPS_LINE) {
             gps_line_len = 0;
             return;
         }
+    }
+
+    // If no data is received from the GPS module, insert a new $PGDOS frame
+    if (send_size == 0 && gps_line_len == 0) {
+        gps_run_pgdos(send_buf, &send_size, SEND_BUFFER_SIZE);
     }
 
     if (send_size) {

@@ -33,12 +33,12 @@ void gpsdo(void)
         switch(ocxo_model)
         {
             case OCXO_MODEL_OX256B:
-                startingPwm = 36000;
+                startingPwm = 38000; // about 2.5V - several of the OX256B units I have show zero error at this control voltage
                 break;
             case OCXO_MODEL_ISOTEMP:
             case OCXO_MODEL_UNKNOWN:
             default:
-                startingPwm = 26214; // 2V - typical center value of OCXO control voltage
+                startingPwm = 32000; // about 2V - typical center value of OCXO control voltage
                 break;
         }
     }
@@ -125,11 +125,20 @@ void gpsdo(void)
         ee_storage.warmup_time_seconds = get_default_warmup_time(ocxo_model);
     }
     warmup_time_seconds = ee_storage.warmup_time_seconds;
-
+    // PC communication port baud rate
+    if (ee_storage.comm_baudrate == 0xffffffff) {
+        ee_storage.comm_baudrate = COMM_DEFAULT_BAUDRATE;
+    }
+    // Custom $PGDOx NMEA frames sending option
+    if (ee_storage.gps_comm_send_pgdox == 0xff) {
+        ee_storage.gps_comm_send_pgdox = true;
+    }
+    gps_comm_send_pgdox = ee_storage.gps_comm_send_pgdox;
 
     gps_start_it();
 
     menu_set_gps_baudrate(ee_storage.gps_baudrate);
+    menu_set_comm_baudrate(ee_storage.comm_baudrate);
     menu_set_correction_algorithm(correction_algorithm);
 
     LCD_Init();
@@ -163,7 +172,7 @@ void gpsdo(void)
         }
         if((now - last_frame_receive_time) > GPS_FRAME_WAIT_DELAY)
         {   // We've not been receiving a frame from GPS for too long, try and restart UART
-            gps_reconfigure_uart(gps_baudrate);
+            gps_reconfigure_gps_uart(gps_baudrate);
             last_frame_receive_time = now;
         }
         

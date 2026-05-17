@@ -12,12 +12,13 @@
 #include "stm32f1xx_hal_gpio.h"
 #include "int.h"
 #include "menu.h"
+#include "trend8_t.h"
 
 /// All times in ms
 #define DEBOUNCE_TIME           50
 
 // Firmware version tag
-#define FIRMWARE_VERSION        "0.1.18/MDO"
+#define FIRMWARE_VERSION        "0.1.20/MDO"
 
 #define ROTARY_INVERT
 
@@ -78,7 +79,7 @@ void lcd_create_chars()
 
 typedef enum { SCREEN_MAIN, SCREEN_DATE, SCREEN_DATE_TIME, SCREEN_TREND, SCREEN_PPB, SCREEN_PWM, SCREEN_GPS, SCREEN_UPTIME, SCREEN_FRAMES, SCREEN_BRIGHTNESS, SCREEN_PPS, SCREEN_SAVE_CONFIG, SCREEN_VERSION, SCREEN_MAX } menu_screen;
 typedef enum { SCREEN_TREND_MAIN, SCREEN_TREND_AUTO_V, SCREEN_TREND_AUTO_H, SCREEN_TREND_V_SCALE, SCREEN_TREND_H_SCALE, SCREEN_TREND_EXIT, SCREEN_TREND_MAX } menu_trend_screen;
-typedef enum { SCREEN_GPS_TIME, SCREEN_GPS_LATITUDE, SCREEN_GPS_LONGITUDE, SCREEN_GPS_LATITUDE_DEC, SCREEN_GPS_LONGITUDE_DEC, SCREEN_GPS_LOCATOR, SCREEN_GPS_ALTITUDE, SCREEN_GPS_GEOID, SCREEN_GPS_SATELITES, SCREEN_GPS_HDOP, SCREEN_GPS_BAUDRATE, SCREEN_GPS_INVALID_FRAMES, SCREEN_GPS_TIME_OFFSET, SCREEN_GPS_DATE_FORMAT, SCREEN_GPS_MODEL, SCREEN_GPS_LAST_FRAME, SCREEN_GPS_EXIT, SCREEN_GPS_MAX } menu_gps_screen;
+typedef enum { SCREEN_GPS_TIME, SCREEN_GPS_LATITUDE, SCREEN_GPS_LONGITUDE, SCREEN_GPS_LATITUDE_DEC, SCREEN_GPS_LONGITUDE_DEC, SCREEN_GPS_LOCATOR, SCREEN_GPS_ALTITUDE, SCREEN_GPS_GEOID, SCREEN_GPS_SATELITES, SCREEN_GPS_HDOP, SCREEN_GPS_BAUDRATE, SCREEN_GPS_COMM_BAUDRATE, SCREEN_GPS_COMM_PGDOX_FRM, SCREEN_GPS_ERRORS, SCREEN_GPS_TIME_OFFSET, SCREEN_GPS_DATE_FORMAT, SCREEN_GPS_MODEL, SCREEN_GPS_LAST_FRAME, SCREEN_GPS_EXIT, SCREEN_GPS_MAX } menu_gps_screen;
 typedef enum { SCREEN_PPB_MEAN, SCREEN_PPB_INST, SCREEN_PPB_FREQUENCY, SCREEN_PPB_ERROR, SCREEN_PPB_CORRECTION, SCREEN_PPB_PWM, SCREEN_PPB_OCXO_MODEL, SCREEN_PPB_WARMUP_TIME, SCREEN_PPB_ALGO, SCREEN_PPB_CORRECTION_FACTOR, SCREEN_PPB_MILLIS, SCREEN_PPB_AUTO_SAVE_PWM, SCREEN_PPB_AUTO_SYNC_PPS, SCREEN_PPB_LOCK_THRESHOLD, SCREEN_PPB_EXIT, SCREEN_PPB_MAX } menu_ppb_screen;
 typedef enum { SCREEN_PPS_SHIFT, SCREEN_PPS_SHIFT_MS, SCREEN_PPS_SYNC_COUNT, SCREEN_PPS_SYNC_MODE, SCREEN_PPS_SYNC_DELAY, SCREEN_PPS_SYNC_THRESHOLD, SCREEN_PPS_FORCE_SYNC, SCREEN_PPS_EXIT, SCREEN_PPS_MAX } menu_pps_screen;
 
@@ -96,12 +97,11 @@ static uint32_t     last_encoder_value  = 0;
 static bool         auto_save_pwm_done  = false;
 static bool         auto_sync_pps_done  = false;
 
-#define TREND_MAX_SIZE      7208 // 112 * 64 (TREND_MAX_H_SCALE) + 40 (TREND_SCREEN_SIZE)
 #define TREND_SCREEN_SIZE   40
-#define TREND_UNSET_VALUE   0xFFFF
 #define TREND_MAX_H_SCALE   64
-#define TREND_MAX_SHIFT     7168 // 7208 (TREND_MAX_SIZE) - 40 (TREND_SCREEN_SIZE)
-static uint16_t     ppb_trend_values[TREND_MAX_SIZE];
+#define TREND_MAX_SIZE      (159*TREND_MAX_H_SCALE + TREND_SCREEN_SIZE) // Max trend duration: 2:50:16
+#define TREND_MAX_SHIFT     (TREND_MAX_SIZE - TREND_SCREEN_SIZE)
+static trend8_t     ppb_trend_values[TREND_MAX_SIZE];
 static uint32_t     ppb_trend_position = 0;
 static uint32_t     ppb_trend_size = 0;
 
@@ -116,6 +116,9 @@ bool        trend_auto_v = true;
 uint32_t    gps_baudrate = GPS_DEFAULT_BAUDRATE;
 baudrate    gps_baudrate_enum = BAUDRATE_9600;
 
+uint32_t    comm_baudrate = COMM_DEFAULT_BAUDRATE;
+baudrate    comm_baudrate_enum = BAUDRATE_115200;
+
 int8_t      gps_time_offset = 0;    // -14/+14
 int8_t      gps_day_offset  = 0;    // -1/+1
 
@@ -125,19 +128,6 @@ static uint32_t last_hour_date_screen_update = 0;
 uint32_t    ppb_lock_threshold = DEFAULT_PPB_LOCK_THRESHOLD;
 
 correction_algo_type displayed_correction_algorithm;
-
-static void menu_to_string_with_two_decimals(int value, char *buffer, size_t bufferSize)
-{
-    // Divide the value by 100 and keep the remainder.
-    int integerPart = abs(value / 100);
-    int decimalPart = abs(value % 100);
-
-    // Make sure negative values <0 are displayed correctly.
-    snprintf(buffer, bufferSize, "%s%d.%02d",
-             value < 0 ? "-" : "",
-             integerPart,
-             decimalPart);
-}
 
 uint32_t menu_get_baudrate_value(baudrate baudrate_enum)
 {
@@ -217,8 +207,18 @@ void menu_set_gps_baudrate(uint32_t baudrate)
     {   // Baudrate changed
         gps_baudrate = baudrate;
         gps_baudrate_enum = menu_get_baudrate_enum(baudrate);
-        gps_configure_module_uart(gps_baudrate);
-        gps_reconfigure_uart(gps_baudrate);
+        gps_change_module_baudrate(gps_baudrate);
+        gps_reconfigure_gps_uart(gps_baudrate);
+    }
+}
+
+void menu_set_comm_baudrate(uint32_t baudrate)
+{
+    if(baudrate != comm_baudrate)
+    {   // Baudrate changed
+        comm_baudrate = baudrate;
+        comm_baudrate_enum = menu_get_baudrate_enum(baudrate);
+        gps_reconfigure_comm_uart(comm_baudrate);
     }
 }
 
@@ -247,35 +247,42 @@ void init_trend_values()
 {
     for(int i = 0 ; i < TREND_MAX_SIZE ; i++)
     {
-        ppb_trend_values[i] = TREND_UNSET_VALUE;
+        ppb_trend_values[i] = TREND_ENCODED_UNSET_VALUE;
     }
 }
 
-static uint32_t get_trend_data(uint32_t index)
+static uint32_t get_trend_data(uint32_t offset)
 {
-    int32_t read_index = (ppb_trend_position + index);
-    if(read_index<0)
+    if (offset > TREND_MAX_SIZE)
+    {   // We are trying to access a value outside the trend history range
+        // This can happen when trend_h_scale >= 2 and the trend is being scrolled
+        return TREND_UNSET_VALUE;
+    }
+
+    int32_t read_index = (int32_t)ppb_trend_position - (int32_t)offset;
+    if (read_index < 0)
     {   // Wrap around
         read_index = TREND_MAX_SIZE + read_index;
     }
-    return ppb_trend_values[read_index];
+
+    return decode_trend8_t(ppb_trend_values[read_index]);
 }
 
 static uint32_t get_trend_value(uint32_t position, uint32_t shift, uint32_t h_scale)
 {
     if(h_scale == 1)
     {   // No h scaling
-        return get_trend_data(position-TREND_SCREEN_SIZE-shift);
+        return get_trend_data(shift + TREND_SCREEN_SIZE - position);
     }
     else
     {   // Compute mean value over h-scale size
         uint32_t result = 0;
         uint32_t new_value;
         for(uint32_t i = 0 ; i < h_scale ; i ++)
-        {   // ' - (ppb_trend_position % h_scale)' : Use the same start position for each point in time within the given scale group
-            new_value = get_trend_data((position*h_scale) + i - (TREND_SCREEN_SIZE*h_scale) - (ppb_trend_position % h_scale) - shift);
+        {   // '(ppb_trend_position % h_scale)' : Use the same start position for each point in time within the given scale group
+            new_value = get_trend_data((ppb_trend_position%h_scale) + shift + (TREND_SCREEN_SIZE*h_scale) - (position*h_scale) - i);
             if(new_value == TREND_UNSET_VALUE)
-            {   // Don't compte mean value if one value is unset
+            {   // Don't compute mean value if one value is unset
                 return TREND_UNSET_VALUE;
             }
             result += new_value;
@@ -301,15 +308,15 @@ static uint32_t get_trend_peak_value(uint32_t shift)
 
 static void add_trend_value(uint32_t value)
 {
-    ppb_trend_values[ppb_trend_position]=value;
+    ppb_trend_values[ppb_trend_position] = encode_trend8_t(value);
     ppb_trend_position++;
     if(ppb_trend_position>=TREND_MAX_SIZE)
     {
         ppb_trend_position = 0;
     }
-    else
+
+    if (ppb_trend_size < TREND_MAX_SIZE)
     {
-        // TODO: Should we always increment 'ppb_trend_size', or only when not wrapping around?
         ppb_trend_size++;
     }
 }
@@ -336,25 +343,26 @@ static uint32_t menu_round_v_scale(uint32_t scale)
     return rounded_scale;
 }
 
-static uint32_t menu_roud_h_scale(uint32_t scale)
+static uint32_t menu_round_h_scale(uint32_t scale)
 {
     uint32_t rounded_scale = 0;
-    if(scale > TREND_MAX_H_SCALE)
+    if(scale >= TREND_MAX_H_SCALE)
     {
         rounded_scale = TREND_MAX_H_SCALE;
     }
-    else if(scale < 1)
+    else if(scale <= 1)
     {
         rounded_scale = 1;
     }
     else
-    {   // Only keep powers of 2
-        uint8_t shift = 6;
-        while(rounded_scale == 0)
-        {
-            rounded_scale = ((scale >> shift) << shift);
-            shift--;
-        }
+    {   // Ceil to power of 2
+        rounded_scale = scale - 1;
+
+        rounded_scale |= rounded_scale >> 1;
+        rounded_scale |= rounded_scale >> 2;
+        rounded_scale |= rounded_scale >> 4;
+
+        ++rounded_scale;
     }
     return rounded_scale;
 }
@@ -363,7 +371,7 @@ static void menu_draw_trend(uint32_t shift)
 {   // Horizontal autoscale
     if(trend_auto_h)
     {   // Need to zoom horizontally
-        trend_h_scale = menu_roud_h_scale(ppb_trend_size/TREND_SCREEN_SIZE);
+        trend_h_scale = menu_round_h_scale((ppb_trend_size+TREND_SCREEN_SIZE-1) / TREND_SCREEN_SIZE);
     }
     // Vertical auto-scale
     if(trend_auto_v)
@@ -388,25 +396,39 @@ static void menu_draw_trend(uint32_t shift)
     }
 }
 
-#define PPB_STRING_SIZE     5
-#define SCREEN_BUFFER_SIZE  14
-
-static void menu_format_ppb(char* ppb_string, int32_t ppb_value)
+static void menu_format_ppb(int32_t ppb, char *buffer, size_t bufferSize)
 {
-    int32_t ppb = abs(ppb_value);
-
-    if (ppb ==  0xFFFF) {
-        strcpy(ppb_string, "   ?");
-    } else if (ppb > 999999) {
-        strcpy(ppb_string, ">10k");
-    } else if (ppb > 9999) {
-        snprintf(ppb_string, PPB_STRING_SIZE, "%4ld", (ppb / 100));
-    } else if (ppb > 999) {
-        snprintf(ppb_string, PPB_STRING_SIZE, "%ld.%01ld", ppb / 100, ((ppb % 100)/10));
+    if (ppb == PPB_UNSET_VALUE) {
+        snprintf(buffer, bufferSize, "N/A");
     } else {
-        snprintf(ppb_string, PPB_STRING_SIZE, "%ld.%02ld", ppb / 100, ppb % 100);
+        // Divide the PPB value by 100 and keep the remainder.
+        int integerPart = abs(ppb / 100);
+        int decimalPart = abs(ppb % 100);
+
+        // Make sure negative values <0 are displayed correctly.
+        snprintf(buffer, bufferSize, "%s%d.%02d", ppb < 0 ? "-" : "", integerPart, decimalPart);
     }
 }
+
+static void menu_format_ppb_compact(int32_t ppb_signed, char* buffer, size_t bufferSize)
+{
+    int32_t ppb = abs(ppb_signed);
+
+    if (ppb == PPB_UNSET_VALUE) {
+        snprintf(buffer, bufferSize, "   ?");
+    } else if (ppb > 999999) {
+        snprintf(buffer, bufferSize, ">10k");
+    } else if (ppb > 9999) {
+        snprintf(buffer, bufferSize, "%4ld", (ppb / 100));
+    } else if (ppb > 999) {
+        snprintf(buffer, bufferSize, "%ld.%01ld", ppb / 100, ((ppb % 100)/10));
+    } else {
+        snprintf(buffer, bufferSize, "%ld.%02ld", ppb / 100, ppb % 100);
+    }
+}
+
+#define PPB_STRING_SIZE     5
+#define SCREEN_BUFFER_SIZE  14
 
 static void menu_draw()
 {
@@ -420,7 +442,7 @@ static void menu_draw()
     case SCREEN_DATE:
     case SCREEN_DATE_TIME:
         // Main screen with satellites, ppb and UTC time
-        menu_format_ppb(ppb_string,frequency_get_ppb());
+        menu_format_ppb_compact(frequency_get_ppb(), ppb_string, PPB_STRING_SIZE);
         snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%02d %s", num_sats, ppb_string);
         LCD_Puts(1, 0, screen_buffer);
         if(current_menu_screen == SCREEN_MAIN)
@@ -453,7 +475,7 @@ static void menu_draw()
         // Trend screen 
         if(menu_level == 0)
         {
-            menu_format_ppb(ppb_string,frequency_get_ppb());
+            menu_format_ppb_compact(frequency_get_ppb(), ppb_string, PPB_STRING_SIZE);
             snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%02d %s", num_sats, ppb_string);
             LCD_Puts(1, 0, screen_buffer);
             menu_draw_trend(0);
@@ -466,15 +488,16 @@ static void menu_draw()
                 case SCREEN_TREND_MAIN:
                     if(menu_level == 1)
                     {
-                        menu_format_ppb(ppb_string,frequency_get_ppb());
+                        menu_format_ppb_compact(frequency_get_ppb(), ppb_string, PPB_STRING_SIZE);
                         snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%02d/%s", num_sats, ppb_string);
                         LCD_Puts(1, 0, screen_buffer);
                         menu_draw_trend(0);
                     }
                     else
                     {   // Show value at the left of the screen
-                        menu_format_ppb(ppb_string,get_trend_value(TREND_SCREEN_SIZE-1,trend_shift,trend_h_scale));
-                        snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%03ld%c%s", trend_shift,trend_arrow,ppb_string);
+                        uint32_t trend_ppb = get_trend_value(TREND_SCREEN_SIZE - 1, trend_shift, trend_h_scale);
+                        menu_format_ppb_compact(trend_ppb != TREND_UNSET_VALUE ? trend_ppb : PPB_UNSET_VALUE, ppb_string, PPB_STRING_SIZE);
+                        snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%03ld%c%s", trend_shift, trend_arrow, ppb_string);
                         LCD_Puts(0, 0, screen_buffer);
                         menu_draw_trend(trend_shift);
                     }
@@ -513,7 +536,7 @@ static void menu_draw()
             ppb = frequency_get_ppb();
             LCD_Puts(1, 0, "PPB:   ");
             LCD_Puts(0, 1, "        ");
-            menu_to_string_with_two_decimals(ppb, screen_buffer, SCREEN_BUFFER_SIZE);
+            menu_format_ppb(ppb, screen_buffer, SCREEN_BUFFER_SIZE);
             LCD_Puts(0, 1, screen_buffer);
         }
         else
@@ -526,13 +549,13 @@ static void menu_draw()
                 case SCREEN_PPB_MEAN:
                     ppb = frequency_get_ppb();
                     LCD_Puts(1, 0, "Mean:");
-                    menu_to_string_with_two_decimals(ppb, screen_buffer, SCREEN_BUFFER_SIZE);
+                    menu_format_ppb(ppb, screen_buffer, SCREEN_BUFFER_SIZE);
                     LCD_Puts(0, 1, screen_buffer);
                     break;
                 case SCREEN_PPB_INST:
                     {
                     LCD_Puts(1, 0, "Inst:");
-                    int32_t ppb_inst = (int64_t)ppb_error * 1000000000 * 100 / ((int64_t)HAL_RCC_GetHCLKFreq());
+                    int32_t ppb_inst = frequency_get_inst_ppb();
                     snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld.%02d", ppb_inst / 100, abs(ppb_inst) % 100);
                     LCD_Puts(0, 1, screen_buffer);
                     }
@@ -744,13 +767,22 @@ static void menu_draw()
                     LCD_Puts(0, 1, gps_hdop);
                     break;
                 case SCREEN_GPS_BAUDRATE:
-                    LCD_Puts(1, 0, menu_level == 1 ? "Baud:":"Baud?");
+                    LCD_Puts(1, 0, menu_level == 1 ? "GPS BR:":"GPS BR?");
                     snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", gps_baudrate);
                     LCD_Puts(0, 1, screen_buffer);
                     break;
-                case SCREEN_GPS_INVALID_FRAMES:
+                case SCREEN_GPS_COMM_BAUDRATE:
+                    LCD_Puts(1, 0, menu_level == 1 ? "PC BR:":"PC BR?");
+                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", comm_baudrate);
+                    LCD_Puts(0, 1, screen_buffer);
+                    break;
+                case SCREEN_GPS_COMM_PGDOX_FRM:
+                    LCD_Puts(1, 0, menu_level == 1 ? "$PGDOx:" : "$PGDOx?");
+                    LCD_Puts(0, 1, gps_comm_send_pgdox ? "      ON" : "     OFF");
+                    break;
+                case SCREEN_GPS_ERRORS:
                     LCD_Puts(1, 0, "GPS Err");
-                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", gps_invalid_frames);
+                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld/%ld/%ld", gps_invalid_frames, gps_fifo_overflow_gps, gps_fifo_overflow_comm);
                     LCD_Puts(0, 1, screen_buffer);
                     break;
                 case SCREEN_GPS_TIME_OFFSET:
@@ -1071,7 +1103,7 @@ void menu_run()
                 case SCREEN_TREND_H_SCALE:
                     // Update v scale
                     trend_h_scale = encoder_increment > 0 ? trend_h_scale * 2 : trend_h_scale/2;
-                    trend_h_scale = menu_roud_h_scale(trend_h_scale);
+                    trend_h_scale = menu_round_h_scale(trend_h_scale);
                     LCD_Clear();
                     menu_force_redraw();
                     break;
@@ -1155,25 +1187,41 @@ void menu_run()
             }
         }
         else if(menu_level == 2 && current_menu_screen == SCREEN_GPS)
-        {   // Sub-sub menu for PPB screen
+        {   // Sub-sub menu for GPS screen
             switch(current_menu_gps_screen)
             {
                 case SCREEN_GPS_BAUDRATE:
-                    { // Update baudrate
-                    baudrate max_baudrate = BAUDRATE_MAX;
-                    switch (gps_model)
-                    {
-                        case GPS_MODEL_ATGM336H:
-                            max_baudrate = BAUDRATE_115200 + 1;
-                            break;
-                        default:
-                            break;
+                    { // Update GPS module baudrate
+                        baudrate max_baudrate = BAUDRATE_MAX;
+                        switch (gps_model)
+                        {
+                            case GPS_MODEL_ATGM336H:
+                                max_baudrate = BAUDRATE_115200 + 1;
+                                break;
+                            default:
+                                break;
+                        }
+                        gps_baudrate_enum = (gps_baudrate_enum + encoder_increment) % max_baudrate;
+                        if(gps_baudrate_enum >= max_baudrate) gps_baudrate_enum = max_baudrate-1; // Roll over for first screen - 1
+                        gps_baudrate = menu_get_baudrate_value(gps_baudrate_enum);
+                        LCD_Clear();
+                        menu_force_redraw();
                     }
-                    gps_baudrate_enum =  (gps_baudrate_enum + encoder_increment) % max_baudrate;
-                    if(gps_baudrate_enum >= max_baudrate) gps_baudrate_enum = max_baudrate-1; // Roll over for first sceen - 1
-                    gps_baudrate = menu_get_baudrate_value(gps_baudrate_enum);
-                    LCD_Clear();
-                    menu_force_redraw();
+                    break;
+                case SCREEN_GPS_COMM_BAUDRATE:
+                    { // Update PC communication port baudrate
+                        comm_baudrate_enum = (comm_baudrate_enum + encoder_increment) % BAUDRATE_MAX;
+                        if(comm_baudrate_enum >= BAUDRATE_MAX) comm_baudrate_enum = BAUDRATE_MAX-1; // Roll over for first screen - 1
+                        comm_baudrate = menu_get_baudrate_value(comm_baudrate_enum);
+                        LCD_Clear();
+                        menu_force_redraw();
+                    }
+                    break;
+                case SCREEN_GPS_COMM_PGDOX_FRM:
+                    { // Update custom $PGDOx NMEA frames sending option
+                        gps_comm_send_pgdox = !gps_comm_send_pgdox;
+                        LCD_Clear();
+                        menu_force_redraw();
                     }
                     break;
                 case SCREEN_GPS_TIME_OFFSET:
@@ -1346,6 +1394,8 @@ void menu_run()
                         case SCREEN_GPS_DATE_FORMAT:
                         case SCREEN_GPS_TIME_OFFSET:
                         case SCREEN_GPS_BAUDRATE:
+                        case SCREEN_GPS_COMM_BAUDRATE:
+                        case SCREEN_GPS_COMM_PGDOX_FRM:
                             menu_level = 2;
                             break;
                         case SCREEN_GPS_EXIT:
@@ -1495,11 +1545,27 @@ void menu_run()
                     {   // Save changes
                         ee_storage.gps_baudrate = gps_baudrate;
                         on_config_changed();
-                        // Reconfigure uart
-                        if(gps_configure_module_uart(gps_baudrate)>=0)
-                        {   // Reconfigure uart
-                            gps_reconfigure_uart(gps_baudrate);
+                        // Reconfigure GPS module
+                        if(gps_change_module_baudrate(gps_baudrate)>=0)
+                        {   // Reconfigure UART
+                            gps_reconfigure_gps_uart(gps_baudrate);
                         }
+                    }
+                    break;
+                case SCREEN_GPS_COMM_BAUDRATE:
+                    if(ee_storage.comm_baudrate != comm_baudrate)
+                    {   // Save changes
+                        ee_storage.comm_baudrate = comm_baudrate;
+                        on_config_changed();
+                        // Reconfigure UART
+                        gps_reconfigure_comm_uart(comm_baudrate);
+                    }
+                    break;
+                case SCREEN_GPS_COMM_PGDOX_FRM:
+                    if(ee_storage.gps_comm_send_pgdox != gps_comm_send_pgdox)
+                    {   // Save changes
+                        ee_storage.gps_comm_send_pgdox = gps_comm_send_pgdox;
+                        on_config_changed();
                     }
                     break;
                 case SCREEN_GPS_TIME_OFFSET:
