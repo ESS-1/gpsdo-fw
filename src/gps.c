@@ -47,6 +47,7 @@ uint32_t gps_fifo_overflow_gps   = 0;
 uint32_t gps_fifo_overflow_comm  = 0;
 
 volatile bool gps_comm_send_pgdox = true;
+uint32_t gps_last_pgdos_generated_sec = 0;
 
 #define FIFO_BUFFER_SIZE 1024
 
@@ -644,7 +645,7 @@ static uint8_t gps_sat_u8(uint32_t value)
     return (value > 0xFFu) ? 0xFFu : (uint8_t)value;
 }
 
-bool gps_add_pgdos_frame(uint8_t *buffer, size_t buffer_size, size_t *bytes_written)
+static bool gps_add_pgdos_frame(uint8_t *buffer, size_t buffer_size, size_t *bytes_written)
 {
     if (bytes_written != NULL) {
         *bytes_written = 0u;
@@ -661,7 +662,7 @@ bool gps_add_pgdos_frame(uint8_t *buffer, size_t buffer_size, size_t *bytes_writ
     int payload_len = snprintf(
         (char *)buffer,
         buffer_size,
-        "$PGDOS,%c%c,%08" PRIX32 ",%02" PRIX8 ",%08" PRIX32 ",%08" PRIX32 ",%04" PRIX16 ",%02" PRIX8 "%02" PRIX8 "%02" PRIX8,
+        "$PGDOS,%c%c,%08"PRIX32",%02X,%08"PRIX32",%08"PRIX32",%04"PRIX16",%02X%02X%02X",
         device_state,
         gps_state,
         device_uptime,
@@ -701,6 +702,17 @@ bool gps_add_pgdos_frame(uint8_t *buffer, size_t buffer_size, size_t *bytes_writ
     return true;
 }
 
+static void gps_run_pgdos(uint8_t* buf, size_t* buf_offset, size_t buf_size)
+{
+    if (gps_comm_send_pgdox && (gps_last_pgdos_generated_sec != device_uptime)) {
+        size_t bytes_written = 0;
+        if (gps_add_pgdos_frame(buf + (*buf_offset), buf_size - (*buf_offset), &bytes_written)) {
+            (*buf_offset) += bytes_written;
+            gps_last_pgdos_generated_sec = device_uptime;
+        }
+    }
+}
+
 #define SEND_BUFFER_SIZE FIFO_BUFFER_SIZE
 uint8_t send_buf[SEND_BUFFER_SIZE];
 uint8_t gps_send_buf[SEND_BUFFER_SIZE];
@@ -718,6 +730,10 @@ void gps_read()
             gps_line[gps_line_len] = '\0';
             gps_process(gps_line);
             gps_line_len = 0;
+
+            // Try injecting a $PGDOS frame into the GPS data stream
+            gps_run_pgdos(send_buf, &send_size, SEND_BUFFER_SIZE);
+
             continue;
         }
         if (gps_line_len >= MAX_GPS_LINE) {
@@ -726,14 +742,9 @@ void gps_read()
         }
     }
 
-    // Insert a new $PGDOS frame
-    bool add_pgdos = gps_comm_send_pgdox && generate_pgdos_frm;
-    if (add_pgdos &&
-        // Ensure $PGDOS is sent between GPS module frames
-        send_size == 0 && gps_line_len == 0)
-    {
-        gps_add_pgdos_frame(send_buf, SEND_BUFFER_SIZE, & send_size);
-        generate_pgdos_frm = false;
+    // If no data is received from the GPS module, insert a new $PGDOS frame
+    if (send_size == 0 && gps_line_len == 0) {
+        gps_run_pgdos(send_buf, &send_size, SEND_BUFFER_SIZE);
     }
 
     if (send_size) {

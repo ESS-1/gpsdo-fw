@@ -40,7 +40,6 @@ volatile bool     sync_pps_out     = false;
 volatile bool     pps_ppm_auto_sync= false;
 volatile bool     pwm_auto_save    = false;
 volatile bool     update_trend     = false;
-volatile bool     generate_pgdos_frm = false;
 
 // Lock outputs
 volatile bool     gps_lock_status  = false;
@@ -295,7 +294,6 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
         pps_spinner   = (pps_spinner + 1) % strlen(spinner);
         refresh_screen = true;
         update_trend = allow_adjustment;
-        generate_pgdos_frm = true;
         if(!gps_lock_status)
         {   // Update GPS lock status
             gps_lock_status = true;

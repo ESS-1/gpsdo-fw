@@ -72,7 +72,7 @@ Here is the menu tree :
   - `HDOP`: the current Horizontal Dilution Of Precision value
   - `GPS BR`: (__*don't mess with this unless you know what you are doing !*__): sets the GPS UART communication baudrate (for GPSDO equipped with ATGM336H GPS modules, changing this will also send a command to change the GPS module baudrate accordingly *BUT* ATGM336H modules installed in the GPSDO have been reported to have a weak battery and don't retain this setting for a very long time... passed this time the module will return to default 9600 bauds, breaking the communication with the bluepill (see [Troubleshooting section](#no-time-on-the-display)))
   - `PC BD`: sets the PC communication port baudrate; this rate should be higher than the GPS module's UART baudrate to prevent communication errors; the default value of 115200 is recommended
-__  - `$PGDOx`: enables or disables custom [$PGDOx frames](./doc/PGDOx.md) (when set to `ON`, the device transmits custom `$PGDOx` frames used by the PC software to monitor device state)
+  - `$PGDOx`: enables or disables custom [$PGDOx frames](./doc/NMEA-0183-extention-PGDOx.md) (when set to `ON`, the device transmits custom `$PGDOx` frames used by the PC software to monitor device state)
   - `GPS Err`: the total counts of invalid GPS frames and FIFO buffer overflows, in the following format: &lt;Invalid GPS Frames&gt;/&lt;GPS FIFO Overflows&gt;/&lt;PC Comm. Port FIFO Overflows&gt;
   - `Time Zone offset`: sets the number of hours (-14/+14) to shift the displayed time from UTC to match local time
   - `Date Format`: sets the date format (either `dd/mm/yy` (default value), `mm/dd/yy`, `yy/mm/dd`, `dd.mm.yy` or `yy-mm-dd`)
