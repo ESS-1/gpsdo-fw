@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GPSDO PGDOS Monitor</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <h1>GPSDO PGDOS Monitor</h1>
+      <div class="subtitle">PC Communication Port telemetry</div>
+    </div>
+    <div class="toolbar">
+      <label class="field-label" for="baudInput">Baud</label>
+      <input id="baudInput" class="baud-input" type="number" min="1200" step="1200" value="115200">
+      <button id="connectBtn" type="button">Connect</button>
+      <button id="disconnectBtn" type="button" disabled>Disconnect</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="status-strip" aria-label="Parser summary">
+      <div class="summary-item">
+        <span class="summary-label">PGDOS valid</span>
+        <strong id="validCount">0</strong>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">PGDOS invalid</span>
+        <strong id="invalidCount">0</strong>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Other frames</span>
+        <strong id="ignoredCount">0</strong>
+      </div>
+      <div class="summary-item wide">
+        <span class="summary-label">Input</span>
+        <strong id="inputStatus">Idle</strong>
+      </div>
+    </section>
+
+    <section class="metrics-grid" aria-label="Latest PGDOS data">
+      <article class="metric">
+        <span class="metric-label">Device status</span>
+        <strong id="deviceStatus" class="status-pill">--</strong>
+      </article>
+      <article class="metric">
+        <span class="metric-label">GPS status</span>
+        <strong id="gpsStatus" class="status-pill">--</strong>
+      </article>
+      <article class="metric">
+        <span class="metric-label">Uptime</span>
+        <strong id="uptimeValue">--</strong>
+      </article>
+      <article class="metric">
+        <span class="metric-label">Satellites</span>
+        <strong id="satValue">--</strong>
+      </article>
+      <article class="metric emphasis">
+        <span class="metric-label">Mean frequency error</span>
+        <strong id="meanPpbValue">--</strong>
+      </article>
+      <article class="metric emphasis">
+        <span class="metric-label">Instant frequency error</span>
+        <strong id="instPpbValue">--</strong>
+      </article>
+      <article class="metric">
+        <span class="metric-label">OCXO control voltage</span>
+        <strong id="pwmValue">--</strong>
+      </article>
+      <article class="metric">
+        <span class="metric-label">Communication errors</span>
+        <strong id="commErrorsValue">--</strong>
+      </article>
+    </section>
+
+    <section class="chart-section" aria-label="Frequency error chart">
+      <div class="section-heading">
+        <h2>PPB history</h2>
+        <div class="legend">
+          <label class="chart-toggle">
+            <input id="meanToggle" type="checkbox" checked>
+            <span><i class="line mean"></i>Mean, left scale</span>
+          </label>
+          <label class="chart-toggle">
+            <input id="instantToggle" type="checkbox" checked>
+            <span><i class="line inst"></i>Instant, right scale</span>
+          </label>
+          <span>Gap break: &gt; 2 s</span>
+          <span id="gapCount">Pauses: 0</span>
+          <button id="clearChartBtn" class="small-button" type="button">Clear graph</button>
+        </div>
+      </div>
+      <canvas id="ppbChart" height="280"></canvas>
+    </section>
+
+    <section class="workspace">
+      <div class="log-panel">
+        <div class="section-heading">
+          <h2>Input stream</h2>
+          <div class="button-row">
+            <button id="parseBtn" type="button">Parse</button>
+            <button id="sampleBtn" type="button">Sample</button>
+            <button id="clearBtn" type="button">Clear</button>
+          </div>
+        </div>
+        <textarea id="rawInput" spellcheck="false" placeholder="Paste NMEA stream here"></textarea>
+      </div>
+
+      <div class="frames-panel">
+        <div class="section-heading">
+          <h2>Recent PGDOS frames</h2>
+          <span id="lastFrameAt" class="muted">No frame yet</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Uptime</th>
+                <th>Dev</th>
+                <th>GPS</th>
+                <th>Sats</th>
+                <th>Mean ppb</th>
+                <th>Inst ppb</th>
+                <th>OCXO</th>
+                <th>Errors</th>
+              </tr>
+            </thead>
+            <tbody id="framesBody">
+              <tr>
+                <td colspan="8" class="empty-cell">No valid PGDOS frames</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
