@@ -125,7 +125,7 @@ static const char * const atgm336h_baudcommands[] = {
 static void gps_sendcommand(const char* cmd, size_t len)
 {
     while (huart3.gState != HAL_UART_STATE_READY);
-    HAL_UART_Transmit_IT(&huart3, (const uint8_t*)cmd, len);
+    HAL_UART_Transmit_DMA(&huart3, (const uint8_t*)cmd, len);
     // wait for transfer completed
     while (huart3.gState != HAL_UART_STATE_READY);
 }
@@ -753,7 +753,7 @@ void gps_read()
         while (huart2.gState != HAL_UART_STATE_READY)
             ;
         memcpy(gps_send_buf, send_buf, send_size);
-        HAL_UART_Transmit_IT(&huart2, gps_send_buf, send_size);
+        HAL_UART_Transmit_DMA(&huart2, gps_send_buf, send_size);
     }
 
     send_size = 0;
@@ -765,6 +765,6 @@ void gps_read()
         while (huart3.gState != HAL_UART_STATE_READY)
             ;
         memcpy(comm_send_buf, send_buf, send_size);
-        HAL_UART_Transmit_IT(&huart3, comm_send_buf, send_size);
+        HAL_UART_Transmit_DMA(&huart3, comm_send_buf, send_size);
     }
 }

@@ -18,7 +18,7 @@
 #define DEBOUNCE_TIME           50
 
 // Firmware version tag
-#define FIRMWARE_VERSION        "0.1.20/MDO"
+#define FIRMWARE_VERSION        "0.1.21/MDO"
 
 #define ROTARY_INVERT
 

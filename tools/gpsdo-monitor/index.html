@@ -3,17 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>GPSDO PGDOS Monitor</title>
+  <title>GPSDO Monitor</title>
   <link rel="stylesheet" href="styles.css">
   <script src="app.js" defer></script>
+  <script src="terminal.js" defer></script>
 </head>
 <body>
   <header class="app-header">
     <div>
-      <h1>GPSDO PGDOS Monitor</h1>
-      <div class="subtitle">PC Communication Port telemetry</div>
+      <h1>GPSDO Monitor <span class="app-version">v0.1.21</span></h1>
+      <div class="subtitle">GPSDO status telemetry</div>
     </div>
     <div class="toolbar">
+      <div class="connection-inline">
+        <span class="summary-label">Connection</span>
+        <strong id="inputStatus">Idle</strong>
+      </div>
       <label class="field-label" for="baudInput">Baud</label>
       <input id="baudInput" class="baud-input" type="number" min="1200" step="1200" value="115200">
       <button id="connectBtn" type="button">Connect</button>
@@ -22,7 +27,28 @@
   </header>
 
   <main>
+    <nav class="tabs" aria-label="Application views">
+      <button class="tab-button active" type="button" data-tab-target="monitorTab">Monitor</button>
+      <button class="tab-button" type="button" data-tab-target="terminalTab">Terminal</button>
+    </nav>
+
+    <section id="monitorTab" class="tab-panel active">
+      <section class="connection-panel">
+        <div>
+          <h2>GPSDO PGDOS Monitor</h2>
+          <div class="subtitle">PC Communication Port telemetry</div>
+        </div>
+      </section>
+
     <section class="status-strip" aria-label="Parser summary">
+      <div class="summary-item">
+        <span class="summary-label">NMEA valid</span>
+        <strong id="nmeaValidCount">0</strong>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">NMEA checksum bad</span>
+        <strong id="nmeaInvalidCount">0</strong>
+      </div>
       <div class="summary-item">
         <span class="summary-label">PGDOS valid</span>
         <strong id="validCount">0</strong>
@@ -30,14 +56,6 @@
       <div class="summary-item">
         <span class="summary-label">PGDOS invalid</span>
         <strong id="invalidCount">0</strong>
-      </div>
-      <div class="summary-item">
-        <span class="summary-label">Other frames</span>
-        <strong id="ignoredCount">0</strong>
-      </div>
-      <div class="summary-item wide">
-        <span class="summary-label">Input</span>
-        <strong id="inputStatus">Idle</strong>
       </div>
     </section>
 
@@ -96,23 +114,13 @@
       <canvas id="ppbChart" height="280"></canvas>
     </section>
 
-    <section class="workspace">
-      <div class="log-panel">
-        <div class="section-heading">
-          <h2>Input stream</h2>
-          <div class="button-row">
-            <button id="parseBtn" type="button">Parse</button>
-            <button id="sampleBtn" type="button">Sample</button>
-            <button id="clearBtn" type="button">Clear</button>
-          </div>
-        </div>
-        <textarea id="rawInput" spellcheck="false" placeholder="Paste NMEA stream here"></textarea>
-      </div>
-
-      <div class="frames-panel">
+      <section class="frames-panel monitor-frames">
         <div class="section-heading">
           <h2>Recent PGDOS frames</h2>
-          <span id="lastFrameAt" class="muted">No frame yet</span>
+          <div class="button-row">
+            <span id="lastFrameAt" class="muted">No frame yet</span>
+            <button id="clearBtn" type="button">Clear data</button>
+          </div>
         </div>
         <div class="table-wrap">
           <table>
@@ -135,7 +143,73 @@
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
+    </section>
+
+    <section id="terminalTab" class="tab-panel">
+      <section class="connection-panel">
+        <div>
+          <h2>Terminal</h2>
+          <div class="subtitle">Send a command and watch the receiver stream</div>
+        </div>
+      </section>
+
+      <section class="status-strip">
+        <div class="summary-item">
+          <span class="summary-label">Port</span>
+          <strong id="terminalPortStatus">Idle</strong>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Last TX</span>
+          <strong id="terminalTxStatus" class="result neutral">None</strong>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Received lines</span>
+          <strong id="terminalLineCount">0</strong>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Command mode</span>
+          <strong id="terminalModeStatus">Payload</strong>
+        </div>
+      </section>
+
+      <section class="command-panel">
+        <div class="section-heading">
+          <h2>Command</h2>
+          <div class="button-row">
+            <button id="terminalLoadHotStartBtn" type="button">Load hot start</button>
+            <button id="terminalClearLogBtn" type="button">Clear log</button>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <label class="field">
+            <span>Command mode</span>
+            <select id="terminalCommandMode">
+              <option value="payload" selected>NMEA payload, auto checksum</option>
+              <option value="raw">Raw command line</option>
+            </select>
+          </label>
+
+          <label class="field wide">
+            <span id="terminalCommandLabel">NMEA payload</span>
+            <input id="terminalCommandInput" type="text" spellcheck="false" placeholder="Example: PCAS10,0">
+          </label>
+        </div>
+
+        <div class="send-row">
+          <button id="terminalSendBtn" class="primary" type="button" disabled>Send command</button>
+          <code id="terminalPreviewText">$...*CS\r\n</code>
+        </div>
+      </section>
+
+      <section class="log-panel terminal-log-panel">
+        <div class="section-heading">
+          <h2>Serial log</h2>
+          <span class="muted">RX and TX are shown with timestamps</span>
+        </div>
+        <pre id="terminalSerialLog"></pre>
+      </section>
     </section>
   </main>
 </body>

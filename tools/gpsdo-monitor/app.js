@@ -1,22 +1,20 @@
 const GAP_SECONDS = 2;
 const MAX_POINTS = 600;
-const MAX_RAW_CHARS = 200000;
+const RENDER_INTERVAL_MS = 250;
 const UNSET_S32_HEX = "7FFFFFFF";
 
 const elements = {
   baudInput: document.getElementById("baudInput"),
   connectBtn: document.getElementById("connectBtn"),
   disconnectBtn: document.getElementById("disconnectBtn"),
-  parseBtn: document.getElementById("parseBtn"),
-  sampleBtn: document.getElementById("sampleBtn"),
   clearBtn: document.getElementById("clearBtn"),
   clearChartBtn: document.getElementById("clearChartBtn"),
   meanToggle: document.getElementById("meanToggle"),
   instantToggle: document.getElementById("instantToggle"),
-  rawInput: document.getElementById("rawInput"),
+  nmeaValidCount: document.getElementById("nmeaValidCount"),
+  nmeaInvalidCount: document.getElementById("nmeaInvalidCount"),
   validCount: document.getElementById("validCount"),
   invalidCount: document.getElementById("invalidCount"),
-  ignoredCount: document.getElementById("ignoredCount"),
   inputStatus: document.getElementById("inputStatus"),
   deviceStatus: document.getElementById("deviceStatus"),
   gpsStatus: document.getElementById("gpsStatus"),
@@ -39,17 +37,20 @@ const state = {
   recent: [],
   serialPort: null,
   serialReader: null,
+  serialWriter: null,
   serialActive: false,
-  parseTimer: null,
+  renderTimer: null,
   stats: makeStats()
 };
 
 function makeStats() {
   return {
     lines: 0,
+    nmeaValid: 0,
+    nmeaInvalid: 0,
+    nonNmea: 0,
     valid: 0,
     invalid: 0,
-    ignored: 0,
     checksumBad: 0
   };
 }
@@ -74,10 +75,6 @@ function hexByte(value) {
   return value.toString(16).toUpperCase().padStart(2, "0");
 }
 
-function nmeaFrame(payload) {
-  return `$${payload}*${hexByte(checksum(payload))}\r\n`;
-}
-
 function parseHex(text, length) {
   if (text.length !== length || !/^[0-9A-Fa-f]+$/.test(text)) {
     return null;
@@ -99,23 +96,38 @@ function parseSignedPpbHundredths(text) {
   return signed / 100;
 }
 
-function parsePgdosFrame(frame) {
-  const star = frame.indexOf("*");
-  if (!frame.startsWith("$PGDOS,") || star < 0 || star + 3 !== frame.length) {
+function parseNmeaFrame(line) {
+  const start = line.indexOf("$");
+  if (start < 0) {
+    return { ok: false, reason: "not-nmea" };
+  }
+
+  const candidate = line.slice(start).trim();
+  const match = candidate.match(/^\$([^*\r\n]+)\*([0-9A-Fa-f]{2})/);
+  if (match === null) {
     return { ok: false, reason: "format" };
   }
 
-  const payload = frame.slice(1, star);
-  const expected = frame.slice(star + 1, star + 3).toUpperCase();
-  if (!/^[0-9A-F]{2}$/.test(expected)) {
-    return { ok: false, reason: "checksum" };
-  }
-
+  const payload = match[1];
+  const expected = match[2].toUpperCase();
   const actual = hexByte(checksum(payload));
   if (actual !== expected) {
-    return { ok: false, reason: "checksum" };
+    return {
+      ok: false,
+      reason: "checksum",
+      frame: match[0],
+      payload
+    };
   }
 
+  return {
+    ok: true,
+    frame: match[0],
+    payload
+  };
+}
+
+function parsePgdosFrame(payload, frame) {
   const fields = payload.split(",");
   if (fields.length !== 8 || fields[0] !== "PGDOS") {
     return { ok: false, reason: "fields" };
@@ -161,17 +173,6 @@ function parsePgdosFrame(frame) {
   };
 }
 
-function extractFrame(line) {
-  const start = line.indexOf("$PGDOS,");
-  if (start < 0) {
-    return null;
-  }
-
-  const candidate = line.slice(start).trim();
-  const match = candidate.match(/^\$PGDOS,[^*\r\n]*(?:\*[0-9A-Fa-f]{2})?/);
-  return match ? match[0] : null;
-}
-
 function handleLine(line) {
   const trimmed = line.trim();
   if (trimmed.length === 0) {
@@ -180,18 +181,28 @@ function handleLine(line) {
 
   state.stats.lines += 1;
 
-  const frame = extractFrame(trimmed);
-  if (frame === null) {
-    state.stats.ignored += 1;
+  const nmea = parseNmeaFrame(trimmed);
+  if (!nmea.ok) {
+    if (nmea.reason === "not-nmea") {
+      state.stats.nonNmea += 1;
+    } else {
+      state.stats.nmeaInvalid += 1;
+      if (nmea.reason === "checksum") {
+        state.stats.checksumBad += 1;
+      }
+    }
     return;
   }
 
-  const parsed = parsePgdosFrame(frame);
+  state.stats.nmeaValid += 1;
+
+  if (!nmea.payload.startsWith("PGDOS,")) {
+    return;
+  }
+
+  const parsed = parsePgdosFrame(nmea.payload, nmea.frame);
   if (!parsed.ok) {
     state.stats.invalid += 1;
-    if (parsed.reason === "checksum") {
-      state.stats.checksumBad += 1;
-    }
     return;
   }
 
@@ -222,18 +233,7 @@ function feedText(text, finalChunk) {
     state.partial = "";
   }
 
-  render();
-}
-
-function parseCurrentInput() {
-  resetData();
-  feedText(elements.rawInput.value, true);
-  setInputStatus(state.serialActive ? "Serial connected" : "Parsed input");
-}
-
-function scheduleParse() {
-  window.clearTimeout(state.parseTimer);
-  state.parseTimer = window.setTimeout(parseCurrentInput, 120);
+  scheduleRender();
 }
 
 function describeDeviceStatus(value) {
@@ -285,9 +285,10 @@ function setInputStatus(text) {
 
 function renderMetrics() {
   const latest = state.latest;
+  elements.nmeaValidCount.textContent = String(state.stats.nmeaValid);
+  elements.nmeaInvalidCount.textContent = String(state.stats.nmeaInvalid);
   elements.validCount.textContent = String(state.stats.valid);
   elements.invalidCount.textContent = String(state.stats.invalid);
-  elements.ignoredCount.textContent = String(state.stats.ignored);
 
   if (latest === null) {
     elements.deviceStatus.textContent = "--";
@@ -543,23 +544,30 @@ function drawSeries(ctx, key, color, xFor, yFor, dpr) {
 }
 
 function render() {
+  if (state.renderTimer !== null) {
+    window.clearTimeout(state.renderTimer);
+    state.renderTimer = null;
+  }
   renderMetrics();
   renderTable();
   drawChart();
 }
 
-function appendRawText(text) {
-  const input = elements.rawInput;
-  input.value += text;
-  if (input.value.length > MAX_RAW_CHARS) {
-    input.value = input.value.slice(input.value.length - MAX_RAW_CHARS);
+function scheduleRender() {
+  if (state.renderTimer !== null) {
+    return;
   }
-  input.scrollTop = input.scrollHeight;
+
+  state.renderTimer = window.setTimeout(() => {
+    state.renderTimer = null;
+    render();
+  }, RENDER_INTERVAL_MS);
 }
 
 async function connectSerial() {
   if (!("serial" in navigator)) {
     setInputStatus("Web Serial unavailable");
+    window.terminalSetConnectionStatus?.(false, "Web Serial unavailable");
     return;
   }
 
@@ -568,13 +576,16 @@ async function connectSerial() {
     state.serialPort = await navigator.serial.requestPort();
     await state.serialPort.open({ baudRate });
     state.serialReader = state.serialPort.readable.getReader();
+    state.serialWriter = state.serialPort.writable.getWriter();
     state.serialActive = true;
     elements.connectBtn.disabled = true;
     elements.disconnectBtn.disabled = false;
-    setInputStatus("Serial connected");
+    setInputStatus(`Connected @ ${baudRate}`);
+    window.terminalSetConnectionStatus?.(true, `Connected @ ${baudRate}`);
     readSerialLoop();
   } catch (error) {
     setInputStatus(error.name === "NotFoundError" ? "Serial not selected" : "Serial error");
+    window.terminalSetConnectionStatus?.(false, "Not connected");
   }
 }
 
@@ -589,12 +600,13 @@ async function readSerialLoop() {
       }
 
       const text = decoder.decode(result.value, { stream: true });
-      appendRawText(text);
+      window.terminalReceiveText?.(text);
       feedText(text, false);
     }
   } catch (error) {
     if (state.serialActive) {
       setInputStatus("Serial read error");
+      window.terminalSetConnectionStatus?.(false, "Read error");
     }
   } finally {
     await closeSerial();
@@ -618,6 +630,15 @@ async function closeSerial() {
     state.serialReader = null;
   }
 
+  if (state.serialWriter !== null) {
+    try {
+      state.serialWriter.releaseLock();
+    } catch (error) {
+      // The writer may already be released.
+    }
+    state.serialWriter = null;
+  }
+
   if (state.serialPort !== null) {
     try {
       await state.serialPort.close();
@@ -629,33 +650,30 @@ async function closeSerial() {
 
   elements.connectBtn.disabled = false;
   elements.disconnectBtn.disabled = true;
-  if (elements.inputStatus.textContent === "Serial connected") {
+  if (elements.inputStatus.textContent.startsWith("Connected")) {
     setInputStatus("Serial disconnected");
   }
+  window.terminalSetConnectionStatus?.(false, "Disconnected");
 }
 
-function loadSample() {
-  const sample = [
-    nmeaFrame("GPGGA,180000.00,5000.000,N,03000.000,E,1,08,1.0,120.0,M,0.0,M,,"),
-    nmeaFrame("PGDOS,W+,00000082,07,0000001D,7FFFFFFF,04E3,010002"),
-    nmeaFrame("GPRMC,180001.00,A,5000.000,N,03000.000,E,0.0,0.0,170526,,,A"),
-    nmeaFrame("PGDOS,++,00000083,08,00000019,0000001C,04E4,010002"),
-    nmeaFrame("PGDOS,++,00000088,09,FFFFFFEC,FFFFFFF6,04E6,0100FF"),
-    nmeaFrame("PGDOS,+N,00000089,04,FFFFFFF0,FFFFFFF1,04E2,020100")
-  ].join("");
+window.gpsdoSerialIsConnected = function gpsdoSerialIsConnected() {
+  return state.serialActive && state.serialWriter !== null;
+};
 
-  elements.rawInput.value = sample;
-  parseCurrentInput();
-}
+window.gpsdoSerialWrite = async function gpsdoSerialWrite(text) {
+  if (!window.gpsdoSerialIsConnected()) {
+    throw new Error("Serial port is not connected");
+  }
+
+  const encoder = new TextEncoder();
+  await state.serialWriter.write(encoder.encode(text));
+};
 
 elements.connectBtn.addEventListener("click", connectSerial);
 elements.disconnectBtn.addEventListener("click", closeSerial);
-elements.parseBtn.addEventListener("click", parseCurrentInput);
-elements.sampleBtn.addEventListener("click", loadSample);
 elements.clearBtn.addEventListener("click", () => {
-  elements.rawInput.value = "";
   resetData();
-  setInputStatus(state.serialActive ? "Serial connected" : "Idle");
+  setInputStatus(state.serialActive ? "Connected" : "Idle");
   render();
 });
 elements.clearChartBtn.addEventListener("click", () => {
@@ -664,7 +682,26 @@ elements.clearChartBtn.addEventListener("click", () => {
 });
 elements.meanToggle.addEventListener("change", drawChart);
 elements.instantToggle.addEventListener("change", drawChart);
-elements.rawInput.addEventListener("input", scheduleParse);
 window.addEventListener("resize", drawChart);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) {
+    render();
+  }
+});
+document.querySelectorAll(".tab-button").forEach((button) => {
+  button.addEventListener("click", () => {
+    document.querySelectorAll(".tab-button").forEach((item) => {
+      item.classList.toggle("active", item === button);
+    });
+    document.querySelectorAll(".tab-panel").forEach((panel) => {
+      panel.classList.toggle("active", panel.id === button.dataset.tabTarget);
+    });
+    if (button.dataset.tabTarget === "monitorTab") {
+      drawChart();
+    } else if (button.dataset.tabTarget === "terminalTab") {
+      window.terminalFlushLog?.();
+    }
+  });
+});
 
 render();
