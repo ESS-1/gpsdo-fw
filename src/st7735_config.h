@@ -2,7 +2,7 @@
 #define __ST7735_H_CONFIG__
 
 #define ST7735_SPI_PORT hspi1
-/*???*/ extern SPI_HandleTypeDef ST7735_SPI_PORT;
+extern SPI_HandleTypeDef ST7735_SPI_PORT;
 
 #define ST7735_RES_Pin       LCD_RES_Pin
 #define ST7735_RES_GPIO_Port LCD_RES_GPIO_Port
