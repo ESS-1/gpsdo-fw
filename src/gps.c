@@ -107,10 +107,10 @@ static void gps_start_gps_rx()
 }
 static void gps_start_comm_rx()
 {
-    // 'comm_it_buf' is only 1 byte long, so DMA overhead is unnecessary
-    if (HAL_UART_Receive_IT(&huart2, (uint8_t*)comm_it_buf, COMM_RX_BUFFER_SIZE) != HAL_OK) {
-        Error_Handler();
-    }
+//todo    // 'comm_it_buf' is only 1 byte long, so DMA overhead is unnecessary
+//todo    if (HAL_UART_Receive_IT(&huart2, (uint8_t*)comm_it_buf, COMM_RX_BUFFER_SIZE) != HAL_OK) {
+//todo        Error_Handler();
+//todo    }
 }
 
 // ATGM336H set baudrate commands
@@ -203,8 +203,8 @@ void gps_reconfigure_gps_uart(uint32_t baudrate)
 
 void gps_reconfigure_comm_uart(uint32_t baudrate)
 {
-    gps_reconfigure_uart(&huart2, baudrate);
-    gps_start_comm_rx();
+//todo    gps_reconfigure_uart(&huart2, baudrate);
+//todo    gps_start_comm_rx();
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
@@ -216,13 +216,13 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
             }
         }
         gps_start_gps_rx();
-    } else if (huart == &huart2) {
-        for (size_t i = 0; i < COMM_RX_BUFFER_SIZE; i++) {
-            if (!fifo_write(&fifo_buffer_comm, comm_it_buf[i])) {
-                ++gps_fifo_overflow_comm;
-            }
-        }
-        gps_start_comm_rx();
+//todo    } else if (huart == &huart2) {
+//todo        for (size_t i = 0; i < COMM_RX_BUFFER_SIZE; i++) {
+//todo            if (!fifo_write(&fifo_buffer_comm, comm_it_buf[i])) {
+//todo                ++gps_fifo_overflow_comm;
+//todo            }
+//todo        }
+//todo        gps_start_comm_rx();
     }
 }
 
@@ -715,7 +715,7 @@ static void gps_run_pgdos(uint8_t* buf, size_t* buf_offset, size_t buf_size)
 
 #define SEND_BUFFER_SIZE FIFO_BUFFER_SIZE
 uint8_t send_buf[SEND_BUFFER_SIZE];
-uint8_t gps_send_buf[SEND_BUFFER_SIZE];
+//todo uint8_t gps_send_buf[SEND_BUFFER_SIZE];
 uint8_t comm_send_buf[SEND_BUFFER_SIZE];
 
 uint32_t last_pgdos_generated_sec = 0;
@@ -749,12 +749,12 @@ void gps_read()
         gps_run_pgdos(send_buf, &send_size, SEND_BUFFER_SIZE);
     }
 
-    if (send_size) {
-        while (huart2.gState != HAL_UART_STATE_READY)
-            ;
-        memcpy(gps_send_buf, send_buf, send_size);
-        HAL_UART_Transmit_DMA(&huart2, gps_send_buf, send_size);
-    }
+//todo    if (send_size) {
+//todo        while (huart2.gState != HAL_UART_STATE_READY)
+//todo            ;
+//todo        memcpy(gps_send_buf, send_buf, send_size);
+//todo        HAL_UART_Transmit_DMA(&huart2, gps_send_buf, send_size);
+//todo    }
 
     send_size = 0;
     while (send_size < SEND_BUFFER_SIZE && fifo_read(&fifo_buffer_comm, &c)) {
