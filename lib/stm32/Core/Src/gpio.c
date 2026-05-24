@@ -50,10 +50,10 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPS_LOCK_OUTPUT_Pin|PPB_LOCK_OUTPUT_Pin|LCD_CS_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOA, GPS_LOCK_OUTPUT_Pin|PPB_LOCK_OUTPUT_Pin|LCD_CS_Pin|OCXO_EN_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, LCD_DC_Pin|LCD_RES_Pin|OCXO_EN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, LCD_DC_Pin|LCD_RES_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, PPS_OUTPUT_Pin|LED1_Pin, GPIO_PIN_RESET);

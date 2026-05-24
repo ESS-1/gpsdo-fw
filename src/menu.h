@@ -4,6 +4,9 @@
 #include <stdbool.h>
 #include "int.h"
 
+// Firmware version tag
+#define FIRMWARE_VERSION "0.1.21/MDO"
+
 // Char code for sat icons
 #define SAT_ICON_1_CODE         '-'//0x7F
 #define SAT_ICON_2_CODE         '='//'-'

@@ -19,7 +19,18 @@ target_include_directories(st7735 INTERFACE
     ../src
 )
 
-target_link_libraries(st7735 stm32cubemx)
+add_library(si5351)
+target_sources(si5351 INTERFACE
+    si5351/si5351.c
+    si5351/si5351.h
+)
+target_include_directories(si5351 INTERFACE
+    si5351
+    ../src
+)
+
 target_link_libraries(eeprom stm32cubemx)
-    
+target_link_libraries(st7735 stm32cubemx)
+target_link_libraries(si5351 stm32cubemx)
+
 add_subdirectory(stm32/cmake/stm32cubemx)

@@ -1,4 +1,7 @@
 #include "main.h"
+#include "gpio.h"
+#include "i2c.h"
+#include "spi.h"
 #include "LCD.h"
 #include "eeprom.h"
 #include "frequency.h"
@@ -6,6 +9,8 @@
 #include "menu.h"
 #include "int.h"
 #include "tim.h"
+#include "pll.h"
+#include "bootlog.h"
 #include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -16,7 +21,65 @@
 #define PPS_PULSE_WIDTH         100
 #define GPS_FRAME_WAIT_DELAY    10000
 
-void gpsdo(void)
+void init_ext_clock()
+{
+    // MX_GPIO_Init() sets a high level on OCXO_EN; wait for contact bounce to settle before proceeding
+    HAL_Delay(750);
+
+    // Initialize minimal peripherals required to configure the external clock
+    MX_GPIO_Init();
+    MX_I2C1_Init();
+    MX_SPI1_Init();
+
+    bootlog_init();
+    bootlog_add("Micro-DO " FIRMWARE_VERSION);
+    bootlog_add("Initializing...");
+    bootlog_add("OCXO enabled");
+
+    // Wait for OCXO startup
+    HAL_Delay(250);
+
+    // Init SI5351 PLL
+    bootlog_add("Init PLL");
+    pll_init_primary_vco();
+    bootlog_set_status(true);
+
+    // Wait for PLL lock
+    bootlog_add("PLL Lock");
+    bool pll_fail = false;
+    if (pll_wait_primary_lock()) {
+        if (pll_enable_primary_output()) {
+            bootlog_set_status(true);
+        } else {
+            bootlog_set_status(false);
+            pll_fail = true;
+            bootlog_error("PLL output failure!");
+        }
+    } else {
+        bootlog_set_status(false);
+        pll_fail = true;
+        bootlog_error("PLL lock failure!");
+    }
+
+    if (pll_fail) {
+        // Turn off OCXO
+        HAL_GPIO_WritePin(OCXO_EN_GPIO_Port, OCXO_EN_Pin, 0);
+        bootlog_add("OCXO disabled");
+
+        Error_Handler();
+        return;
+    }
+
+    // Switch to the normal operation mode
+    bootlog_add("Use OCXO clock...");
+    HAL_Delay(500);
+
+    // De-initialize peripherals
+    HAL_I2C_DeInit(&hi2c1);
+    HAL_SPI_DeInit(&hspi1);
+}
+
+void gpsdo()
 {
     HAL_TIM_Base_Start_IT(&htim2);
 

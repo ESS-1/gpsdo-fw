@@ -37,6 +37,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+void init_ext_clock();
 void gpsdo();
 /* USER CODE END PD */
 
@@ -79,7 +80,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  init_ext_clock();
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -164,11 +165,6 @@ void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
-
-  // Reset in stead of hang.
-  // Fixes the startup problem when the clock does not start quick enough at power up.
-  HAL_NVIC_SystemReset();
-  
   __disable_irq();
   while (1)
   {

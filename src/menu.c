@@ -14,11 +14,8 @@
 #include "menu.h"
 #include "trend8_t.h"
 
-/// All times in ms
+// All times in ms
 #define DEBOUNCE_TIME           50
-
-// Firmware version tag
-#define FIRMWARE_VERSION        "0.1.21/MDO"
 
 #define ROTARY_INVERT
 
