@@ -292,6 +292,29 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_IMPLEMENTATION */
 
+void CDC_WaitTxReady_FS()
+{
+    while (((USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData)->TxState != 0) { }
+}
+
+uint8_t CDC_TransmitBuffered_FS(uint8_t* buf, uint16_t len)
+{
+    if (len == 0) {
+        return USBD_OK;
+    }
+
+    if (len > APP_TX_DATA_SIZE) {
+        return USBD_FAIL;
+    }
+
+    if (((USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData)->TxState != 0) {
+        return USBD_BUSY;
+    }
+
+    memcpy(UserTxBufferFS, buf, len);
+    return CDC_Transmit_FS(UserTxBufferFS, len);
+}
+
 /* USER CODE END PRIVATE_FUNCTIONS_IMPLEMENTATION */
 
 /**

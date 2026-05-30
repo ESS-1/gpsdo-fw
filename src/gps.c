@@ -3,6 +3,7 @@
 #include "main.h"
 #include "menu.h"
 #include "stm32f1xx_hal_uart.h"
+#include "usbd_cdc_if.h"
 #include "usart.h"
 #include "eeprom.h"
 #include "frequency.h"
@@ -50,6 +51,10 @@ volatile bool gps_comm_send_pgdox = true;
 uint32_t gps_last_pgdos_generated_sec = 0;
 
 #define FIFO_BUFFER_SIZE 1024
+
+#if FIFO_BUFFER_SIZE != APP_TX_DATA_SIZE
+#error "USB CDC TX buffer size must match FIFO_BUFFER_SIZE. Change CDC TX buffer size in CubeMX."
+#endif
 
 typedef struct {
     uint8_t buffer[FIFO_BUFFER_SIZE];
@@ -715,7 +720,6 @@ static void gps_run_pgdos(uint8_t* buf, size_t* buf_offset, size_t buf_size)
 
 #define SEND_BUFFER_SIZE FIFO_BUFFER_SIZE
 uint8_t send_buf[SEND_BUFFER_SIZE];
-//todo uint8_t gps_send_buf[SEND_BUFFER_SIZE];
 uint8_t comm_send_buf[SEND_BUFFER_SIZE];
 
 uint32_t last_pgdos_generated_sec = 0;
@@ -749,12 +753,10 @@ void gps_read()
         gps_run_pgdos(send_buf, &send_size, SEND_BUFFER_SIZE);
     }
 
-//todo    if (send_size) {
-//todo        while (huart2.gState != HAL_UART_STATE_READY)
-//todo            ;
-//todo        memcpy(gps_send_buf, send_buf, send_size);
-//todo        HAL_UART_Transmit_DMA(&huart2, gps_send_buf, send_size);
-//todo    }
+    if (send_size) {
+        CDC_WaitTxReady_FS();
+        uint8_t ttt = CDC_TransmitBuffered_FS(send_buf, send_size);
+    }
 
     send_size = 0;
     while (send_size < SEND_BUFFER_SIZE && fifo_read(&fifo_buffer_comm, &c)) {

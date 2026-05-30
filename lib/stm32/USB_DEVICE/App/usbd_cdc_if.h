@@ -110,6 +110,9 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len);
 
 /* USER CODE BEGIN EXPORTED_FUNCTIONS */
 
+void CDC_WaitTxReady_FS();
+uint8_t CDC_TransmitBuffered_FS(uint8_t* buf, uint16_t len);
+
 /* USER CODE END EXPORTED_FUNCTIONS */
 
 /**
