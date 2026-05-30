@@ -2,4 +2,4 @@
 #define I2C_HANDLE hi2c1
 extern I2C_HandleTypeDef I2C_HANDLE;
 
-#define SI5351_XTAL_FREQ 25000000
+#define SI5351_XTAL_FREQ 10000000

@@ -2,7 +2,6 @@
 #include "gpio.h"
 #include "i2c.h"
 #include "spi.h"
-#include "usbd_cdc_if.h"
 #include "LCD.h"
 #include "eeprom.h"
 #include "frequency.h"
@@ -25,7 +24,7 @@
 void init_ext_clock()
 {
     // MX_GPIO_Init() sets a high level on OCXO_EN; wait for contact bounce to settle before proceeding
-    HAL_Delay(500);
+    HAL_Delay(750);
 
     // Initialize minimal peripherals required to configure the external clock
     MX_GPIO_Init();
@@ -58,8 +57,8 @@ void init_ext_clock()
         }
     } else {
         bootlog_set_status(false);
-//        pll_fail = true;
-//        bootlog_error("PLL lock failure!");
+        pll_fail = true;
+        bootlog_error("PLL lock failure!");
     }
 
     if (pll_fail) {
@@ -199,7 +198,6 @@ void gpsdo()
     }
     gps_comm_send_pgdox = ee_storage.gps_comm_send_pgdox;
 
-//    CDC_Init_FS();
     gps_start_it();
 
     menu_set_gps_baudrate(ee_storage.gps_baudrate);
