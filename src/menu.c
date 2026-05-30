@@ -96,7 +96,7 @@ static bool         auto_sync_pps_done  = false;
 
 #define TREND_SCREEN_SIZE   40
 #define TREND_MAX_H_SCALE   64
-#define TREND_MAX_SIZE      (159*TREND_MAX_H_SCALE + TREND_SCREEN_SIZE) // Max trend duration: 2:50:16
+#define TREND_MAX_SIZE      (84*TREND_MAX_H_SCALE + TREND_SCREEN_SIZE) // Max trend duration: 1:30:16
 #define TREND_MAX_SHIFT     (TREND_MAX_SIZE - TREND_SCREEN_SIZE)
 static trend8_t     ppb_trend_values[TREND_MAX_SIZE];
 static uint32_t     ppb_trend_position = 0;
