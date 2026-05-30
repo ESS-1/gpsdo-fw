@@ -6,25 +6,26 @@ void pll_init_primary_vco()
 {
     si5351_Init(0, SI5351_CRYSTAL_LOAD_6PF);
 
-    // Init PLL A (VCO = 10M * 32 = 880M
+    // Init PLL A (VCO = 25M * 32 = 800M
     si5351PLLConfig_t pll_config = { 0 };
-    pll_config.mult  = 88;
+    pll_config.mult  = 32;
     pll_config.num   = 0;
     pll_config.denom = 1;
     si5351_SetupPLL(SI5351_PLL_A, &pll_config);
+    si5351_SetupPLL(SI5351_PLL_B, &pll_config);
 }
 
 bool pll_wait_primary_lock()
 {
-    return si5351_WaitPLLReady(SI5351_PLL_A, 150, 200);
+    return si5351_WaitPLLReady(SI5351_PLL_A, 150, 2000);
 }
 
 bool pll_enable_primary_output()
 {
-    // CLK0: 880M / 110 = 8M
+    // CLK0: 800M / 100 = 8M
     si5351OutputConfig_t out_config = { 0 };
     out_config.allowIntegerMode = 1;
-    out_config.div = 110;
+    out_config.div = 100;
     out_config.num = 0;
     out_config.denom = 1;
     out_config.rdiv  = SI5351_R_DIV_1;
@@ -33,9 +34,9 @@ bool pll_enable_primary_output()
         return false;
     }
 
-/*TODO: temporary code*/    // CLK1: 880M / 88 = 10M
+/*TODO: temporary code*/    // CLK1: 800M / 80 = 10M
 /*TODO: temporary code*/    out_config.allowIntegerMode = 1;
-/*TODO: temporary code*/    out_config.div = 88;
+/*TODO: temporary code*/    out_config.div = 80;
 /*TODO: temporary code*/    out_config.num = 0;
 /*TODO: temporary code*/    out_config.denom = 1;
 /*TODO: temporary code*/    out_config.rdiv  = SI5351_R_DIV_1;

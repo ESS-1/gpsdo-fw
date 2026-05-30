@@ -755,7 +755,7 @@ void gps_read()
 
     if (send_size) {
         CDC_WaitTxReady_FS();
-        uint8_t ttt = CDC_TransmitBuffered_FS(send_buf, send_size);
+        CDC_TransmitBuffered_FS(send_buf, send_size);
     }
 
     send_size = 0;
