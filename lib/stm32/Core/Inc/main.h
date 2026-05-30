@@ -81,6 +81,8 @@ void Error_Handler(void);
 #define GPS_TX_GPIO_Port GPIOB
 #define GPS_RX_Pin GPIO_PIN_11
 #define GPS_RX_GPIO_Port GPIOB
+#define USB_DP_PULLUP_Pin GPIO_PIN_14
+#define USB_DP_PULLUP_GPIO_Port GPIOB
 #define PPS_Pin GPIO_PIN_8
 #define PPS_GPIO_Port GPIOA
 #define VCO_CONTROL_Pin GPIO_PIN_9

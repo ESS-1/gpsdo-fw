@@ -6,7 +6,7 @@ void pll_init_primary_vco()
 {
     si5351_Init(0, SI5351_CRYSTAL_LOAD_6PF);
 
-    // Init PLL A (VCO = 10M * 32 = 880M
+    // Init PLL A (VCO = 10M * 88 = 880M
     si5351PLLConfig_t pll_config = { 0 };
     pll_config.mult  = 88;
     pll_config.num   = 0;

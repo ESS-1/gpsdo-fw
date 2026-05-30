@@ -37,7 +37,7 @@ void init_ext_clock()
     bootlog_add("OCXO enabled");
 
     // Wait for OCXO startup
-    HAL_Delay(250);
+    HAL_Delay(500);
 
     // Init SI5351 PLL
     bootlog_add("Init PLL");
@@ -72,11 +72,24 @@ void init_ext_clock()
 
     // Switch to the normal operation mode
     bootlog_add("Use OCXO clock...");
-    HAL_Delay(500);
+    HAL_Delay(750);
 
     // De-initialize peripherals
     HAL_I2C_DeInit(&hi2c1);
     HAL_SPI_DeInit(&hspi1);
+}
+
+void enable_usb()
+{
+    // Turn on 1.5K USB D+ pull-up
+    HAL_GPIO_WritePin(USB_DP_PULLUP_GPIO_Port, USB_DP_PULLUP_Pin, GPIO_PIN_SET);
+
+    GPIO_InitTypeDef gpio_init = { 0 };
+    gpio_init.Pin              = USB_DP_PULLUP_Pin;
+    gpio_init.Mode             = GPIO_MODE_OUTPUT_PP;
+    gpio_init.Pull             = GPIO_NOPULL;
+    gpio_init.Speed            = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(USB_DP_PULLUP_GPIO_Port, &gpio_init);
 }
 
 void gpsdo()
@@ -198,6 +211,7 @@ void gpsdo()
     }
     gps_comm_send_pgdox = ee_storage.gps_comm_send_pgdox;
 
+    enable_usb();
     gps_start_it();
 
     menu_set_gps_baudrate(ee_storage.gps_baudrate);
