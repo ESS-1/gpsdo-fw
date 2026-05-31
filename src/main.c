@@ -73,10 +73,6 @@ void init_ext_clock()
     // Switch to the normal operation mode
     bootlog_add("Use OCXO clock...");
     HAL_Delay(750);
-
-    // De-initialize peripherals
-    HAL_I2C_DeInit(&hi2c1);
-    HAL_SPI_DeInit(&hspi1);
 }
 
 void enable_usb()
@@ -217,8 +213,6 @@ void gpsdo()
     menu_set_gps_baudrate(ee_storage.gps_baudrate);
     menu_set_comm_baudrate(ee_storage.comm_baudrate);
     menu_set_correction_algorithm(correction_algorithm);
-
-    LCD_Init();
 
     lcd_create_chars();
     init_trend_values();
