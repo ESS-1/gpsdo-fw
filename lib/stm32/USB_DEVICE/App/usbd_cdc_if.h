@@ -31,7 +31,7 @@
 #include "usbd_cdc.h"
 
 /* USER CODE BEGIN INCLUDE */
-
+#include <stdint.h>
 /* USER CODE END INCLUDE */
 
 /** @addtogroup STM32_USB_OTG_DEVICE_LIBRARY
@@ -49,7 +49,7 @@
   * @{
   */
 /* Define size for the receive and transmit buffer over CDC */
-#define APP_RX_DATA_SIZE  1024
+#define APP_RX_DATA_SIZE  256
 #define APP_TX_DATA_SIZE  1024
 /* USER CODE BEGIN EXPORTED_DEFINES */
 
@@ -110,8 +110,8 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len);
 
 /* USER CODE BEGIN EXPORTED_FUNCTIONS */
 
-void CDC_WaitTxReady_FS();
-uint8_t CDC_TransmitBuffered_FS(uint8_t* buf, uint16_t len);
+uint8_t CDC_WaitTxReady_FS(uint32_t timeout);
+uint8_t CDC_TransmitBuffered_FS(const uint8_t* buf, uint16_t len);
 
 /* USER CODE END EXPORTED_FUNCTIONS */
 

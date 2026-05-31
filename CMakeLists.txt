@@ -42,6 +42,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     src/int.c
     src/menu.c
     src/bootlog.c
+    src/cdcio.c
     src/pll.c
 )
 

@@ -33,20 +33,19 @@ bool pll_enable_primary_output()
         return false;
     }
 
-/*TODO: temporary code*/    // CLK1: 880M / 88 = 10M
-/*TODO: temporary code*/    out_config.allowIntegerMode = 1;
-/*TODO: temporary code*/    out_config.div = 88;
-/*TODO: temporary code*/    out_config.num = 0;
-/*TODO: temporary code*/    out_config.denom = 1;
-/*TODO: temporary code*/    out_config.rdiv  = SI5351_R_DIV_1;
-/*TODO: temporary code*/    if (si5351_SetupOutput(1, SI5351_PLL_A, SI5351_DRIVE_STRENGTH_8MA, &out_config, 0) != 0)
-/*TODO: temporary code*/    {
-/*TODO: temporary code*/        return false;
-/*TODO: temporary code*/    }
+    // CLK1: 880M / 88 = 10M
+    out_config.allowIntegerMode = 1;
+    out_config.div = 88;
+    out_config.num = 0;
+    out_config.denom = 1;
+    out_config.rdiv  = SI5351_R_DIV_1;
+    if (si5351_SetupOutput(1, SI5351_PLL_A, SI5351_DRIVE_STRENGTH_8MA, &out_config, 0) != 0)
+    {
+        return false;
+    }
 
     // Enable output
-//TODO:    si5351_EnableOutputs(1);
-/*TODO: temporary code*/    si5351_EnableOutputs(0x03);
+    si5351_EnableOutputs(0x03);
 
     return true;
 }

@@ -292,12 +292,36 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_IMPLEMENTATION */
 
-void CDC_WaitTxReady_FS()
+uint8_t CDC_WaitTxReady_FS(uint32_t timeout)
 {
-    while (((USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData)->TxState != 0) { }
+    if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED) {
+        return USBD_FAIL;
+    }
+
+    USBD_CDC_HandleTypeDef* hcdc = (USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData;
+    if (hcdc == NULL) {
+        return USBD_FAIL;
+    }
+
+    if (hcdc->TxState == 0) {
+        return USBD_OK;
+    }
+
+    uint32_t start = HAL_GetTick();
+    while (hcdc->TxState != 0) {
+        if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED) {
+            return USBD_FAIL;
+        }
+
+        if ((HAL_GetTick() - start) >= timeout) {
+            return USBD_BUSY;
+        }
+    }
+
+    return USBD_OK;
 }
 
-uint8_t CDC_TransmitBuffered_FS(uint8_t* buf, uint16_t len)
+uint8_t CDC_TransmitBuffered_FS(const uint8_t* buf, uint16_t len)
 {
     if (len == 0) {
         return USBD_OK;

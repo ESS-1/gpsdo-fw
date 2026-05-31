@@ -7,6 +7,7 @@
 #include "usart.h"
 #include "eeprom.h"
 #include "frequency.h"
+#include "cdcio.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -47,7 +48,6 @@ uint32_t gps_invalid_frames      = 0;
 uint32_t gps_fifo_overflow_gps   = 0;
 uint32_t gps_fifo_overflow_comm  = 0;
 
-volatile bool gps_comm_send_pgdox = true;
 uint32_t gps_last_pgdos_generated_sec = 0;
 
 #define FIFO_BUFFER_SIZE 1024
@@ -204,12 +204,6 @@ void gps_reconfigure_gps_uart(uint32_t baudrate)
 {
     gps_reconfigure_uart(&huart3, baudrate);
     gps_start_gps_rx();
-}
-
-void gps_reconfigure_comm_uart(uint32_t baudrate)
-{
-//todo    gps_reconfigure_uart(&huart2, baudrate);
-//todo    gps_start_comm_rx();
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
@@ -709,7 +703,7 @@ static bool gps_add_pgdos_frame(uint8_t *buffer, size_t buffer_size, size_t *byt
 
 static void gps_run_pgdos(uint8_t* buf, size_t* buf_offset, size_t buf_size)
 {
-    if (gps_comm_send_pgdox && (gps_last_pgdos_generated_sec != device_uptime)) {
+    if (gps_last_pgdos_generated_sec != device_uptime) {
         size_t bytes_written = 0;
         if (gps_add_pgdos_frame(buf + (*buf_offset), buf_size - (*buf_offset), &bytes_written)) {
             (*buf_offset) += bytes_written;
@@ -754,8 +748,7 @@ void gps_read()
     }
 
     if (send_size) {
-        CDC_WaitTxReady_FS();
-        CDC_TransmitBuffered_FS(send_buf, send_size);
+        cdcio_transmit(send_buf, (uint16_t)send_size);
     }
 
     send_size = 0;

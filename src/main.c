@@ -197,21 +197,11 @@ void gpsdo()
         ee_storage.warmup_time_seconds = get_default_warmup_time(ocxo_model);
     }
     warmup_time_seconds = ee_storage.warmup_time_seconds;
-    // PC communication port baud rate
-    if (ee_storage.comm_baudrate == 0xffffffff) {
-        ee_storage.comm_baudrate = COMM_DEFAULT_BAUDRATE;
-    }
-    // Custom $PGDOx NMEA frames sending option
-    if (ee_storage.gps_comm_send_pgdox == 0xff) {
-        ee_storage.gps_comm_send_pgdox = true;
-    }
-    gps_comm_send_pgdox = ee_storage.gps_comm_send_pgdox;
 
     enable_usb();
     gps_start_it();
 
     menu_set_gps_baudrate(ee_storage.gps_baudrate);
-    menu_set_comm_baudrate(ee_storage.comm_baudrate);
     menu_set_correction_algorithm(correction_algorithm);
 
     lcd_create_chars();
