@@ -14,6 +14,7 @@
 #include "menu.h"
 #include "trend8_t.h"
 #include "cdcio.h"
+#include "icons.h"
 
 // All times in ms
 #define DEBOUNCE_TIME           50
@@ -930,20 +931,19 @@ void menu_run()
     new_encoder_value = -new_encoder_value;
 #endif
 
-    //TODO: temporary code
-    switch (cdcio_status)
-    {
-    case CDC_STATUS_OK:
-        LCD_Puts(12, 2, "+");
-        break;
-    case CDC_STATUS_OVERFLOW:
-        LCD_Puts(12, 2, "!");
-        break;
-    case CDC_STATUS_NO_CONN:
-    default:
-        LCD_Puts(12, 2, "X");
-        break;
-    }
+/*TODO: temporary code*/    switch (cdcio_status)
+/*TODO: temporary code*/    {
+/*TODO: temporary code*/    case CDC_STATUS_OK:
+/*TODO: temporary code*/        ST7735_DrawImage(144, 0, 16, 16, icon_usb_ok_16x16);
+/*TODO: temporary code*/        break;
+/*TODO: temporary code*/    case CDC_STATUS_OVERFLOW:
+/*TODO: temporary code*/        ST7735_DrawImage(144, 0, 16, 16, icon_usb_warn_16x16);
+/*TODO: temporary code*/        break;
+/*TODO: temporary code*/    case CDC_STATUS_NO_CONN:
+/*TODO: temporary code*/    default:
+/*TODO: temporary code*/        ST7735_DrawImage(144, 0, 16, 16, icon_usb_err_16x16);
+/*TODO: temporary code*/        break;
+/*TODO: temporary code*/    }
 
     if(new_encoder_value != last_encoder_value)
     {

@@ -44,6 +44,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     src/bootlog.c
     src/cdcio.c
     src/pll.c
+    src/icons.c
 )
 
 # Add include paths

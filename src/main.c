@@ -34,7 +34,7 @@ void init_ext_clock()
     bootlog_init();
     bootlog_add("Micro-DO " FIRMWARE_VERSION);
     bootlog_add("Initializing...");
-    bootlog_add("OCXO enabled");
+    bootlog_add("Enable OCXO");
 
     // Wait for OCXO startup
     HAL_Delay(500);
@@ -45,7 +45,7 @@ void init_ext_clock()
     bootlog_set_status(true);
 
     // Wait for PLL lock
-    bootlog_add("PLL Lock");
+    bootlog_add("Wait PLL Lock");
     bool pll_fail = false;
     if (pll_wait_primary_lock()) {
         if (pll_enable_primary_output()) {
@@ -64,7 +64,7 @@ void init_ext_clock()
     if (pll_fail) {
         // Turn off OCXO
         HAL_GPIO_WritePin(OCXO_EN_GPIO_Port, OCXO_EN_Pin, 0);
-        bootlog_add("OCXO disabled");
+        bootlog_add("Disable OCXO");
 
         Error_Handler();
         return;
