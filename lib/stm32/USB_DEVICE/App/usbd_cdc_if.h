@@ -66,6 +66,8 @@
 
 /* USER CODE BEGIN EXPORTED_TYPES */
 
+typedef void (*CDC_RxHandler_FS)(const uint8_t* buf, uint32_t len);
+
 /* USER CODE END EXPORTED_TYPES */
 
 /**
@@ -110,6 +112,7 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len);
 
 /* USER CODE BEGIN EXPORTED_FUNCTIONS */
 
+void    CDC_SetRxHandler_FS(CDC_RxHandler_FS handler);
 uint8_t CDC_WaitTxReady_FS(uint32_t timeout);
 uint8_t CDC_TransmitBuffered_FS(const uint8_t* buf, uint16_t len);
 

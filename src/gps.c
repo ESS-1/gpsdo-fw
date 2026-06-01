@@ -67,6 +67,8 @@ typedef enum { FIFO_WRITE, FIFO_READ } fifo_operation;
 volatile fifo_buffer_t fifo_buffer_gps  = { 0 };
 volatile fifo_buffer_t fifo_buffer_comm = { 0 };
 
+static void gps_cdc_rx_callback(const uint8_t* buf, uint32_t len);
+
 static size_t fifo_next(volatile const fifo_buffer_t* fifo, fifo_operation op)
 {
     if (op == FIFO_WRITE) {
@@ -99,10 +101,7 @@ bool fifo_read(volatile fifo_buffer_t* fifo, uint8_t* c)
 }
 
 #define GPS_RX_BUFFER_SIZE  20
-#define COMM_RX_BUFFER_SIZE 1
-
 volatile uint8_t gps_it_buf[GPS_RX_BUFFER_SIZE];
-volatile uint8_t comm_it_buf[COMM_RX_BUFFER_SIZE];
 
 static void gps_start_gps_rx()
 {
@@ -112,10 +111,7 @@ static void gps_start_gps_rx()
 }
 static void gps_start_comm_rx()
 {
-//todo    // 'comm_it_buf' is only 1 byte long, so DMA overhead is unnecessary
-//todo    if (HAL_UART_Receive_IT(&huart2, (uint8_t*)comm_it_buf, COMM_RX_BUFFER_SIZE) != HAL_OK) {
-//todo        Error_Handler();
-//todo    }
+    CDC_SetRxHandler_FS(gps_cdc_rx_callback);
 }
 
 // ATGM336H set baudrate commands
@@ -215,13 +211,15 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
             }
         }
         gps_start_gps_rx();
-//todo    } else if (huart == &huart2) {
-//todo        for (size_t i = 0; i < COMM_RX_BUFFER_SIZE; i++) {
-//todo            if (!fifo_write(&fifo_buffer_comm, comm_it_buf[i])) {
-//todo                ++gps_fifo_overflow_comm;
-//todo            }
-//todo        }
-//todo        gps_start_comm_rx();
+    }
+}
+
+static void gps_cdc_rx_callback(const uint8_t* buf, uint32_t len)
+{
+    for (uint32_t i = 0; i < len; i++) {
+        if (!fifo_write(&fifo_buffer_comm, buf[i])) {
+            ++gps_fifo_overflow_comm;
+        }
     }
 }
 

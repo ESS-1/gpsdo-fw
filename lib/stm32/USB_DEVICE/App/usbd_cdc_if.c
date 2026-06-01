@@ -95,6 +95,8 @@ uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
 
 /* USER CODE BEGIN PRIVATE_VARIABLES */
 
+static volatile CDC_RxHandler_FS cdc_rx_handler = NULL;
+
 /* USER CODE END PRIVATE_VARIABLES */
 
 /**
@@ -259,9 +261,16 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
+
+  CDC_RxHandler_FS handler = cdc_rx_handler;
+  if (handler != NULL) {
+    handler(Buf, *Len);
+  }
+
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
   return (USBD_OK);
+
   /* USER CODE END 6 */
 }
 
@@ -291,6 +300,11 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
 }
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_IMPLEMENTATION */
+
+void CDC_SetRxHandler_FS(CDC_RxHandler_FS handler)
+{
+    cdc_rx_handler = handler;
+}
 
 uint8_t CDC_WaitTxReady_FS(uint32_t timeout)
 {

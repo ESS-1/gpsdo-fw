@@ -1,14 +1,6 @@
-## Alternative firmware for the BH3SAP GPSDO
+## Firmware for Micro-DO GPSDO
 
-This is an alternative firmware for the BH3SAP GPSDO sold on various platforms.
-
-![Image of the GPSDO running this firmware](./doc/gpsdo.jpg)
-
-### Firmware Variants
-
-There are two firmware variants:
-- `AutoSave` – settings are saved to flash memory automatically.
-- `NoAutoSave` – settings are stored in RAM and are not saved automatically, minimizing MCU flash writes. This variant provides a `Save Settings` menu item that allows the user to store the settings permanently in flash memory.
+This is a firmware for the Micro-DO GPSDO.
 
 ### Usage
 
@@ -18,12 +10,9 @@ This PWM value will then be used on the next boot as a startup value.
 
 The current PWM value can also be manually applied to the settings by going to `PWM` menu and press the encoder twice (a message will be shown after the first press).
 
-
-The [original manual](./doc/gpsdo-documentation.pdf) for the device talks about running the device without a GPS antenna after calibration, but I would advice against that since the oscillator seems sensitive to both ambient temperature, vibrations and orientation. Best results will be had when the GPS antenna is connected at all times.
-
 ### Menu system
 
-This alternative firmware has a 2 level menu system. Moving from one menu item to another is done by turning the rotary encoder, and entering a given menu (when applicable) is done by pressing the encoder.
+This firmware has a 2 level menu system. Moving from one menu item to another is done by turning the rotary encoder, and entering a given menu (when applicable) is done by pressing the encoder.
 
 Here is the menu tree :
 - `Main Screen`: displays the number of detected satellites, the PPB value and the current time read from GPS frame
@@ -70,9 +59,7 @@ Here is the menu tree :
   - `Geoid`: the Geoid-to-ellipsoid separation (in meters)
   - `Sat. #`: the numner of satellites
   - `HDOP`: the current Horizontal Dilution Of Precision value
-  - `GPS BR`: (__*don't mess with this unless you know what you are doing !*__): sets the GPS UART communication baudrate (for GPSDO equipped with ATGM336H GPS modules, changing this will also send a command to change the GPS module baudrate accordingly *BUT* ATGM336H modules installed in the GPSDO have been reported to have a weak battery and don't retain this setting for a very long time... passed this time the module will return to default 9600 bauds, breaking the communication with the bluepill (see [Troubleshooting section](#no-time-on-the-display)))
-  - `PC BD`: sets the PC communication port baudrate; this rate should be higher than the GPS module's UART baudrate to prevent communication errors; the default value of 115200 is recommended
-  - `$PGDOx`: enables or disables custom [$PGDOx frames](./doc/NMEA-0183-extention-PGDOx.md) (when set to `ON`, the device transmits custom `$PGDOx` frames used by the PC software to monitor device state)
+  - `GPS BR`: (__*don't mess with this unless you know what you are doing !*__): sets the GPS UART communication baudrate. Changing the CR2032 backup battery will reset the GPS module. Once the battery is removed, the module loses its configuration and reverts to the default 9600 baudrate. This breaks communication with the STM32, see [Troubleshooting section](#no-time-on-the-display).
   - `GPS Err`: the total counts of invalid GPS frames and FIFO buffer overflows, in the following format: &lt;Invalid GPS Frames&gt;/&lt;GPS FIFO Overflows&gt;/&lt;PC Comm. Port FIFO Overflows&gt;
   - `Time Zone offset`: sets the number of hours (-14/+14) to shift the displayed time from UTC to match local time
   - `Date Format`: sets the date format (either `dd/mm/yy` (default value), `mm/dd/yy`, `yy/mm/dd`, `dd.mm.yy` or `yy-mm-dd`)
@@ -241,12 +228,6 @@ Developing / building on Windows can be achieved with Visual Studio Code and MSY
 * Use CMake pane in VSCode to build the project or use `ninja` in a command line
 * Run `arm-none-eabi-objcopy -O binary build/Release/gpsdo.elf build/Release/gpsdo.bin` in VSCode terminal to convert elf file in bin file
 
-### USB
-
-It would be nice to have NMEA output over USB, and the Bluepill dev board in the GPSDO does have a USB connector. It's however difficult to use since it requires a PLLCLK of 48MHz. But since we use 10MHz as input instead of 8MHz this can't be achieved. It should be possible to run the HSI to the PLL and then run the USB off of that. Then run the HSE directly to the peripherals. But then the timers would be running at 10MHz and that would cause the PWM to be slower, and the measurements to have lower resolution.
-
 ### GPS passthrough
 
 Instead of using the USB, I have added GPS passthrough on an unused UART. Pins PA2 (TX) and PA3 (RX) can be used to communicate with the GPS module. This is bidirectional, so the GPS can be used by a computer or configured via manufacturer software.
-
-I ended up routing these two pins and ground to an external header on the backside of the device, and then plugging in a serial to USB converter when needed.
