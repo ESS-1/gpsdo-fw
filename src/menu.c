@@ -931,20 +931,6 @@ void menu_run()
     new_encoder_value = -new_encoder_value;
 #endif
 
-/*TODO: temporary code*/    switch (cdcio_status)
-/*TODO: temporary code*/    {
-/*TODO: temporary code*/    case CDC_STATUS_OK:
-/*TODO: temporary code*/        ST7735_DrawImage(144, 0, 16, 16, icon_usb_ok_16x16);
-/*TODO: temporary code*/        break;
-/*TODO: temporary code*/    case CDC_STATUS_OVERFLOW:
-/*TODO: temporary code*/        ST7735_DrawImage(144, 0, 16, 16, icon_usb_warn_16x16);
-/*TODO: temporary code*/        break;
-/*TODO: temporary code*/    case CDC_STATUS_NO_CONN:
-/*TODO: temporary code*/    default:
-/*TODO: temporary code*/        ST7735_DrawImage(144, 0, 16, 16, icon_usb_err_16x16);
-/*TODO: temporary code*/        break;
-/*TODO: temporary code*/    }
-
     if(new_encoder_value != last_encoder_value)
     {
         menu_screen previous_menu_screen = current_menu_screen;
@@ -1676,4 +1662,32 @@ void menu_run()
             }
         }
     }
+}
+
+void ui_run()
+{
+    ST7735_DrawImage(1, 1, 16, 16, icon_menu_16x16);
+
+    ST7735_DrawImage(24, 1, 16, 16, icon_sat_lock_16x16);
+    ST7735_WriteStringNoWrap(40, 2, 15, "28", Font_11x18, ST7735_WHITE, ST7735_BLACK);
+
+    ST7735_DrawImage(67, 1, 16, 16, icon_ppb_avg_16x16);
+    ST7735_WriteStringNoWrap(83, 2, 15, "-1234", Font_11x18, ST7735_WHITE, ST7735_BLACK);
+
+
+    switch (cdcio_status)
+    {
+    case CDC_STATUS_OK:
+        ST7735_DrawImage(143, 1, 16, 16, icon_usb_ok_16x16);
+        break;
+    case CDC_STATUS_OVERFLOW:
+        ST7735_DrawImage(143, 1, 16, 16, icon_usb_warn_16x16);
+        break;
+    case CDC_STATUS_NO_CONN:
+    default:
+        ST7735_DrawImage(143, 1, 16, 16, icon_usb_err_16x16);
+        break;
+    }
+
+
 }

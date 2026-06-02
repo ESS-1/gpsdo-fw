@@ -43,4 +43,6 @@ void menu_run();
 void lcd_create_chars();
 void init_trend_values();
 
+void ui_run();
+
 #endif
