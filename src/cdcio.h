@@ -1,5 +1,5 @@
-#ifndef _CDCIO_H_
-#define _CDCIO_H_
+#ifndef _CDCIO_510DA8D6D348_H_
+#define _CDCIO_510DA8D6D348_H_
 
 #include <stdint.h>
 
