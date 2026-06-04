@@ -1,5 +1,4 @@
 #include "gps.h"
-#include "LCD.h"
 #include "main.h"
 #include "menu.h"
 #include "stm32f1xx_hal_uart.h"
@@ -37,9 +36,14 @@ char     gps_last_frame[9]= { '\0' };
 bool     gps_last_frame_changed = false;
 uint8_t  num_sats         = 0;
 uint32_t gga_frames       = 0;
+
+uint32_t gps_baudrate = GPS_DEFAULT_BAUDRATE;
+
 size_t   gps_line_len     = 0;
 gps_model_type  gps_model       = GPS_MODEL_UNKNOWN;
 date_format     gps_date_format = DATE_FORMAT_UTC;
+int8_t          gps_time_offset = 0; // -14/+14
+int8_t          gps_day_offset  = 0; // -1/+1
 
 // Store last frame receive time
 uint32_t last_frame_receive_time = 0;

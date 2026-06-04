@@ -2,11 +2,11 @@
 #include "gpio.h"
 #include "i2c.h"
 #include "spi.h"
-#include "LCD.h"
 #include "eeprom.h"
 #include "frequency.h"
 #include "gps.h"
 #include "menu.h"
+#include "ui.h"
 #include "int.h"
 #include "tim.h"
 #include "pll.h"
@@ -166,9 +166,9 @@ void gpsdo()
         ee_storage.gps_baudrate = GPS_DEFAULT_BAUDRATE;
     }
     if (ee_storage.gps_time_offset == 0xffffffff) {
-        ee_storage.gps_time_offset = -MIN_TIME_OFFSET;
+        ee_storage.gps_time_offset = -GPS_MIN_TIME_OFFSET;
     }
-    gps_time_offset = ee_storage.gps_time_offset+MIN_TIME_OFFSET;
+    gps_time_offset = ee_storage.gps_time_offset+GPS_MIN_TIME_OFFSET;
     if (ee_storage.gps_date_format == 0xff) {
         ee_storage.gps_date_format = DATE_FORMAT_UTC;
     }

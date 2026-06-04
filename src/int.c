@@ -1,5 +1,4 @@
 #include "int.h"
-#include "LCD.h"
 #include "frequency.h"
 #include "tim.h"
 #include "menu.h"
@@ -24,7 +23,6 @@ volatile uint32_t last_pps         = 0;
 volatile uint32_t last_pps_out     = 0;
 volatile bool     pps_out_up       = false;
 volatile bool     pps_led_toogle   = false;
-volatile bool     blink_toggle     = false;
 volatile int32_t  ppb_frequency    = 0;
 volatile int32_t  ppb_error        = 0;
 volatile int32_t  ppb_correction   = 0;
@@ -34,8 +32,6 @@ volatile int32_t  pps_millis       = 0;
 volatile uint32_t pps_shift_count  = 0;
 volatile uint32_t pps_sync_count   = 0;
 // Icon to shwow at the top right corner of the screen
-volatile uint8_t  current_state_icon = ' ';
-volatile bool     refresh_screen   = false;
 volatile bool     sync_pps_out     = false;
 volatile bool     pps_ppm_auto_sync= false;
 volatile bool     pwm_auto_save    = false;
@@ -44,9 +40,6 @@ volatile bool     update_trend     = false;
 // Lock outputs
 volatile bool     gps_lock_status  = false;
 bool              ppb_lock_status  = false;
-
-const char spinner[]   = "\1\2\3";
-uint8_t    pps_spinner = 0;
 
 // For default PWM value
 ocxo_model_type  ocxo_model = OCXO_MODEL_UNKNOWN;
@@ -77,9 +70,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 
         if(HAL_GetTick() - last_pps > 1500)
         {   // No GPS PPS output, blink 'x' icon
-            current_state_icon = blink_toggle ? NO_SAT_ICON_CODE : ' ';
-            blink_toggle = !blink_toggle;
-            refresh_screen = true;
             if(gps_lock_status)
             {   // GPS lock lost => update status
                 gps_lock_status = false;
@@ -289,10 +279,6 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
 
         // Update last PPS time
         last_pps         = current_tick;
-        // Update state icon
-        current_state_icon = spinner[pps_spinner];
-        pps_spinner   = (pps_spinner + 1) % strlen(spinner);
-        refresh_screen = true;
         update_trend = allow_adjustment;
         if(!gps_lock_status)
         {   // Update GPS lock status

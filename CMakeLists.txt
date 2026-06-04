@@ -45,6 +45,9 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     src/cdcio.c
     src/pll.c
     src/icons.c
+    src/ui_core.c
+    src/ui.c
+    src/encoder.c
 )
 
 # Add include paths
