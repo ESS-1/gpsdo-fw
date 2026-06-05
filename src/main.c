@@ -238,7 +238,6 @@ void gpsdo()
         }
         
         gps_read();
-        menu_run();
         ui_run();
     }
 }

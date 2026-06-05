@@ -25,10 +25,15 @@ void ui_default_element_proc(const struct UIElement* element, UICommand command,
             frame_color = UI_BG_COLOR;
         }
 
-        ST7735_FillRectangle(element->x-1,              element->y-1,               1,                element->height+2, frame_color);
-        ST7735_FillRectangle(element->x-1,              element->y-1,               element->width+2, 1,                 frame_color);
-        ST7735_FillRectangle(element->x+element->width, element->y-1,               1,                element->height+2, frame_color);
-        ST7735_FillRectangle(element->x-1,              element->y+element->height, element->width+2, 1,                 frame_color);
+        uint16_t x1 = element->x - 1;
+        uint16_t y1 = element->y - 1;
+        uint16_t w  = element->width + 2;
+        uint16_t h  = element->height + 2;
+
+        ST7735_FillRectangle    (x1,     y1,     1, h, frame_color);
+        ST7735_FillRectangleFast(x1,     y1,     w, 1, frame_color);
+        ST7735_FillRectangle    (x1+w-1, y1,     1, h, frame_color);
+        ST7735_FillRectangleFast(x1,     y1+h-1, w, 1, frame_color);
     }
 }
 

@@ -5,7 +5,7 @@
 #include <stdbool.h>
 
 #define UI_BG_COLOR            (ST7735_BLACK)
-#define UI_FOCUS_FRAME_COLOR   (ST7735_COLOR565(190, 210, 210))
+#define UI_FOCUS_FRAME_COLOR   (ST7735_COLOR565(195, 205, 205))
 #define UI_CAPTURE_FRAME_COLOR (ST7735_COLOR565(255, 115, 21))
 
 typedef enum {
