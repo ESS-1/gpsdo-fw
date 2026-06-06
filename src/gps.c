@@ -1,5 +1,6 @@
 #include "gps.h"
 #include "main.h"
+#include "int.h"
 #include "menu.h"
 #include "stm32f1xx_hal_uart.h"
 #include "usbd_cdc_if.h"
@@ -37,11 +38,7 @@ bool     gps_last_frame_changed = false;
 uint8_t  num_sats         = 0;
 uint32_t gga_frames       = 0;
 
-uint32_t gps_baudrate = GPS_DEFAULT_BAUDRATE;
-
 size_t   gps_line_len     = 0;
-gps_model_type  gps_model       = GPS_MODEL_UNKNOWN;
-date_format     gps_date_format = DATE_FORMAT_UTC;
 int8_t          gps_time_offset = 0; // -14/+14
 int8_t          gps_day_offset  = 0; // -1/+1
 
@@ -138,7 +135,7 @@ static void gps_sendcommand(const char* cmd, size_t len)
 int gps_change_module_baudrate(uint32_t baudrate)
 {
     const char* command = NULL;
-    switch(gps_model)
+    switch(ee_storage.gps_model)
     {
         case GPS_MODEL_ATGM336H:
             switch (baudrate) {
@@ -510,76 +507,16 @@ void gps_parse(char* line)
                 year0  = (char)((year  / 10) + '0');
                 year1  = (char)((year  % 10) + '0');
             }
-            switch(gps_date_format)
-            {
-                case DATE_FORMAT_UTC:
-                case DATE_FORMAT_UTC_DOT:
-                default:
+
                     gps_date[0] = day0;
                     gps_date[1] = day1;
                     gps_date[3] = month0;
                     gps_date[4] = month1;
                     gps_date[6] = year0;
                     gps_date[7] = year1;
-                    break;
-                case DATE_FORMAT_US:
-                    gps_date[0] = month0;
-                    gps_date[1] = month1;
-                    gps_date[3] = day0;
-                    gps_date[4] = day1;
-                    gps_date[6] = year0;
-                    gps_date[7] = year1;
-                    break;
-                case DATE_FORMAT_ISO:
-                case DATE_FORMAT_ISO_DASH:
-                    gps_date[0] = year0;
-                    gps_date[1] = year1;
-                    gps_date[3] = month0;
-                    gps_date[4] = month1;
-                    gps_date[6] = day0;
-                    gps_date[7] = day1;
-                    break;
-            }
-            switch(gps_date_format)
-            {
-                default:
                     gps_date[2] = '/';
                     gps_date[5] = '/';
-                    break;
-                case DATE_FORMAT_UTC_DOT:
-                    gps_date[2] = '.';
-                    gps_date[5] = '.';
-                    break;
-                case DATE_FORMAT_ISO_DASH:
-                    gps_date[2] = '-';
-                    gps_date[5] = '-';
-                    break;
-            }
             gps_date[8] = '\0';
-        }
-    }
-    else if ((gps_model == GPS_MODEL_UNKNOWN) && strstr(line, "TXT") == line+3) 
-    {
-        bool model_found = false;
-        if (strstr(line, "AT6558F-5N")) {
-            // this is ATGM336H module
-            gps_model = GPS_MODEL_ATGM336H;
-            model_found = true;
-        }
-        else if(strstr(line, "HW UBX-G"))
-        {
-            gps_model = GPS_MODEL_NEO6M;
-            model_found = true;
-        }
-        else if(strstr(line, "HW UBX 9"))
-        {
-            gps_model = GPS_MODEL_NEOM9N;
-            model_found = true;
-        }
-        if(model_found && (ee_storage.gps_model != gps_model))
-        {   // Save changes
-            ee_storage.gps_model = gps_model;
-            on_config_changed();
         }
     }
 }

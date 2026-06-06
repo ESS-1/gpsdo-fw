@@ -1,6 +1,7 @@
 #include "int.h"
 #include "frequency.h"
 #include "tim.h"
+#include "eeprom.h"
 #include "menu.h"
 #include <stdlib.h>
 #include <string.h>
@@ -15,10 +16,6 @@ volatile uint32_t timer_overflows  = 0;
 volatile uint32_t pps_overflows    = 0;
 volatile uint32_t device_uptime    = 0;
 volatile uint8_t  first            = 1;
-volatile int8_t   brightness       = 0;
-volatile bool     pps_sync_on      = false;
-volatile uint32_t pps_sync_delay   = 10;
-volatile uint32_t pps_sync_threshold = 30000;
 volatile uint32_t last_pps         = 0;
 volatile uint32_t last_pps_out     = 0;
 volatile bool     pps_out_up       = false;
@@ -33,21 +30,11 @@ volatile uint32_t pps_shift_count  = 0;
 volatile uint32_t pps_sync_count   = 0;
 // Icon to shwow at the top right corner of the screen
 volatile bool     sync_pps_out     = false;
-volatile bool     pps_ppm_auto_sync= false;
-volatile bool     pwm_auto_save    = false;
 volatile bool     update_trend     = false;
 
 // Lock outputs
 volatile bool     gps_lock_status  = false;
 bool              ppb_lock_status  = false;
-
-// For default PWM value
-ocxo_model_type  ocxo_model = OCXO_MODEL_UNKNOWN;
-// For correction algorythms
-correction_algo_type  correction_algorithm = CORRECTION_ALGO_FREDZO;
-uint32_t              correction_factor = 1;
-// Warmup time in seconds
-uint32_t warmup_time_seconds = 0;
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 {
@@ -115,9 +102,9 @@ void dankar_correction_algo(int32_t current_error)
         int32_t adjustment = 0;
 
         if (abs(current_error) > 10) {
-            adjustment = compute_square_adjustment(current_error,correction_factor,1);
+            adjustment = compute_square_adjustment(current_error,ee_storage.correction_factor,1);
         } else if (abs(current_error) > 2) {
-            adjustment = compute_square_adjustment(current_error,correction_factor,0);
+            adjustment = compute_square_adjustment(current_error,ee_storage.correction_factor,0);
         } else {
             adjustment = current_error;
         }
@@ -135,11 +122,11 @@ void fredzo_correction_algo(int32_t current_error)
     if (current_error != 0) {
         int32_t adjustment = 0;
         if (abs(current_error) >= 16) {
-            adjustment = compute_square_adjustment(current_error,correction_factor,2);
+            adjustment = compute_square_adjustment(current_error,ee_storage.correction_factor,2);
         } else if (abs(current_error) >= 8) {
-            adjustment = compute_square_adjustment(current_error,correction_factor,1);
+            adjustment = compute_square_adjustment(current_error,ee_storage.correction_factor,1);
         } else if (abs(current_error) >= 2) {
-            adjustment = compute_square_adjustment(current_error,correction_factor,0);
+            adjustment = compute_square_adjustment(current_error,ee_storage.correction_factor,0);
         } else {
             adjustment = current_error;
         }
@@ -168,7 +155,7 @@ void eric_h_correction_algo(bool overshootSuppression, int32_t current_error)
 
         if (abs(current_ppb) > 0)
         {
-            const int factor = correction_factor;
+            const int factor = ee_storage.correction_factor;
             int interval = 1;
 
             // Calculate adjustment.
@@ -212,10 +199,10 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
         if (!first && current_tick - last_pps < 1300) {
             // See if we need to resync MCU PPS Out
             pps_error = (capture - pps_capture + /*(TIM1->ARR + 1)*/ 65536 * pps_overflows) - TARGET_FREQ /*HAL_RCC_GetHCLKFreq()*/;
-            if(pps_sync_on && (sync_pps_out ||(abs(pps_error) >= pps_sync_threshold)))
+            if(ee_storage.pps_sync_on && (sync_pps_out ||(abs(pps_error) >= ee_storage.pps_sync_threshold)))
             {
                 pps_shift_count++;
-                if(sync_pps_out || (pps_shift_count > pps_sync_delay))
+                if(sync_pps_out || (pps_shift_count > ee_storage.pps_sync_delay))
                 {   // Force sync by reseting TIM2
                     TIM2->CNT = TIM2->ARR;
                     pps_sync_count++;
@@ -241,7 +228,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
                 // - Fredzo (same logic as dankar's algo, but with faster correction when frequency error is >= 2)
                 // - Eric-H (algo based on ppm value rather than frequency error (uses 128s rolling average rather than instant values))
                 // - Eric-H+ (Eric-H algorithm modified for control loop overshoot suppression)
-                switch(correction_algorithm)
+                switch(ee_storage.correction_algorithm)
                 {
                     case CORRECTION_ALGO_DANKAR:
                         dankar_correction_algo(current_error);
@@ -290,7 +277,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
 
 void update_brightness()
 {
-    uint32_t pwm_value = brightness * 0xFFFF / 100;
+    uint32_t pwm_value = ee_storage.brightness * 0xFFFF / 100;
     TIM1->CCR3 = pwm_value;
 }
 

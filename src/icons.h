@@ -14,5 +14,6 @@ extern const uint16_t icon_ppb_bad_16x16[];
 extern const uint16_t icon_menu_15x16[];
 extern const uint16_t icon_save_15x16[];
 extern const uint16_t icon_save_inactive_15x16[];
+extern const uint16_t icon_back_15x16[];
 
 #endif

@@ -5,18 +5,21 @@
 #include <stdbool.h>
 
 #define UI_BG_COLOR            (ST7735_BLACK)
+#define UI_BUTTON_BG_COLOR     (ST7735_COLOR565(120, 120, 120))
 #define UI_FOCUS_FRAME_COLOR   (ST7735_COLOR565(195, 205, 205))
 #define UI_CAPTURE_FRAME_COLOR (ST7735_COLOR565(255, 115, 21))
 
 typedef enum {
-    UICommand_None      = 0x00000000,
-    UICommand_Init      = 0x00000001,
-    UICommand_Focus     = 0x00000004,
-    UICommand_LostFocus = 0x00000008,
-    UICommand_Capture   = 0x00000010,
-    UICommand_Release   = 0x00000020,
-    UICommand_EncStep   = 0x00000040,
-    UICommand_Click     = 0x00000080,
+    UICommand_None           = 0x00000000,
+    UICommand_Init           = 0x00000001, // The screen containing the element is activated
+    UICommand_Focus          = 0x00000002, // The element gains focus
+    UICommand_LostFocus      = 0x00000004, // The element loses focus
+    UICommand_RestoreFocus   = 0x00000008, // The screen containing an already focused element is activated
+    UICommand_Capture        = 0x00000010, // The element captures control
+    UICommand_Release        = 0x00000020, // The element releases control
+    UICommand_RestoreCapture = 0x00000040, // The screen containing an element that has already captured control is activated
+    UICommand_EncoderStep    = 0x00000080, // The encoder is rotated while the element has captured control
+    UICommand_Click          = 0x00000100, // The focused element receives a click
 } UICommand;
 
 #define UI_STYLE_NONE            0x0000U
@@ -48,7 +51,7 @@ typedef struct {
 
 extern void ui_default_element_proc(const struct UIElement* element, UICommand command, int32_t encoder_step);
 
-extern void ui_init(UIScreen *screen);
+extern void ui_show_screen(UIScreen* screen);
 extern void ui_run();
 
 #endif

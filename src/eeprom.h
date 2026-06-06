@@ -3,6 +3,7 @@
 
 #include "ee.h"
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef struct
 {
@@ -19,8 +20,7 @@ typedef struct
     uint32_t trend_v_scale;
     uint32_t trend_h_scale;
     uint32_t gps_baudrate;
-    uint32_t gps_time_offset;
-    uint8_t  gps_date_format;
+/*todo*/    uint32_t gps_time_offset;
     uint8_t  gps_model;
     uint32_t ppb_lock_threshold;
     uint8_t  ocxo_model;
@@ -30,5 +30,8 @@ typedef struct
 } ee_storage_t;
 
 extern ee_storage_t ee_storage;
+
+extern bool ee_is_changed;
+extern bool ee_save_config();
 
 #endif

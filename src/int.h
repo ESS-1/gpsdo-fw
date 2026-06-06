@@ -10,10 +10,6 @@ extern volatile uint32_t num_samples;
 extern volatile uint32_t device_uptime;
 extern volatile uint32_t last_pps_out;
 extern volatile bool     pps_out_up;
-extern volatile int8_t   brightness;
-extern volatile bool     pps_sync_on;
-extern volatile uint32_t pps_sync_delay;
-extern volatile uint32_t pps_sync_threshold;
 extern volatile int32_t  ppb_frequency;
 extern volatile int32_t  ppb_error;
 extern volatile int32_t  ppb_correction;
@@ -22,8 +18,6 @@ extern volatile int32_t  pps_error;
 extern volatile int32_t  pps_millis;
 extern volatile uint32_t pps_sync_count;
 extern volatile bool     sync_pps_out;
-extern volatile bool     pps_ppm_auto_sync;
-extern volatile bool     pwm_auto_save;
 extern volatile bool     update_trend;
 extern volatile bool     gps_lock_status;
 extern          bool     ppb_lock_status;
@@ -31,12 +25,9 @@ extern          bool     ppb_lock_status;
 // For correction algorythms
 // OCXO models
 typedef enum { OCXO_MODEL_ISOTEMP, OCXO_MODEL_OX256B, OCXO_MODEL_UNKNOWN } ocxo_model_type;
-extern ocxo_model_type ocxo_model;
+
 // Correction algorithms
 typedef enum { CORRECTION_ALGO_DANKAR, CORRECTION_ALGO_FREDZO, CORRECTION_ALGO_ERIC_H, CORRECTION_ALGO_ERIC_H_PLUS } correction_algo_type;
-extern correction_algo_type correction_algorithm;
-extern uint32_t correction_factor;
-extern uint32_t warmup_time_seconds;
 
 void update_brightness();
 

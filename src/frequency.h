@@ -10,6 +10,10 @@
 
 #define PPB_UNSET_VALUE     0x7FFFFFFF
 
+// PPB lock threshold (*100)
+#define DEFAULT_PPB_LOCK_THRESHOLD  50
+#define MAX_PPB_LOCK_THRESHOLD      1000
+
 typedef struct circbuf_t {
     size_t  write;
     int32_t buf[CIRCULAR_BUFFER_LEN];

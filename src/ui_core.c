@@ -1,6 +1,7 @@
 #include "ui_core.h"
 #include "main.h"
 #include "encoder.h"
+#include "fonts.h"
 #include "st7735.h"
 #include "st7735_config.h"
 
@@ -12,14 +13,14 @@ void ui_default_element_proc(const struct UIElement* element, UICommand command,
 {
     // Draw/clear frame
     if ((element->styles & UI_STYLE_FOCUSABLE) &&
-        (command & (UICommand_Focus | UICommand_LostFocus | UICommand_Capture | UICommand_Release)))
+        (command & (UICommand_Focus | UICommand_LostFocus | UICommand_RestoreFocus | UICommand_Capture | UICommand_Release | UICommand_RestoreCapture)))
     {
         uint16_t frame_color;
 
-        if (command & (UICommand_Focus | UICommand_Release)) {
+        if (command & (UICommand_Focus | UICommand_Release | UICommand_RestoreFocus)) {
             // If an element releases control, it remains focused
             frame_color = UI_FOCUS_FRAME_COLOR;
-        } else if (command & UICommand_Capture) {
+        } else if (command & (UICommand_Capture | UICommand_RestoreCapture)) {
             frame_color = UI_CAPTURE_FRAME_COLOR;
         } else {
             frame_color = UI_BG_COLOR;
@@ -37,7 +38,7 @@ void ui_default_element_proc(const struct UIElement* element, UICommand command,
     }
 }
 
-void ui_init(UIScreen* screen)
+void ui_show_screen(UIScreen* screen)
 {
     ST7735_FillRectangleFast(0, 0, ST7735_WIDTH, ST7735_HEIGHT, UI_BG_COLOR);
     ui_current_screen = screen;
@@ -50,6 +51,8 @@ void ui_init(UIScreen* screen)
         if ((screen->focused_element_idx == UI_FOCUSED_ELEMENT_IDX_NONE) && (element->styles & UI_STYLE_FOCUSABLE)) {
             screen->focused_element_idx = i;
             command |= UICommand_Focus;
+        } else if (screen->focused_element_idx == i) {
+            command |= (screen->is_input_captured ? UICommand_RestoreCapture : UICommand_RestoreFocus);
         }
 
         element->proc(element, command, 0);
@@ -91,7 +94,7 @@ void ui_run()
         } else if (ui_current_screen->is_input_captured && step != 0) {
             // Send step command to the element that captured input
             const UIElement* element = &(ui_current_screen->elements[ui_current_screen->focused_element_idx]);
-            element->proc(element, UICommand_EncStep, step);
+            element->proc(element, UICommand_EncoderStep, step);
         }
     }
 
