@@ -6,5 +6,10 @@ bool ee_is_changed;
 
 bool ee_save_config()
 {
-    return EE_Write();
+    if (EE_Write()) {
+        ee_is_changed = false;
+        return true;
+    }
+
+    return false;
 }

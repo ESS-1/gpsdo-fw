@@ -15,5 +15,8 @@ extern const uint16_t icon_menu_15x16[];
 extern const uint16_t icon_save_15x16[];
 extern const uint16_t icon_save_inactive_15x16[];
 extern const uint16_t icon_back_15x16[];
+extern const uint16_t icon_warmup_15x10[];
+
+extern const uint16_t icon_digits_0_9_5x7[10][35];
 
 #endif

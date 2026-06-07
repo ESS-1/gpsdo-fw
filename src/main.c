@@ -212,8 +212,6 @@ void gpsdo()
     HAL_TIM_Base_Start(&htim4);
     HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
 
-    bool vco_adjust_allowed = false;
-
     while (1) {
         uint32_t now = HAL_GetTick();
         if(pps_out_up && now-last_pps_out >= PPS_PULSE_WIDTH)
@@ -221,10 +219,9 @@ void gpsdo()
             HAL_GPIO_WritePin(PPS_OUTPUT_GPIO_Port, PPS_OUTPUT_Pin, 0);
             pps_out_up = false;
         }
-        if (!vco_adjust_allowed && (now >= (ee_storage.warmup_time_seconds*1000)))
+        if (!frequency_adjustment_allowed() && (now >= (ee_storage.warmup_time_seconds * 1000)))
         {   // Start adjusting the VCO after some time
             frequency_allow_adjustment(true);
-            vco_adjust_allowed = true;
         }
         if((now - last_frame_receive_time) > GPS_FRAME_WAIT_DELAY)
         {   // We've not been receiving a frame from GPS for too long, try and restart UART

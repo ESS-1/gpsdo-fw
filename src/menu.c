@@ -1,37 +1,6 @@
-#include "main.h"
-#include "menu.h"
-#include "ui.h"
-#include <stdbool.h>
 
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include <string.h>
-//#include <math.h>
+#include "trend8_t.h"
 
-//#include "frequency.h"
-//#include "eeprom.h"
-//#include "gps.h"
-//#include "stm32f1xx_hal_gpio.h"
-//#include "int.h"
-//#include "trend8_t.h"
-#include "cdcio.h"
-#include "icons.h"
-
-#include "fonts.h"
-#include "st7735.h"
-#include "st7735_config.h"
-
-
-#define UI_BG_COLOR (ST7735_BLACK)
-
-
-
-//typedef enum { SCREEN_MAIN, SCREEN_DATE, SCREEN_DATE_TIME, SCREEN_TREND, SCREEN_PPB, SCREEN_PWM, SCREEN_GPS, SCREEN_UPTIME, SCREEN_FRAMES, SCREEN_BRIGHTNESS, SCREEN_PPS, SCREEN_SAVE_CONFIG, SCREEN_VERSION, SCREEN_MAX } menu_screen;
-//typedef enum { SCREEN_TREND_MAIN, SCREEN_TREND_AUTO_V, SCREEN_TREND_AUTO_H, SCREEN_TREND_V_SCALE, SCREEN_TREND_H_SCALE, SCREEN_TREND_EXIT, SCREEN_TREND_MAX } menu_trend_screen;
-//typedef enum { SCREEN_GPS_TIME, SCREEN_GPS_LATITUDE, SCREEN_GPS_LONGITUDE, SCREEN_GPS_LATITUDE_DEC, SCREEN_GPS_LONGITUDE_DEC, SCREEN_GPS_LOCATOR, SCREEN_GPS_ALTITUDE, SCREEN_GPS_GEOID, SCREEN_GPS_SATELITES, SCREEN_GPS_HDOP, SCREEN_GPS_BAUDRATE, SCREEN_GPS_ERRORS, SCREEN_GPS_TIME_OFFSET, SCREEN_GPS_DATE_FORMAT, SCREEN_GPS_MODEL, SCREEN_GPS_LAST_FRAME, SCREEN_GPS_EXIT, SCREEN_GPS_MAX } menu_gps_screen;
-//typedef enum { SCREEN_PPB_MEAN, SCREEN_PPB_INST, SCREEN_PPB_FREQUENCY, SCREEN_PPB_ERROR, SCREEN_PPB_CORRECTION, SCREEN_PPB_PWM, SCREEN_PPB_OCXO_MODEL, SCREEN_PPB_WARMUP_TIME, SCREEN_PPB_ALGO, SCREEN_PPB_CORRECTION_FACTOR, SCREEN_PPB_MILLIS, SCREEN_PPB_AUTO_SAVE_PWM, SCREEN_PPB_AUTO_SYNC_PPS, SCREEN_PPB_LOCK_THRESHOLD, SCREEN_PPB_EXIT, SCREEN_PPB_MAX } menu_ppb_screen;
-//typedef enum { SCREEN_PPS_SHIFT, SCREEN_PPS_SHIFT_MS, SCREEN_PPS_SYNC_COUNT, SCREEN_PPS_SYNC_MODE, SCREEN_PPS_SYNC_DELAY, SCREEN_PPS_SYNC_THRESHOLD, SCREEN_PPS_FORCE_SYNC, SCREEN_PPS_EXIT, SCREEN_PPS_MAX } menu_pps_screen;
-//
 //// Possible baudrate values
 //typedef enum { BAUDRATE_9600, BAUDRATE_19200, BAUDRATE_38400, BAUDRATE_57600, BAUDRATE_115200, BAUDRATE_230400, BAUDRATE_460800, BAUDRATE_921600, BAUDRATE_MAX} baudrate;
 //
@@ -57,9 +26,6 @@
 //uint8_t     trend_arrow = TREND_LEFT_CODE;
 //
 //baudrate    gps_baudrate_enum = BAUDRATE_9600;
-//
-//#define         DATE_TIME_DURATION  5000 // Change date/time screen display every 5 seconds
-//static uint32_t last_hour_date_screen_update = 0;
 //
 //correction_algo_type displayed_correction_algorithm;
 //
@@ -151,8 +117,6 @@
 //{
 //    displayed_correction_algorithm = algo;
 //}
-//
-//static void menu_force_redraw() { refresh_screen = true; }
 //
 //void init_trend_values()
 //{
@@ -364,23 +328,6 @@
 //        {
 //            LCD_Puts(0, 1, gps_date);
 //        }
-//        else // SCREEN_DATE_TIME
-//        {
-//            uint32_t now = HAL_GetTick();
-//            uint32_t duration = now - last_hour_date_screen_update;
-//            if(duration <= DATE_TIME_DURATION)
-//            {
-//                LCD_Puts(0, 1, gps_time);
-//            }
-//            else
-//            {
-//                LCD_Puts(0, 1, gps_date);
-//            }
-//            if(duration >= 2*DATE_TIME_DURATION)
-//            {
-//                last_hour_date_screen_update = now;
-//            }
-//        }
 //        break;
 //    case SCREEN_TREND:
 //        // Trend screen 
@@ -433,10 +380,6 @@
 //                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", ee_storage.trend_h_scale);
 //                    LCD_Puts(0, 1, screen_buffer);
 //                    break;
-//                case SCREEN_TREND_EXIT:
-//                    LCD_Puts(1, 0, "Exit?");
-//                    LCD_Puts(0, 1, "        ");
-//                    break;
 //            }
 //        }
 //        break;
@@ -446,14 +389,11 @@
 //        {
 //            ppb = frequency_get_ppb();
 //            LCD_Puts(1, 0, "PPB:   ");
-//            LCD_Puts(0, 1, "        ");
 //            menu_format_ppb(ppb, screen_buffer, SCREEN_BUFFER_SIZE);
 //            LCD_Puts(0, 1, screen_buffer);
 //        }
 //        else
 //        {
-//            // Clear line 2
-//            LCD_Puts(0, 1, "        ");
 //            switch (current_menu_ppb_screen)
 //            {
 //                default:
@@ -561,10 +501,6 @@
 //                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld.%02ld", ee_storage.ppb_lock_threshold / 100, ee_storage.ppb_lock_threshold % 100);
 //                    LCD_Puts(0, 1, screen_buffer);
 //                    break;
-//                case SCREEN_PPB_EXIT:
-//                    LCD_Puts(1, 0, "Exit?");
-//                    LCD_Puts(0, 1, "        ");
-//                    break;
 //            }
 //        }
 //        break;
@@ -573,7 +509,6 @@
 //        if(menu_level == 0)
 //        {
 //            LCD_Puts(1, 0, "PWM:   ");
-//            LCD_Puts(0, 1, "        ");
 //            snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", TIM1->CCR2);
 //            LCD_Puts(0, 1, screen_buffer);
 //        }
@@ -586,21 +521,13 @@
 //    case SCREEN_GPS:
 //        if(menu_level == 0)
 //        {
-//            snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "GPS:%02d\5", num_sats);
-//            LCD_Puts(1, 0, screen_buffer);
 //            LCD_Puts(0, 1, gps_time);
 //        }
 //        else
 //        {
-//            // Clear line 2
-//            LCD_Puts(0, 1, "        ");
 //            switch (current_menu_gps_screen)
 //            {
 //                default:
-//                case SCREEN_GPS_TIME:
-//                    LCD_Puts(1, 0, "Time:");
-//                    LCD_Puts(0, 1, gps_time);
-//                    break;
 //                case SCREEN_GPS_LATITUDE:
 //                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "Lat.: %s", gps_n_s);
 //                    LCD_Puts(1, 0, screen_buffer);
@@ -668,11 +595,6 @@
 //                        LCD_Puts(0, 1, screen_buffer);
 //                    }
 //                    break;
-//                case SCREEN_GPS_SATELITES:
-//                    LCD_Puts(1, 0, "Sat. #:");
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%02d", num_sats);
-//                    LCD_Puts(0, 1, screen_buffer);
-//                    break;
 //                case SCREEN_GPS_HDOP:
 //                    LCD_Puts(1, 0, "HDOP:");
 //                    LCD_Puts(0, 1, gps_hdop);
@@ -720,35 +642,26 @@
 //                        gps_last_frame_changed = false;
 //                    }
 //                    break;
-//                case SCREEN_GPS_EXIT:
-//                    LCD_Puts(1, 0, "Exit?");
-//                    LCD_Puts(0, 1, "        ");
-//                    break;
 //            }
 //        }
 //        break;
 //    case SCREEN_UPTIME:
 //        LCD_Puts(1, 0, "UPTIME:");
-//        LCD_Puts(0, 1, "        ");
 //        snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", device_uptime);
 //        LCD_Puts(0, 1, screen_buffer);
 //        break;
 //    case SCREEN_FRAMES:
 //        LCD_Puts(1, 0, "GGA FR:");
-//        LCD_Puts(0, 1, "        ");
 //        snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", gga_frames);
 //        LCD_Puts(0, 1, screen_buffer);
 //        break;
 //    case SCREEN_BRIGHTNESS:
 //        LCD_Puts(1, 0, menu_level == 0 ? "BRIGHT:":"BRIGHT?");
-//        LCD_Puts(0, 1, "        ");
 //        snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%d", ee_storage.brightness);
 //        LCD_Puts(0, 1, screen_buffer);
 //        break;
 //    case SCREEN_PPS:
 //        // Screen with pps
-//        // Clear line 2
-//        LCD_Puts(0, 1, "        ");
 //        if(menu_level == 0)
 //        {
 //            snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "PPS:%3ld", pps_sync_count);
@@ -805,24 +718,7 @@
 //                        menu_level = 1;
 //                    }
 //                    break;
-//                case SCREEN_PPS_EXIT:
-//                    LCD_Puts(1, 0, "Exit?");
-//                    LCD_Puts(0, 1, "        ");
-//                    break;
 //            }
-//        }
-//        break;
-//    case SCREEN_SAVE_CONFIG:
-//        //  Save configuration screen
-//        if(menu_level == 0)
-//        {
-//            LCD_Puts(1, 0,  "Save   ");
-//            LCD_Puts(0, 1, "Settings");
-//        }
-//        else
-//        {
-//            LCD_Puts(0, 0, " PRESS  ");
-//            LCD_Puts(0, 1, "TO SAVE ");
 //        }
 //        break;
 //    case SCREEN_VERSION:
@@ -848,73 +744,13 @@
 //    // Detect rotary encoder value change
 //    uint32_t new_encoder_value = TIM4->CNT / 2;
 //
-//#ifdef ROTARY_INVERT
-//    new_encoder_value = -new_encoder_value;
-//#endif
-//
 //    if(new_encoder_value != last_encoder_value)
 //    {
-//        menu_screen previous_menu_screen = current_menu_screen;
-//        int encoder_increment = (new_encoder_value < last_encoder_value)? -1 : +1;
-//        // Handle overflow cases
-//        if(new_encoder_value == 32767 && last_encoder_value == 0)
-//        {
-//            encoder_increment = -1;
-//        }
-//        else if (new_encoder_value == 0 && last_encoder_value == 32767)
-//        {
-//            encoder_increment = +1;
-//        }
 //        if(menu_level == 0)
-//        {   // Main menu => change menu screen
-//            current_menu_screen =  (current_menu_screen + encoder_increment) % SCREEN_MAX;
-//
-//            if(current_menu_screen >= SCREEN_MAX) current_menu_screen = SCREEN_MAX-1; // Roll over for first sceen - 1
-//
-//            // Reset counter for date/time screen
-//            last_hour_date_screen_update = HAL_GetTick();
-//            LCD_Clear();
-//            menu_force_redraw();
-//        }
 //        else if(menu_level == 1)
 //        {   // Sub menu
 //            switch(current_menu_screen)
 //            {
-//                case SCREEN_TREND:
-//                    {
-//                        // Trend view => change trend menu
-//                        current_menu_trend_screen =  (current_menu_trend_screen + encoder_increment) % SCREEN_TREND_MAX;
-//                        if(current_menu_trend_screen >= SCREEN_TREND_MAX) current_menu_trend_screen = SCREEN_TREND_MAX-1; // Roll over for first sceen - 1
-//                        LCD_Clear();
-//                        menu_force_redraw();
-//                    }
-//                    break;
-//                case SCREEN_PWM:
-//                case SCREEN_SAVE_CONFIG:
-//                case SCREEN_VERSION:
-//                    // Go back to main menu
-//                    LCD_Clear();
-//                    menu_force_redraw();
-//                    menu_level = 0;
-//                    break;
-//                case SCREEN_PPB:
-//                    {
-//                        // PPB view => change ppb menu
-//                        current_menu_ppb_screen =  (current_menu_ppb_screen + encoder_increment) % SCREEN_PPB_MAX;
-//                        if(current_menu_ppb_screen >= SCREEN_PPB_MAX) current_menu_ppb_screen = SCREEN_PPB_MAX-1; // Roll over for first sceen - 1
-//                        LCD_Clear();
-//                        menu_force_redraw();
-//                    }
-//                    break;
-//                case SCREEN_GPS:
-//                    {
-//                        // GPS view => change gps menu
-//                        current_menu_gps_screen =  (current_menu_gps_screen + encoder_increment) % SCREEN_GPS_MAX;
-//                        if(current_menu_gps_screen >= SCREEN_GPS_MAX) current_menu_gps_screen = SCREEN_GPS_MAX-1; // Roll over for first sceen - 1
-//                        LCD_Clear();
-//                        menu_force_redraw();
-//                    }
-//                    break;
 //                case SCREEN_BRIGHTNESS:
 //                    // Update brightness
 //                    ee_storage.brightness += encoder_increment*5;
@@ -922,19 +758,6 @@
 //                    if(ee_storage.brightness > 100) ee_storage.brightness = 100;
 //                    ee_is_changed = true;
 //                    update_brightness();
-//                    LCD_Clear();
-//                    menu_force_redraw();
-//                    break;
-//                case SCREEN_PPS:
-//                    {
-//                        // PPB view => change ppb menu
-//                        current_menu_pps_screen =  (current_menu_pps_screen + encoder_increment) % SCREEN_PPS_MAX;
-//                        if(current_menu_pps_screen >= SCREEN_PPS_MAX) current_menu_pps_screen = SCREEN_PPS_MAX-1; // Roll over for first sceen - 1
-//                        LCD_Clear();
-//                        menu_force_redraw();
-//                    }
-//                    break;
-//                default:
 //                    break;
 //            }
 //        }
@@ -961,23 +784,17 @@
 //                    {
 //                        trend_shift = new_trend_shift;
 //                    }
-//                    LCD_Clear();
-//                    menu_force_redraw();
 //                    break;
 //                    }
 //                case SCREEN_TREND_AUTO_V:
 //                    // Update mode
 //                    ee_storage.trend_auto_v = !ee_storage.trend_auto_v;
 //                    ee_is_changed = true;
-//                    LCD_Clear();
-//                    menu_force_redraw();
 //                    break;
 //                case SCREEN_TREND_AUTO_H:
 //                    // Update mode
 //                    ee_storage.trend_auto_h = !ee_storage.trend_auto_h;
 //                    ee_is_changed = true;
-//                    LCD_Clear();
-//                    menu_force_redraw();
 //                    break;
 //                case SCREEN_TREND_V_SCALE:
 //                    {
@@ -998,8 +815,6 @@
 //                    ee_storage.trend_v_scale += (multiplier*encoder_increment);
 //                    ee_storage.trend_v_scale = menu_round_v_scale(ee_storage.trend_v_scale);
 //                    ee_is_changed = true;
-//                    LCD_Clear();
-//                    menu_force_redraw();
 //                    break;
 //                    }
 //                case SCREEN_TREND_H_SCALE:
@@ -1007,10 +822,6 @@
 //                    ee_storage.trend_h_scale = encoder_increment > 0 ? ee_storage.trend_h_scale * 2 : ee_storage.trend_h_scale/2;
 //                    ee_storage.trend_h_scale = menu_round_h_scale(ee_storage.trend_h_scale);
 //                    ee_is_changed = true;
-//                    LCD_Clear();
-//                    menu_force_redraw();
-//                    break;
-//                default:
 //                    break;
 //            }
 //        }
@@ -1023,8 +834,6 @@
 //                    ee_storage.ocxo_model =  (ee_storage.ocxo_model + encoder_increment) % (OCXO_MODEL_UNKNOWN+1);
 //                    if(ee_storage.ocxo_model > OCXO_MODEL_UNKNOWN) ee_storage.ocxo_model = OCXO_MODEL_UNKNOWN;
 //                    ee_is_changed = true;
-//                    LCD_Clear();
-//                    menu_force_redraw();
 //                    }
 //                    break;
 //                case SCREEN_PPB_WARMUP_TIME:
@@ -1040,38 +849,28 @@
 //                    }
 //                    ee_storage.warmup_time_seconds = new_warmup_time;
 //                    ee_is_changed = true;
-//                    LCD_Clear();
-//                    menu_force_redraw();
 //                    }
 //                    break;
 //                case SCREEN_PPB_ALGO:
 //                    { // Update algorithm
 //                    displayed_correction_algorithm =  (displayed_correction_algorithm + encoder_increment) % (CORRECTION_ALGO_ERIC_H_PLUS+1);
 //                    if(displayed_correction_algorithm > CORRECTION_ALGO_ERIC_H_PLUS) displayed_correction_algorithm = CORRECTION_ALGO_ERIC_H_PLUS;
-//                    LCD_Clear();
-//                    menu_force_redraw();
 //                    }
 //                    break;
 //                case SCREEN_PPB_CORRECTION_FACTOR:
 //                    { // Update correction factor
 //                    ee_storage.correction_factor = increment_correction_factor_value(ee_storage.correction_algorithm,correction_factor,encoder_increment);
 //                    ee_is_changed = true;
-//                    LCD_Clear();
-//                    menu_force_redraw();
 //                    }
 //                    break;
 //                case SCREEN_PPB_AUTO_SAVE_PWM:
 //                    // Update mode
 //                    ee_settings.pwm_auto_save = !ee_settings.pwm_auto_save;
-//                    LCD_Clear();
-//                    menu_force_redraw();
 //                    break;
 //                case SCREEN_PPB_AUTO_SYNC_PPS:
 //                    // Update mode
 //                    ee_settings.pps_ppm_auto_sync = !ee_settings.pps_ppm_auto_sync;
 //                    ee_is_changed = true;
-//                    LCD_Clear();
-//                    menu_force_redraw();
 //                    break;
 //                case SCREEN_PPB_LOCK_THRESHOLD:
 //                    { // Update ppb lock threshold
@@ -1084,13 +883,9 @@
 //                    {
 //                        new_threshold = MAX_PPB_LOCK_THRESHOLD;
 //                    }
-//                    ee.storage.ppb_lock_threshold = new_threshold;
+//                    ee_storage.ppb_lock_threshold = new_threshold;
 //                    ee_is_changed = true;
-//                    LCD_Clear();
-//                    menu_force_redraw();
 //                    }
-//                    break;
-//                default:
 //                    break;
 //            }
 //        }
@@ -1106,15 +901,11 @@
 //                            case GPS_MODEL_ATGM336H:
 //                                max_baudrate = BAUDRATE_115200 + 1;
 //                                break;
-//                            default:
-//                                break;
 //                        }
 //                        gps_baudrate_enum = (gps_baudrate_enum + encoder_increment) % max_baudrate;
 //                        if(gps_baudrate_enum >= max_baudrate) gps_baudrate_enum = max_baudrate-1; // Roll over for first screen - 1
 //                        ee_storage.gps_baudrate = menu_get_baudrate_value(gps_baudrate_enum);
 //                        ee_is_changed = true;
-//                         LCD_Clear();
-//                        menu_force_redraw();
 //                    }
 //                    break;
 //                case SCREEN_GPS_TIME_OFFSET:
@@ -1127,9 +918,6 @@
 //                        {
 //                            gps_time_offset = GPS_MAX_TIME_OFFSET;
 //                        }
-//
-//                        LCD_Clear();
-//                        menu_force_redraw();
 //                    }
 //                    break;
 //                case SCREEN_GPS_MODEL:
@@ -1137,11 +925,7 @@
 //                    ee_storage.gps_model =  (ee_storage.gps_model + encoder_increment) % (GPS_MODEL_UNKNOWN+1);
 //                    if(ee_storage.gps_model > GPS_MODEL_UNKNOWN) ee_storage.gps_model = GPS_MODEL_UNKNOWN; // Roll over for first sceen - 1
 //                    ee_is_changed = true;
-//                    LCD_Clear();
-//                    menu_force_redraw();
 //                    }
-//                    break;
-//                default:
 //                    break;
 //            }
 //        }
@@ -1153,175 +937,33 @@
 //                    // Update mode
 //                    ee_storage.pps_sync_on = !ee_storage.pps_sync_on;
 //                    ee_is_changed = true;
-//                    LCD_Clear();
-//                    menu_force_redraw();
 //                    break;
 //                case SCREEN_PPS_SYNC_DELAY:
 //                    // Update delay
 //                    ee_storage.pps_sync_delay += encoder_increment;
 //                    ee_is_changed = true;
-//                    LCD_Clear();
-//                    menu_force_redraw();
 //                    break;
 //                case SCREEN_PPS_SYNC_THRESHOLD:
 //                    // Update threshold
 //                    ee_storage.pps_sync_threshold += encoder_increment;
 //                    ee_is_changed = true;
-//                    LCD_Clear();
-//                    menu_force_redraw();
-//                    break;
-//                case SCREEN_PPS_FORCE_SYNC:
-//                    // PPB view => change ppb menu
-//                    current_menu_pps_screen =  (current_menu_pps_screen + encoder_increment) % SCREEN_PPS_MAX;
-//                    if(current_menu_pps_screen >= SCREEN_PPS_MAX) current_menu_pps_screen = SCREEN_PPS_MAX-1; // Roll over for first sceen - 1
-//                    LCD_Clear();
-//                    menu_force_redraw();
-//                    break;
-//                default:
 //                    break;
 //            }
 //        }
-//        last_encoder_value = new_encoder_value;
 //    }
 //
 //    if (rotary_get_click()) {
 //        if (menu_level == 0) {
-//            switch(current_menu_screen)
-//            {
-//                case SCREEN_TREND:
-//                case SCREEN_PPB:
-//                case SCREEN_GPS:
-//                case SCREEN_PWM:
-//                case SCREEN_BRIGHTNESS:
-//                case SCREEN_PPS:
-//                case SCREEN_SAVE_CONFIG:
-//                case SCREEN_VERSION:
-//                    menu_level = 1;
-//                    LCD_Clear();
-//                    break;
-//                default:
-//                    break;
-//            }
 //        } else  if (menu_level == 1){
 //            switch(current_menu_screen)
 //            {
-//                case SCREEN_TREND:
-//                    switch(current_menu_trend_screen)
-//                    {
-//                        case SCREEN_TREND_AUTO_H:
-//                        case SCREEN_TREND_AUTO_V:
-//                        case SCREEN_TREND_MAIN:
-//                            menu_level = 2;
-//                            break;
-//                        case SCREEN_TREND_V_SCALE:
-//                            // Prevent editing v scale if auto-v is on
-//                            menu_level = ee_storage.trend_auto_v ? 1 : 2;
-//                            break;
-//                        case SCREEN_TREND_H_SCALE:
-//                            // Prevent editing h scale if auto-h is on
-//                            menu_level = ee_storage.trend_auto_h ? 1 : 2;
-//                            break;
-//                        case SCREEN_TREND_EXIT:
-//                        default:
-//                            // Go back to main screen to prevent returning to exit screen
-//                            current_menu_trend_screen = SCREEN_TREND_MAIN;
-//                            menu_level = 0;
-//                            break;
-//                    }
-//                    break;
 //                case SCREEN_PWM:
 //                    ee_storage.pwm = TIM1->CCR2;
 //                    ee_is_changed = true;
 //                    menu_level = 0;
 //                    break;
-//                case SCREEN_BRIGHTNESS:
-//                    menu_level = 0;
-//                    break;
-//                case SCREEN_PPB:
-//                    switch(current_menu_ppb_screen)
-//                    {
-//                        case SCREEN_PPB_OCXO_MODEL:
-//                        case SCREEN_PPB_WARMUP_TIME:
-//                        case SCREEN_PPB_ALGO:
-//                        case SCREEN_PPB_CORRECTION_FACTOR:
-//                        case SCREEN_PPB_AUTO_SAVE_PWM:
-//                        case SCREEN_PPB_AUTO_SYNC_PPS:
-//                        case SCREEN_PPB_LOCK_THRESHOLD:
-//                            menu_level = 2;
-//                            break;
-//                        case SCREEN_PPB_EXIT:
-//                            // Go back to main screen to prevent returning to exit screen
-//                            current_menu_ppb_screen = SCREEN_PPB_MEAN;
-//                            menu_level = 0;
-//                            break;
-//                        default:
-//                            menu_level = 0;
-//                            break;
-//                    }
-//                    break;
-//                case SCREEN_GPS:
-//                    switch(current_menu_gps_screen)
-//                    {
-//                        case SCREEN_GPS_MODEL:
-//                        case SCREEN_GPS_DATE_FORMAT:
-//                        case SCREEN_GPS_TIME_OFFSET:
-//                        case SCREEN_GPS_BAUDRATE:
-//                            menu_level = 2;
-//                            break;
-//                        case SCREEN_GPS_EXIT:
-//                            // Go back to main screen to prevent returning to exit screen
-//                            current_menu_gps_screen = SCREEN_GPS_TIME;
-//                            menu_level = 0;
-//                            break;
-//                        default:
-//                            menu_level = 0;
-//                            break;
-//                    }
-//                    break;
-//                case SCREEN_PPS:
-//                    switch(current_menu_pps_screen)
-//                    {
-//                        case SCREEN_PPS_SYNC_MODE:
-//                        case SCREEN_PPS_SYNC_DELAY:
-//                        case SCREEN_PPS_SYNC_THRESHOLD:
-//                        case SCREEN_PPS_FORCE_SYNC:
-//                            menu_level = 2;
-//                            break;
-//                        case SCREEN_PPS_EXIT:
-//                            // Go back to main screen to prevent returning to exit screen
-//                            current_menu_pps_screen = SCREEN_PPS_SHIFT;
-//                            menu_level = 0;
-//                            break;
-//                        default:
-//                            menu_level = 0;
-//                            break;
-//                    }
-//                    break;
-//                case SCREEN_SAVE_CONFIG:
-//                    save_config();
-//                    menu_level = 0;
-//                    break;
-//                default:
-//                    menu_level = 0;
-//                    break;
 //            }
-//            LCD_Clear();
 //        } else  if (menu_level == 2 && current_menu_screen == SCREEN_TREND){
-//            switch(current_menu_trend_screen)
-//            {
-//                case SCREEN_TREND_AUTO_V:
-//                    break;
-//                case SCREEN_TREND_AUTO_H:
-//                    break;
-//                case SCREEN_TREND_V_SCALE:
-//                    break;
-//                case SCREEN_TREND_H_SCALE:
-//                    break;
-//                default:
-//                    break;
-//            }
-//            menu_level = 1;
-//            LCD_Clear();
 //        } else  if (menu_level == 2 && current_menu_screen == SCREEN_PPB){
 //            switch(current_menu_ppb_screen)
 //            {
@@ -1329,8 +971,6 @@
 //                    // Alsa change warmup time accordingly
 //                    ee_storage.warmup_time_seconds = get_default_warmup_time(ee_storage.ocxo_model);
 //                    ee_is_changed = true;
-//                    break;
-//                case SCREEN_PPB_WARMUP_TIME:
 //                    break;
 //                case SCREEN_PPB_ALGO:
 //                    if(ee_storage.correction_algorithm != displayed_correction_algorithm)
@@ -1341,19 +981,7 @@
 //                        ee_is_changed = true;
 //                    }
 //                    break;
-//                case SCREEN_PPB_CORRECTION_FACTOR:
-//                    break;
-//                case SCREEN_PPB_AUTO_SAVE_PWM:
-//                    break;
-//                case SCREEN_PPB_AUTO_SYNC_PPS:
-//                    break;
-//                case SCREEN_PPB_LOCK_THRESHOLD:
-//                    break;
-//                default:
-//                    break;
 //            }
-//            menu_level = 1;
-//            LCD_Clear();
 //        } else  if (menu_level == 2 && current_menu_screen == SCREEN_GPS){
 //            switch(current_menu_gps_screen)
 //            {
@@ -1368,54 +996,15 @@
 //                    if(ee_storage.gps_time_offset != ((uint32_t)(gps_time_offset-MIN_TIME_OFFSET)))
 //                    {   // Save changes
 //                        ee_storage.gps_time_offset = gps_time_offset-MIN_TIME_OFFSET;
-//                        ui_on_config_changed();
+//                        ee_is_changed = true;
 //                    }
 //                    break;
-//                case SCREEN_GPS_MODEL:
-//                    break;
-//                default:
-//                    break;
 //            }
-//            menu_level = 1;
-//            LCD_Clear();
-//        } else  if (menu_level == 2 && current_menu_screen == SCREEN_PPS){
-//            switch(current_menu_pps_screen)
-//            {
-//                case SCREEN_PPS_SYNC_MODE:
-//                    break;
-//                case SCREEN_PPS_SYNC_DELAY:
-//                        ui_on_config_changed();
-//                    break;
-//                case SCREEN_PPS_SYNC_THRESHOLD:
-//                    break;
-//                default:
-//                    break;
-//            }
-//            menu_level = 1;
-//            LCD_Clear();
 //        }
-//        else
-//        {
-//            menu_level = 0;
-//            LCD_Clear();
-//        }
-//        menu_force_redraw();
 //    }
 //
 //    if (refresh_screen) {
-//        refresh_screen = false;
 //
-//        // Display state icon
-//        if(current_menu_screen == SCREEN_TREND && (current_state_icon < 8))
-//        {   // Don't use custom icon in trend screen since all 8 custom chars are used for graphic display
-//            uint8_t icon;
-//            LCD_PutCustom(0,0,icon);
-//        }
-//        else
-//        {
-//            LCD_PutCustom(0,0,current_state_icon);
-//        }
-//        
 //        // Update PPB trend if needed
 //        if(update_trend)
 //        {
