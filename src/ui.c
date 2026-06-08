@@ -18,6 +18,7 @@
 // Main UI screen
 static void ui_proc_back_to_main_icon(const struct UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_back_to_main_ok(const struct UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_back_to_main_no(const struct UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_menu(const struct UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_save(const struct UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_gps(const struct UIElement* element, UICommand command, int32_t encoder_step);
@@ -25,6 +26,8 @@ static void ui_proc_ppb(const struct UIElement* element, UICommand command, int3
 static void ui_proc_usb(const struct UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_warmup(const struct UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_datetime(const struct UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_out1(const struct UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_out2(const struct UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_pwm(const struct UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_trend_h(const struct UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_trend_v(const struct UIElement* element, UICommand command, int32_t encoder_step);
@@ -38,13 +41,15 @@ static const UIElement ui_main_screen_elements[] = {
     { 72,  1, 71, 16, UI_STYLE_FOCUSABLE, ui_proc_ppb  },
     { 144, 1, 16, 16, UI_STYLE_NONE,      ui_proc_usb  },
     // Line 2
-    { 0,   20, 17,  18, UI_STYLE_NONE,                                 ui_proc_warmup      },
-    { 19,  20, 140, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_datetime    },
-    { 19,  34, 63,  10, UI_STYLE_FOCUSABLE,                            ui_proc_pwm         },
-    { 89,  34, 28,  10, UI_STYLE_FOCUSABLE,                            ui_proc_trend_h     },
-    { 124, 34, 35,  10, UI_STYLE_FOCUSABLE,                            ui_proc_trend_v     },
+    { 0,   21, 17,  20, UI_STYLE_NONE,                                 ui_proc_warmup      },
+    { 19,  19, 140, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_datetime    },
+    { 19,  32, 63,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out1        },
+    { 89,  32, 63,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out2        },
+    { 19,  44, 63,  10, UI_STYLE_FOCUSABLE,                            ui_proc_pwm         },
+    { 89,  44, 28,  10, UI_STYLE_FOCUSABLE,                            ui_proc_trend_h     },
+    { 124, 44, 35,  10, UI_STYLE_FOCUSABLE,                            ui_proc_trend_v     },
     // Trend
-    { 0,   45, 160, 35, UI_STYLE_NONE,                                 ui_proc_trend_graph },
+    { 0,   55, 160, 25, UI_STYLE_NONE,                                 ui_proc_trend_graph },
 };
 
 UIScreen ui_main_screen = {
@@ -57,13 +62,12 @@ UIScreen ui_main_screen = {
 // Save screen
 static void ui_save_proc_label(const struct UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_save_proc_yes(const struct UIElement* element, UICommand command, int32_t encoder_step);
-static void ui_save_proc_no(const struct UIElement* element, UICommand command, int32_t encoder_step);
 
 static const UIElement ui_save_screen_elements[] = {
     { 1,  1,  15,  16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main_icon },
     { 22, 4,  133, 34, UI_STYLE_NONE,      ui_save_proc_label        },
     { 43, 48, 39,  21, UI_STYLE_FOCUSABLE, ui_save_proc_yes          },
-    { 95, 48, 38,  21, UI_STYLE_FOCUSABLE, ui_save_proc_no           },
+    { 95, 48, 38,  21, UI_STYLE_FOCUSABLE, ui_proc_back_to_main_no   },
 };
 
 UIScreen ui_save_screen = {
@@ -89,6 +93,22 @@ UIScreen ui_save_error_screen = {
     false,
 };
 
+// Set PWM screen
+static void ui_setpwm_proc_label(const struct UIElement* element, UICommand command, int32_t encoder_step);
+
+static const UIElement ui_setpwm_screen_elements[] = {
+    { 1,  1,  15,  16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main_icon },
+    { 22, 4,  133, 34, UI_STYLE_NONE,      ui_setpwm_proc_label      },
+    { 70, 48, 38,  21, UI_STYLE_FOCUSABLE, ui_proc_back_to_main_ok   },
+};
+
+UIScreen ui_setpwm_screen = {
+    ui_setpwm_screen_elements,
+    sizeof(ui_setpwm_screen_elements) / sizeof(UIElement),
+    2,
+    false,
+};
+
 
 static void ui_proc_back_to_main_icon(const struct UIElement* element, UICommand command, int32_t encoder_step)
 {
@@ -105,8 +125,20 @@ static void ui_proc_back_to_main_icon(const struct UIElement* element, UICommand
 static void ui_proc_back_to_main_ok(const struct UIElement* element, UICommand command, int32_t encoder_step)
 {
     if (command & UICommand_Init) {
-        ST7735_FillRectangleFast(element->x, element->y, element->width, element->height, UI_BUTTON_BG_COLOR);
-        ST7735_WriteStringNoWrap(element->x + 8, element->y + 2, 18, "OK", Font_11x18, ST7735_WHITE, UI_BUTTON_BG_COLOR);
+        ST7735_FillRectangleFast(element->x, element->y, element->width, element->height, UI_COLOR_BUTTON_BG);
+        ST7735_WriteStringNoWrap(element->x + 8, element->y + 2, 18, "OK", Font_11x18, UI_COLOR_TEXT, UI_COLOR_BUTTON_BG);
+    }
+    if (command & UICommand_Click) {
+        ui_show_screen(&ui_main_screen);
+    }
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_proc_back_to_main_no(const struct UIElement* element, UICommand command, int32_t encoder_step)
+{
+    if (command & UICommand_Init) {
+        ST7735_FillRectangleFast(element->x, element->y, element->width, element->height, UI_COLOR_BUTTON_BG);
+        ST7735_WriteStringNoWrap(element->x + 8, element->y + 2, 18, "No", Font_11x18, UI_COLOR_TEXT, UI_COLOR_BUTTON_BG);
     }
     if (command & UICommand_Click) {
         ui_show_screen(&ui_main_screen);
@@ -153,7 +185,7 @@ static void ui_proc_gps(const struct UIElement* element, UICommand command, int3
 
         char s[3] = { '\0' };
         snprintf(s, ARRAY_SIZE(s), "%2d", ui_cache_num_sats > 99 ? 99 : ui_cache_num_sats);
-        ST7735_WriteStringNoWrap(element->x + 16, element->y + 1, 15, s, Font_11x18, ST7735_WHITE, UI_BG_COLOR);
+        ST7735_WriteStringNoWrap(element->x + 16, element->y + 1, 15, s, Font_11x18, UI_COLOR_TEXT, UI_COLOR_BG);
     }
 
     if (command & UICommand_Click) {
@@ -171,7 +203,7 @@ static void ui_proc_ppb(const struct UIElement* element, UICommand command, int3
 
         char s[10] = { '\0' };
         snprintf(s, 10, "%5d", -1230);
-        ST7735_WriteStringNoWrap(element->x + 16, element->y + 1, 15, s, Font_11x18, ST7735_WHITE, UI_BG_COLOR);
+        ST7735_WriteStringNoWrap(element->x + 16, element->y + 1, 15, s, Font_11x18, UI_COLOR_TEXT, UI_COLOR_BG);
     }
     // TODO
     ui_default_element_proc(element, command, encoder_step);
@@ -228,9 +260,9 @@ static void ui_proc_warmup(const struct UIElement* element, UICommand command, i
     // Draw icon
     if (draw_icon) {
         if (ui_cache_warmup_remaining_sec > 0) {
-            ST7735_DrawImage(element->x + 1, element->y, 15, 10, icon_warmup_15x10);
+            ST7735_DrawImage(element->x + 1, element->y, 15, 12, icon_warmup_15x12);
         } else {
-            ST7735_FillRectangleFast(element->x + 1, element->y, 15, 10, UI_BG_COLOR);
+            ST7735_FillRectangleFast(element->x + 1, element->y, 15, 12, UI_COLOR_BG);
         }
     }
 
@@ -248,18 +280,18 @@ static void ui_proc_warmup(const struct UIElement* element, UICommand command, i
 
             // Draw digits
             if (digit1 > 0) {
-                ST7735_DrawImage(element->x, element->y + 11, 5, 7, icon_digits_0_9_5x7[digit1]);
+                ST7735_DrawImage(element->x, element->y + 13, 5, 7, icon_digits_0_9_5x7[digit1]);
             } else {
-                ST7735_FillRectangle(element->x, element->y + 11, 5, 7, UI_BG_COLOR);
+                ST7735_FillRectangle(element->x, element->y + 13, 5, 7, UI_COLOR_BG);
             }
             if (digit1 > 0 || digit2 > 0) {
-                ST7735_DrawImage(element->x + 5 + 1, element->y + 11, 5, 7, icon_digits_0_9_5x7[digit2]);
+                ST7735_DrawImage(element->x + 5 + 1, element->y + 13, 5, 7, icon_digits_0_9_5x7[digit2]);
             } else {
-                ST7735_FillRectangle(element->x + 5 + 1, element->y + 11, 5, 7, UI_BG_COLOR);
+                ST7735_FillRectangle(element->x + 5 + 1, element->y + 13, 5, 7, UI_COLOR_BG);
             }
-            ST7735_DrawImage(element->x + 2 * (5 + 1), element->y + 11, 5, 7, icon_digits_0_9_5x7[digit3]);
+            ST7735_DrawImage(element->x + 2 * (5 + 1), element->y + 13, 5, 7, icon_digits_0_9_5x7[digit3]);
         } else {
-            ST7735_FillRectangleFast(element->x, element->y + 11, 5 + 1 + 5 + 1 + 5, 7, UI_BG_COLOR);
+            ST7735_FillRectangleFast(element->x, element->y + 13, 5 + 1 + 5 + 1 + 5, 7, UI_COLOR_BG);
         }
     }
 
@@ -270,21 +302,74 @@ static void ui_proc_datetime(const struct UIElement* element, UICommand command,
 {
     if (command & UICommand_Init) {
         //todo
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height, "15 Apr 2026", Font_7x10, ST7735_WHITE, UI_BG_COLOR);
-        ST7735_WriteStringNoWrap(element->x + 12 * 7, element->y + 1, element->height, "02:41:36", Font_7x10, ST7735_WHITE, UI_BG_COLOR);
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height, "15 Apr 2026", Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
+        ST7735_WriteStringNoWrap(element->x + 12 * 7, element->y + 1, element->height, "02:41:36", Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
     }
     // TODO
     ui_default_element_proc(element, command, encoder_step);
 }
 
+static void ui_proc_out(const struct UIElement* element, UICommand command, int32_t encoder_step, uint8_t out)
+{
+    // Draw icon and label
+    if (command & UICommand_Init) {
+        ST7735_DrawImage(element->x, element->y + 2, 7, 7, icon_out_7x7);
+        char s[3] = { '\0' };
+        snprintf(s, ARRAY_SIZE(s), "%1d:", out);
+        ST7735_WriteStringNoWrap(element->x + 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
+    }
+
+    // Draw value
+    //TODO
+    if ((command & UICommand_Init) ) {
+//        ui_cache_XXX = XXX;
+        //TODO
+        char s[7] = { '\0' };
+        snprintf(s, ARRAY_SIZE(s), "%5dM", 8*out);//TODO
+        ST7735_WriteStringNoWrap(element->x + 3 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
+    }
+
+    // TODO
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_proc_out1(const struct UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_proc_out(element, command, encoder_step, 1);
+}
+
+static void ui_proc_out2(const struct UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_proc_out(element, command, encoder_step, 2);
+}
+
+uint16_t ui_cache_pwm = 0;
 static void ui_proc_pwm(const struct UIElement* element, UICommand command, int32_t encoder_step)
 {
+    // Draw label
     if (command & UICommand_Init) {
-        //todo
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "PWM:", Font_7x10, ST7735_WHITE, UI_BG_COLOR);
-        ST7735_WriteStringNoWrap(element->x + 4 * 7, element->y + 1, element->height - 1, "32768", Font_7x10, ST7735_WHITE, UI_BG_COLOR);
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "PWM:", Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
     }
-    // TODO
+
+    // Draw value
+    uint16_t pwm = TIM1->CCR2;
+    if ((command & UICommand_Init) || (pwm != ui_cache_pwm)) {
+        ui_cache_pwm = pwm;
+
+        char s[6] = { '\0' };
+        snprintf(s, ARRAY_SIZE(s), "%5d", ui_cache_pwm);
+        ST7735_WriteStringNoWrap(element->x + 4 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
+    }
+
+    if (command & UICommand_Click) {
+        if (ee_storage.pwm != pwm) {
+            ee_storage.pwm = pwm;
+            ee_is_changed = true;
+        }
+
+        ui_show_screen(&ui_setpwm_screen);
+    }
+
     ui_default_element_proc(element, command, encoder_step);
 }
 
@@ -292,8 +377,8 @@ static void ui_proc_trend_h(const struct UIElement* element, UICommand command, 
 {
     if (command & UICommand_Init) {
         // todo
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "H:", Font_7x10, ST7735_WHITE, UI_BG_COLOR);
-        ST7735_WriteStringNoWrap(element->x + 2 * 7, element->y + 1, element->height - 1, "10", Font_7x10, ST7735_WHITE, UI_BG_COLOR);
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "H:", Font_7x10, UI_COLOR_TREND, UI_COLOR_BG);
+        ST7735_WriteStringNoWrap(element->x + 2 * 7, element->y + 1, element->height - 1, "10", Font_7x10, UI_COLOR_TREND, UI_COLOR_BG);
     }
     // TODO
     ui_default_element_proc(element, command, encoder_step);
@@ -303,8 +388,8 @@ static void ui_proc_trend_v(const struct UIElement* element, UICommand command, 
 {
     if (command & UICommand_Init) {
         // todo
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "V:", Font_7x10, ST7735_WHITE, UI_BG_COLOR);
-        ST7735_WriteStringNoWrap(element->x + 2 * 7, element->y + 1, element->height - 1, "120", Font_7x10, ST7735_WHITE, UI_BG_COLOR);
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "V:", Font_7x10, UI_COLOR_TREND, UI_COLOR_BG);
+        ST7735_WriteStringNoWrap(element->x + 2 * 7, element->y + 1, element->height - 1, "120", Font_7x10, UI_COLOR_TREND, UI_COLOR_BG);
     }
     // TODO
     ui_default_element_proc(element, command, encoder_step);
@@ -323,9 +408,9 @@ static void ui_proc_trend_graph(const struct UIElement* element, UICommand comma
 static void ui_save_proc_label(const struct UIElement* element, UICommand command, int32_t encoder_step)
 {
     if (command & UICommand_Init) {
-        ST7735_WriteStringNoWrap(element->x,    element->y,    10, "Save current device", Font_7x10, ST7735_WHITE, UI_BG_COLOR);
-        ST7735_WriteStringNoWrap(element->x+10, element->y+12, 10, "configuration to",    Font_7x10, ST7735_WHITE, UI_BG_COLOR);
-        ST7735_WriteStringNoWrap(element->x+42, element->y+24, 10, "EEPROM?",             Font_7x10, ST7735_WHITE, UI_BG_COLOR);
+        ST7735_WriteStringNoWrap(element->x,    element->y,    10, "Save current device", Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
+        ST7735_WriteStringNoWrap(element->x+10, element->y+12, 10, "configuration to",    Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
+        ST7735_WriteStringNoWrap(element->x+42, element->y+24, 10, "EEPROM?",             Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
     }
     ui_default_element_proc(element, command, encoder_step);
 }
@@ -333,8 +418,8 @@ static void ui_save_proc_label(const struct UIElement* element, UICommand comman
 static void ui_save_proc_yes(const struct UIElement* element, UICommand command, int32_t encoder_step)
 {
     if (command & UICommand_Init) {
-        ST7735_FillRectangleFast(element->x, element->y, element->width, element->height, UI_BUTTON_BG_COLOR);
-        ST7735_WriteStringNoWrap(element->x + 3, element->y + 2, 18, "Yes", Font_11x18, ST7735_WHITE, UI_BUTTON_BG_COLOR);
+        ST7735_FillRectangleFast(element->x, element->y, element->width, element->height, UI_COLOR_BUTTON_BG);
+        ST7735_WriteStringNoWrap(element->x + 3, element->y + 2, 18, "Yes", Font_11x18, UI_COLOR_TEXT, UI_COLOR_BUTTON_BG);
     }
     if (command & UICommand_Click) {
         // Save configuration
@@ -349,24 +434,21 @@ static void ui_save_proc_yes(const struct UIElement* element, UICommand command,
     ui_default_element_proc(element, command, encoder_step);
 }
 
-static void ui_save_proc_no(const struct UIElement* element, UICommand command, int32_t encoder_step)
+static void ui_save_error_proc_label(const struct UIElement* element, UICommand command, int32_t encoder_step)
 {
     if (command & UICommand_Init) {
-        ST7735_FillRectangleFast(element->x, element->y, element->width, element->height, UI_BUTTON_BG_COLOR);
-        ST7735_WriteStringNoWrap(element->x + 8, element->y + 2, 18, "No", Font_11x18, ST7735_WHITE, UI_BUTTON_BG_COLOR);
-    }
-    if (command & UICommand_Click) {
-        ui_show_screen(&ui_main_screen);
+        ST7735_WriteStringNoWrap(element->x+28, element->y,    10, "Cannot save",         Font_7x10, ST7735_RED, UI_COLOR_BG);
+        ST7735_WriteStringNoWrap(element->x+18, element->y+12, 10, "configuration:",      Font_7x10, ST7735_RED, UI_COLOR_BG);
+        ST7735_WriteStringNoWrap(element->x,    element->y+24, 10, "EEPROM write failed", Font_7x10, ST7735_RED, UI_COLOR_BG);
     }
     ui_default_element_proc(element, command, encoder_step);
 }
 
-static void ui_save_error_proc_label(const struct UIElement* element, UICommand command, int32_t encoder_step)
+static void ui_setpwm_proc_label(const struct UIElement* element, UICommand command, int32_t encoder_step)
 {
     if (command & UICommand_Init) {
-        ST7735_WriteStringNoWrap(element->x+28, element->y,    10, "Cannot save     ",    Font_7x10, ST7735_RED, UI_BG_COLOR);
-        ST7735_WriteStringNoWrap(element->x+18, element->y+12, 10, "configuration:",      Font_7x10, ST7735_RED, UI_BG_COLOR);
-        ST7735_WriteStringNoWrap(element->x,    element->y+24, 10, "EEPROM write failed", Font_7x10, ST7735_RED, UI_BG_COLOR);
+        ST7735_WriteStringNoWrap(element->x + 7,  element->y,      10, "The PWM value has", Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
+        ST7735_WriteStringNoWrap(element->x + 35, element->y + 12, 10, "been set.",         Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
     }
     ui_default_element_proc(element, command, encoder_step);
 }

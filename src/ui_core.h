@@ -4,10 +4,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define UI_BG_COLOR            (ST7735_BLACK)
-#define UI_BUTTON_BG_COLOR     (ST7735_COLOR565(120, 120, 120))
-#define UI_FOCUS_FRAME_COLOR   (ST7735_COLOR565(195, 205, 205))
-#define UI_CAPTURE_FRAME_COLOR (ST7735_COLOR565(255, 115, 21))
+#define UI_COLOR_BG            (ST7735_BLACK)
+#define UI_COLOR_BUTTON_BG     (ST7735_COLOR565(120, 120, 120))
+#define UI_COLOR_FOCUS_FRAME   (ST7735_COLOR565(195, 205, 205))
+#define UI_COLOR_CAPTURE_FRAME (ST7735_COLOR565(255, 115, 21))
+#define UI_COLOR_TREND         (ST7735_COLOR565(250, 170, 80))
+#define UI_COLOR_TEXT          (ST7735_WHITE)
 
 typedef enum {
     UICommand_None           = 0x00000000,

@@ -433,11 +433,6 @@
 //                        LCD_Puts(0, 1, "Warm-up");
 //                    }
 //                    break;
-//                case SCREEN_PPB_PWM:
-//                    LCD_Puts(1, 0, "PWM:");
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", TIM1->CCR2);
-//                    LCD_Puts(0, 1, screen_buffer);
-//                    break;
 //                case SCREEN_PPB_OCXO_MODEL:
 //                    LCD_Puts(1, 0, menu_level == 1 ? "OCXO:":"OCXO?");
 //                    switch(ee_storage.ocxo_model)
@@ -502,20 +497,6 @@
 //                    LCD_Puts(0, 1, screen_buffer);
 //                    break;
 //            }
-//        }
-//        break;
-//    case SCREEN_PWM:
-//        // Screen with current PPM
-//        if(menu_level == 0)
-//        {
-//            LCD_Puts(1, 0, "PWM:   ");
-//            snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", TIM1->CCR2);
-//            LCD_Puts(0, 1, screen_buffer);
-//        }
-//        else
-//        {
-//            LCD_Puts(0, 0, " PRESS  ");
-//            LCD_Puts(0, 1, " TO SET ");
 //        }
 //        break;
 //    case SCREEN_GPS:
@@ -954,16 +935,6 @@
 //
 //    if (rotary_get_click()) {
 //        if (menu_level == 0) {
-//        } else  if (menu_level == 1){
-//            switch(current_menu_screen)
-//            {
-//                case SCREEN_PWM:
-//                    ee_storage.pwm = TIM1->CCR2;
-//                    ee_is_changed = true;
-//                    menu_level = 0;
-//                    break;
-//            }
-//        } else  if (menu_level == 2 && current_menu_screen == SCREEN_TREND){
 //        } else  if (menu_level == 2 && current_menu_screen == SCREEN_PPB){
 //            switch(current_menu_ppb_screen)
 //            {

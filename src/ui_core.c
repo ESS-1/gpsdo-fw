@@ -19,11 +19,11 @@ void ui_default_element_proc(const struct UIElement* element, UICommand command,
 
         if (command & (UICommand_Focus | UICommand_Release | UICommand_RestoreFocus)) {
             // If an element releases control, it remains focused
-            frame_color = UI_FOCUS_FRAME_COLOR;
+            frame_color = UI_COLOR_FOCUS_FRAME;
         } else if (command & (UICommand_Capture | UICommand_RestoreCapture)) {
-            frame_color = UI_CAPTURE_FRAME_COLOR;
+            frame_color = UI_COLOR_CAPTURE_FRAME;
         } else {
-            frame_color = UI_BG_COLOR;
+            frame_color = UI_COLOR_BG;
         }
 
         uint16_t x1 = element->x - 1;
@@ -40,7 +40,7 @@ void ui_default_element_proc(const struct UIElement* element, UICommand command,
 
 void ui_show_screen(UIScreen* screen)
 {
-    ST7735_FillRectangleFast(0, 0, ST7735_WIDTH, ST7735_HEIGHT, UI_BG_COLOR);
+    ST7735_FillRectangleFast(0, 0, ST7735_WIDTH, ST7735_HEIGHT, UI_COLOR_BG);
     ui_current_screen = screen;
 
     for (int32_t i = 0; i < screen->num_elements; ++i)
