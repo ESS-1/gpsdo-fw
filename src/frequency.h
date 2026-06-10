@@ -14,6 +14,15 @@
 #define DEFAULT_PPB_LOCK_THRESHOLD  50
 #define MAX_PPB_LOCK_THRESHOLD      1000
 
+typedef enum {
+    FREQ_STABILITY_UNSTABLE = 0,
+    FREQ_STABILITY_MARGINAL,
+    FREQ_STABILITY_STABLE,
+} FrequencyStability;
+
+extern volatile int32_t            frequency_ppb_x100; // ppb * 100
+extern volatile FrequencyStability frequency_stability;
+
 typedef struct circbuf_t {
     size_t  write;
     int32_t buf[CIRCULAR_BUFFER_LEN];
@@ -31,9 +40,8 @@ void    frequency_allow_adjustment(bool allow);
 bool    frequency_adjustment_allowed();
 
 // Returns ppb * 100
-int32_t frequency_get_ppb();
-int32_t frequency_get_inst_ppb();
+int32_t frequency_get_inst_ppb_x100();
 
-bool    frequency_is_stable(int32_t threshold);
+void frequency_update_ppb_and_stability();
 
 #endif

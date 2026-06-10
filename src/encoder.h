@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-extern bool encoder_get_click();
-extern int32_t encoder_get_step();
+bool encoder_get_click();
+int32_t encoder_get_step();
 
 #endif

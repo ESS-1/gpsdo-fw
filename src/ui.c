@@ -1,4 +1,5 @@
 #include "ui.h"
+#include "ui_helpers.h"
 
 #include "int.h"
 #include "gps.h"
@@ -46,8 +47,8 @@ static const UIElement ui_main_screen_elements[] = {
     { 19,  32, 63,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out1        },
     { 89,  32, 63,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out2        },
     { 19,  44, 63,  10, UI_STYLE_FOCUSABLE,                            ui_proc_pwm         },
-    { 89,  44, 28,  10, UI_STYLE_FOCUSABLE,                            ui_proc_trend_h     },
-    { 124, 44, 35,  10, UI_STYLE_FOCUSABLE,                            ui_proc_trend_v     },
+    { 89,  44, 28,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_h     },
+    { 124, 44, 35,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_v     },
     // Trend
     { 0,   55, 160, 25, UI_STYLE_NONE,                                 ui_proc_trend_graph },
 };
@@ -151,7 +152,11 @@ static void ui_proc_menu(const struct UIElement* element, UICommand command, int
     if (command & UICommand_Init) {
         ST7735_DrawImage(element->x, element->y, 15, 16, icon_menu_15x16);
     }
-    // TODO
+
+    if (command & UICommand_Click) {
+        // todo
+    }
+
     ui_default_element_proc(element, command, encoder_step);
 }
 
@@ -184,7 +189,7 @@ static void ui_proc_gps(const struct UIElement* element, UICommand command, int3
         ui_cache_num_sats = num_sats;
 
         char s[3] = { '\0' };
-        snprintf(s, ARRAY_SIZE(s), "%2d", ui_cache_num_sats > 99 ? 99 : ui_cache_num_sats);
+        snprintf(s, ARRAY_SIZE(s), "%2u", ui_cache_num_sats > 99 ? 99 : ui_cache_num_sats);
         ST7735_WriteStringNoWrap(element->x + 16, element->y + 1, 15, s, Font_11x18, UI_COLOR_TEXT, UI_COLOR_BG);
     }
 
@@ -195,17 +200,41 @@ static void ui_proc_gps(const struct UIElement* element, UICommand command, int3
     ui_default_element_proc(element, command, encoder_step);
 }
 
+FrequencyStability ui_cache_frequency_stability = FREQ_STABILITY_UNSTABLE;
+int32_t            ui_cache_frequency_ppb_x100  = PPB_UNSET_VALUE;
 static void ui_proc_ppb(const struct UIElement* element, UICommand command, int32_t encoder_step)
 {
-    if (command & UICommand_Init) {
-        //TODO
-        ST7735_DrawImage(element->x, element->y, 16, 16, icon_ppb_avg_16x16);
+    // Draw icon
+    if ((command & UICommand_Init) || (frequency_stability != ui_cache_frequency_stability)) {
+        ui_cache_frequency_stability = frequency_stability;
 
-        char s[10] = { '\0' };
-        snprintf(s, 10, "%5d", -1230);
+        switch (ui_cache_frequency_stability) {
+        case FREQ_STABILITY_STABLE:
+            ST7735_DrawImage(element->x, element->y, 16, 16, icon_ppb_good_16x16);
+            break;
+        case FREQ_STABILITY_MARGINAL:
+            ST7735_DrawImage(element->x, element->y, 16, 16, icon_ppb_avg_16x16);
+            break;
+        case FREQ_STABILITY_UNSTABLE:
+        default:
+            ST7735_DrawImage(element->x, element->y, 16, 16, icon_ppb_bad_16x16);
+            break;
+        }
+    }
+
+    // Draw value
+    if ((command & UICommand_Init) || (frequency_ppb_x100 != ui_cache_frequency_ppb_x100)) {
+        ui_cache_frequency_ppb_x100 = frequency_ppb_x100;
+
+        char s[6] = { '\0' };
+        ui_format_ppb_5char(ui_cache_frequency_ppb_x100, s, ARRAY_SIZE(s));
         ST7735_WriteStringNoWrap(element->x + 16, element->y + 1, 15, s, Font_11x18, UI_COLOR_TEXT, UI_COLOR_BG);
     }
-    // TODO
+
+    if (command & UICommand_Click) {
+        //TODO
+    }
+
     ui_default_element_proc(element, command, encoder_step);
 }
 
@@ -305,7 +334,17 @@ static void ui_proc_datetime(const struct UIElement* element, UICommand command,
         ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height, "15 Apr 2026", Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
         ST7735_WriteStringNoWrap(element->x + 12 * 7, element->y + 1, element->height, "02:41:36", Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
     }
-    // TODO
+
+    if (command & UICommand_Capture) {
+        // todo
+    }
+    if (command & UICommand_EncoderStep) {
+        // todo
+    }
+    if (command & UICommand_Release) {
+        // todo
+    }
+
     ui_default_element_proc(element, command, encoder_step);
 }
 
@@ -315,7 +354,7 @@ static void ui_proc_out(const struct UIElement* element, UICommand command, int3
     if (command & UICommand_Init) {
         ST7735_DrawImage(element->x, element->y + 2, 7, 7, icon_out_7x7);
         char s[3] = { '\0' };
-        snprintf(s, ARRAY_SIZE(s), "%1d:", out);
+        snprintf(s, ARRAY_SIZE(s), "%1u:", out);
         ST7735_WriteStringNoWrap(element->x + 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
     }
 
@@ -329,7 +368,16 @@ static void ui_proc_out(const struct UIElement* element, UICommand command, int3
         ST7735_WriteStringNoWrap(element->x + 3 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
     }
 
-    // TODO
+    if (command & UICommand_Capture) {
+        // todo
+    }
+    if (command & UICommand_EncoderStep) {
+        // todo
+    }
+    if (command & UICommand_Release) {
+        // todo
+    }
+
     ui_default_element_proc(element, command, encoder_step);
 }
 
@@ -357,7 +405,7 @@ static void ui_proc_pwm(const struct UIElement* element, UICommand command, int3
         ui_cache_pwm = pwm;
 
         char s[6] = { '\0' };
-        snprintf(s, ARRAY_SIZE(s), "%5d", ui_cache_pwm);
+        snprintf(s, ARRAY_SIZE(s), "%5u", ui_cache_pwm);
         ST7735_WriteStringNoWrap(element->x + 4 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
     }
 
@@ -380,7 +428,17 @@ static void ui_proc_trend_h(const struct UIElement* element, UICommand command, 
         ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "H:", Font_7x10, UI_COLOR_TREND, UI_COLOR_BG);
         ST7735_WriteStringNoWrap(element->x + 2 * 7, element->y + 1, element->height - 1, "10", Font_7x10, UI_COLOR_TREND, UI_COLOR_BG);
     }
-    // TODO
+
+    if (command & UICommand_Capture) {
+        // todo
+    }
+    if (command & UICommand_EncoderStep) {
+        // todo
+    }
+    if (command & UICommand_Release) {
+        // todo
+    }
+
     ui_default_element_proc(element, command, encoder_step);
 }
 
@@ -391,7 +449,17 @@ static void ui_proc_trend_v(const struct UIElement* element, UICommand command, 
         ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "V:", Font_7x10, UI_COLOR_TREND, UI_COLOR_BG);
         ST7735_WriteStringNoWrap(element->x + 2 * 7, element->y + 1, element->height - 1, "120", Font_7x10, UI_COLOR_TREND, UI_COLOR_BG);
     }
-    // TODO
+
+    if (command & UICommand_Capture) {
+        // todo
+    }
+    if (command & UICommand_EncoderStep) {
+        // todo
+    }
+    if (command & UICommand_Release) {
+        // todo
+    }
+
     ui_default_element_proc(element, command, encoder_step);
 }
 
@@ -401,7 +469,7 @@ static void ui_proc_trend_graph(const struct UIElement* element, UICommand comma
         // todo
         ST7735_FillRectangleFast(element->x, element->y, element->width, 1, ST7735_COLOR565(150, 175, 210));
     }
-    // TODO
+    // TODO: draw
     ui_default_element_proc(element, command, encoder_step);
 }
 

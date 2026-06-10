@@ -4,13 +4,6 @@
 //// Possible baudrate values
 //typedef enum { BAUDRATE_9600, BAUDRATE_19200, BAUDRATE_38400, BAUDRATE_57600, BAUDRATE_115200, BAUDRATE_230400, BAUDRATE_460800, BAUDRATE_921600, BAUDRATE_MAX} baudrate;
 //
-//static menu_screen current_menu_screen = SCREEN_MAIN;
-//static menu_trend_screen current_menu_trend_screen = SCREEN_TREND_MAIN;
-//static menu_gps_screen current_menu_gps_screen = SCREEN_GPS_TIME;
-//static menu_ppb_screen current_menu_ppb_screen = SCREEN_PPB_MEAN;
-//static menu_pps_screen current_menu_pps_screen = SCREEN_PPS_SHIFT;
-//static uint8_t      menu_level          = 0;
-//
 //static bool         auto_save_pwm_done  = false;
 //static bool         auto_sync_pps_done  = false;
 //
@@ -285,23 +278,6 @@
 //    }
 //}
 
-//static void menu_format_ppb_compact(int32_t ppb_signed, char* buffer, size_t bufferSize)
-//{
-//    int32_t ppb = abs(ppb_signed);
-//
-//    if (ppb == PPB_UNSET_VALUE) {
-//        snprintf(buffer, bufferSize, "   ?");
-//    } else if (ppb > 999999) {
-//        snprintf(buffer, bufferSize, ">10k");
-//    } else if (ppb > 9999) {
-//        snprintf(buffer, bufferSize, "%4ld", (ppb / 100));
-//    } else if (ppb > 999) {
-//        snprintf(buffer, bufferSize, "%ld.%01ld", ppb / 100, ((ppb % 100)/10));
-//    } else {
-//        snprintf(buffer, bufferSize, "%ld.%02ld", ppb / 100, ppb % 100);
-//    }
-//}
-
 //#define PPB_STRING_SIZE     5
 //#define SCREEN_BUFFER_SIZE  14
 //
@@ -317,9 +293,6 @@
 //    case SCREEN_DATE:
 //    case SCREEN_DATE_TIME:
 //        // Main screen with satellites, ppb and UTC time
-//        menu_format_ppb_compact(frequency_get_ppb(), ppb_string, PPB_STRING_SIZE);
-//        snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%02d %s", num_sats, ppb_string);
-//        LCD_Puts(1, 0, screen_buffer);
 //        if(current_menu_screen == SCREEN_MAIN)
 //        {
 //            LCD_Puts(0, 1, gps_time);
@@ -333,9 +306,6 @@
 //        // Trend screen 
 //        if(menu_level == 0)
 //        {
-//            menu_format_ppb_compact(frequency_get_ppb(), ppb_string, PPB_STRING_SIZE);
-//            snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%02d %s", num_sats, ppb_string);
-//            LCD_Puts(1, 0, screen_buffer);
 //            menu_draw_trend(0);
 //        }
 //        else
@@ -346,9 +316,6 @@
 //                case SCREEN_TREND_MAIN:
 //                    if(menu_level == 1)
 //                    {
-//                        menu_format_ppb_compact(frequency_get_ppb(), ppb_string, PPB_STRING_SIZE);
-//                        snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%02d/%s", num_sats, ppb_string);
-//                        LCD_Puts(1, 0, screen_buffer);
 //                        menu_draw_trend(0);
 //                    }
 //                    else
@@ -387,7 +354,7 @@
 //        // Screen with ppb
 //        if(menu_level == 0)
 //        {
-//            ppb = frequency_get_ppb();
+//            ppb = frequency_ppb_x100;
 //            LCD_Puts(1, 0, "PPB:   ");
 //            menu_format_ppb(ppb, screen_buffer, SCREEN_BUFFER_SIZE);
 //            LCD_Puts(0, 1, screen_buffer);
@@ -398,7 +365,7 @@
 //            {
 //                default:
 //                case SCREEN_PPB_MEAN:
-//                    ppb = frequency_get_ppb();
+//                    ppb = frequency_ppb_x100;
 //                    LCD_Puts(1, 0, "Mean:");
 //                    menu_format_ppb(ppb, screen_buffer, SCREEN_BUFFER_SIZE);
 //                    LCD_Puts(0, 1, screen_buffer);
@@ -406,7 +373,7 @@
 //                case SCREEN_PPB_INST:
 //                    {
 //                    LCD_Puts(1, 0, "Inst:");
-//                    int32_t ppb_inst = frequency_get_inst_ppb();
+//                    int32_t ppb_inst = frequency_get_inst_ppb_x100();
 //                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld.%02d", ppb_inst / 100, abs(ppb_inst) % 100);
 //                    LCD_Puts(0, 1, screen_buffer);
 //                    }
@@ -979,7 +946,7 @@
 //        // Update PPB trend if needed
 //        if(update_trend)
 //        {
-//            add_trend_value(abs(frequency_get_ppb()));
+//            add_trend_value(abs(frequency_ppb_x100));
 //            update_trend = false;
 //        }
 //
@@ -1021,12 +988,6 @@
 //                LCD_Puts(0, 0, "  PWM   ");
 //                LCD_Puts(0, 1, "  SET!  ");
 //            }
-//        }
-//        bool new_ppb_lock_status = frequency_is_stable(ee_storage.ppb_lock_threshold);
-//        if(ppb_lock_status != new_ppb_lock_status )
-//        {   // Update PPB lock status
-//            ppb_lock_status = new_ppb_lock_status;
-//            HAL_GPIO_WritePin(PPB_LOCK_OUTPUT_GPIO_Port, PPB_LOCK_OUTPUT_Pin, !ppb_lock_status); // Active low
 //        }
 //    }
 //}

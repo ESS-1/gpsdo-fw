@@ -51,9 +51,9 @@ typedef struct {
     bool                   is_input_captured;
 } UIScreen;
 
-extern void ui_default_element_proc(const struct UIElement* element, UICommand command, int32_t encoder_step);
+void ui_default_element_proc(const struct UIElement* element, UICommand command, int32_t encoder_step);
 
-extern void ui_show_screen(UIScreen* screen);
-extern void ui_run();
+void ui_show_screen(UIScreen* screen);
+void ui_run();
 
 #endif

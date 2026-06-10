@@ -34,7 +34,6 @@ volatile bool     update_trend     = false;
 
 // Lock outputs
 volatile bool     gps_lock_status  = false;
-bool              ppb_lock_status  = false;
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 {
@@ -56,7 +55,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
         device_uptime++;
 
         if(HAL_GetTick() - last_pps > 1500)
-        {   // No GPS PPS output, blink 'x' icon
+        {   // No GPS PPS output
             if(gps_lock_status)
             {   // GPS lock lost => update status
                 gps_lock_status = false;
@@ -144,7 +143,7 @@ void eric_h_correction_algo(bool overshootSuppression, int32_t current_error)
     const float  ema_a      = 0.33f;
     static float ema_err_hz = 0.0f;
 
-    int32_t current_ppb = frequency_get_ppb();
+    int32_t current_ppb = frequency_ppb_x100;
     int32_t adjustment = 0;
 
     if (current_ppb != PPB_UNSET_VALUE)
@@ -255,8 +254,10 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
             if (allow_adjustment) 
             {   // Also remove warmup samples from circular buffer
                 circbuf_add(&circular_buffer, current_error);
-                if (num_samples < CIRCULAR_BUFFER_LEN)
+                if (num_samples < CIRCULAR_BUFFER_LEN) {
                     num_samples++;
+                }
+                frequency_update_ppb_and_stability();
             }
         }
 
