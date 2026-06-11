@@ -385,7 +385,7 @@
 //                    break;
 //                case SCREEN_PPB_ERROR:
 //                    LCD_Puts(1, 0, "Error:");
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", ppb_error);
+//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", ppb_frequency_error);
 //                    LCD_Puts(0, 1, screen_buffer);
 //                    break;
 //                case SCREEN_PPB_CORRECTION:

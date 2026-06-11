@@ -32,6 +32,6 @@ typedef struct
 extern ee_storage_t ee_storage;
 
 extern bool ee_is_changed;
-extern bool ee_save_config();
+bool ee_save_config();
 
 #endif

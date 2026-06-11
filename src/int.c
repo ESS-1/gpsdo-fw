@@ -6,31 +6,31 @@
 #include <stdlib.h>
 #include <string.h>
 
-volatile bool     allow_adjustment = false;
-volatile uint32_t previous_capture = 0;
-volatile uint32_t frequency        = 0;
-volatile uint32_t capture          = 0;
-volatile uint32_t pps_capture      = 0;
-volatile uint32_t num_samples      = 0;
-volatile uint32_t timer_overflows  = 0;
-volatile uint32_t pps_overflows    = 0;
-volatile uint32_t device_uptime    = 0;
-volatile uint8_t  first            = 1;
-volatile uint32_t last_pps         = 0;
-volatile uint32_t last_pps_out     = 0;
-volatile bool     pps_out_up       = false;
-volatile bool     pps_led_toogle   = false;
-volatile int32_t  ppb_frequency    = 0;
-volatile int32_t  ppb_error        = 0;
-volatile int32_t  ppb_correction   = 0;
-volatile int32_t  ppb_millis       = 0;
-volatile int32_t  pps_error        = 0;
-volatile int32_t  pps_millis       = 0;
-volatile uint32_t pps_shift_count  = 0;
-volatile uint32_t pps_sync_count   = 0;
+volatile bool     allow_adjustment    = false;
+volatile uint32_t previous_capture    = 0;
+volatile uint32_t frequency           = 0;
+volatile uint32_t capture             = 0;
+volatile uint32_t pps_capture         = 0;
+volatile uint32_t num_samples         = 0;
+volatile uint32_t timer_overflows     = 0;
+volatile uint32_t pps_overflows       = 0;
+volatile uint32_t device_uptime       = 0;
+volatile uint8_t  first               = 1;
+volatile uint32_t last_pps            = 0;
+volatile uint32_t last_pps_out        = 0;
+volatile bool     pps_out_up          = false;
+volatile bool     pps_led_toogle      = false;
+volatile int32_t  ppb_frequency       = 0;
+volatile int32_t  ppb_frequency_error = PPB_UNSET_VALUE;
+volatile int32_t  ppb_correction      = 0;
+volatile int32_t  ppb_millis          = 0;
+volatile int32_t  pps_error           = 0;
+volatile int32_t  pps_millis          = 0;
+volatile uint32_t pps_shift_count     = 0;
+volatile uint32_t pps_sync_count      = 0;
 // Icon to shwow at the top right corner of the screen
-volatile bool     sync_pps_out     = false;
-volatile bool     update_trend     = false;
+volatile bool     sync_pps_out        = false;
+volatile bool     update_trend        = false;
 
 // Lock outputs
 volatile bool     gps_lock_status  = false;
@@ -218,11 +218,13 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
             frequency = capture - previous_capture + /*(TIM1->ARR + 1)*/ 65536 * timer_overflows;
 
             int32_t current_error = frequency_get_error();
+            // Filter out obvious glitches, the OCXO should never be this far from the target frequency
+            bool is_glitch = (current_error == PPB_UNSET_VALUE) || (current_error > 2000 || current_error < -2000);
 
-            if (allow_adjustment)
-            {   // No crrection during warmup
+            if (allow_adjustment && !is_glitch)
+            {   // No correction during warmup
 
-                // Choos from 3 correction algorithms :
+                // Choose from 3 correction algorithms :
                 // - Dankar (original code from Dankar + added correction factor defaulted to values that match the original code)
                 // - Fredzo (same logic as dankar's algo, but with faster correction when frequency error is >= 2)
                 // - Eric-H (algo based on ppm value rather than frequency error (uses 128s rolling average rather than instant values))
@@ -247,11 +249,11 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
 
             // Save values for ppb and pps display
             ppb_frequency = frequency;
-            ppb_error = current_error;
+            ppb_frequency_error = current_error;
             ppb_millis = current_tick - last_pps - 1000;
             pps_millis = (pps_error*10/(TARGET_FREQ/1000000)); // Clock is 'TARGET_FREQ' Hz and we want the value in tenth of a microsecond so 10 000 000 / TARGET_FREQ
 
-            if (allow_adjustment) 
+            if (allow_adjustment && !is_glitch)
             {   // Also remove warmup samples from circular buffer
                 circbuf_add(&circular_buffer, current_error);
                 if (num_samples < CIRCULAR_BUFFER_LEN) {

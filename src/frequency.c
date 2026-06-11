@@ -47,15 +47,9 @@ int32_t frequency_get() { return frequency; }
 int32_t frequency_get_error()
 {
     if (!frequency) {
-        return 0;
+        return PPB_UNSET_VALUE;
     } else {
-        int32_t error = frequency - TARGET_FREQ /*HAL_RCC_GetHCLKFreq()*/;
-        // Filter out obvious glitches, the OCXO should never be this far from the target frequency
-        if (error > 2000 || error < -2000) {
-            return 0;
-        } else {
-            return error;
-        }
+        return frequency - TARGET_FREQ /*HAL_RCC_GetHCLKFreq()*/;
     }
 }
 
@@ -73,7 +67,11 @@ static int32_t frequency_calculate_ppb_x100()
 
 int32_t frequency_get_inst_ppb_x100()
 {
-    return (int64_t)ppb_error * 1000000000 * 100 / ((int64_t)HAL_RCC_GetHCLKFreq());
+    if (ppb_frequency_error == PPB_UNSET_VALUE) {
+        return PPB_UNSET_VALUE;
+    }
+
+    return (int64_t)ppb_frequency_error * 1000000000 * 100 / ((int64_t)HAL_RCC_GetHCLKFreq());
 }
 
 static FrequencyStability frequency_get_stability_level(uint32_t stableThreshold, uint32_t marginalThreshold)

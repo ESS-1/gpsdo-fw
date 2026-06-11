@@ -11,7 +11,7 @@ extern volatile uint32_t device_uptime;
 extern volatile uint32_t last_pps_out;
 extern volatile bool     pps_out_up;
 extern volatile int32_t  ppb_frequency;
-extern volatile int32_t  ppb_error;
+extern volatile int32_t  ppb_frequency_error;
 extern volatile int32_t  ppb_correction;
 extern volatile int32_t  ppb_millis;
 extern volatile int32_t  pps_error;
