@@ -6,6 +6,8 @@
 
 #define GPS_DEFAULT_BAUDRATE    9600
 
+#define GPS_EMPTY_DATE_TIME     0xFFFFFFFF
+
 #pragma pack(push, 1)
 typedef union {
     uint32_t raw;

@@ -288,20 +288,6 @@
 //    int32_t ppb;
 //
 //    switch (current_menu_screen) {
-//    default:
-//    case SCREEN_MAIN:
-//    case SCREEN_DATE:
-//    case SCREEN_DATE_TIME:
-//        // Main screen with satellites, ppb and UTC time
-//        if(current_menu_screen == SCREEN_MAIN)
-//        {
-//            LCD_Puts(0, 1, gps_time);
-//        }
-//        else if(current_menu_screen == SCREEN_DATE)
-//        {
-//            LCD_Puts(0, 1, gps_date);
-//        }
-//        break;
 //    case SCREEN_TREND:
 //        // Trend screen 
 //        if(menu_level == 0)
@@ -468,9 +454,6 @@
 //        break;
 //    case SCREEN_GPS:
 //        if(menu_level == 0)
-//        {
-//            LCD_Puts(0, 1, gps_time);
-//        }
 //        else
 //        {
 //            switch (current_menu_gps_screen)

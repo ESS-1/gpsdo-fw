@@ -47,3 +47,15 @@ void ui_format_ppb_5char(int32_t ppb_signed, char* buffer, size_t bufferSize)
         }
     }
 }
+
+const char* ui_get_month_name_3char(uint8_t month_num)
+{
+    static const char months[13][4] = { "###", // Fallback for invalid month number
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
+    if (month_num < 1 || month_num > 12) {
+        return months[0];
+    }
+
+    return months[month_num];
+}

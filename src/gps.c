@@ -20,8 +20,8 @@
 #define GPS_LOCATOR_SIZE    8
 
 static char gps_line[MAX_GPS_LINE];
-PackedTime  gps_time             = { .raw = 0 };
-PackedDate  gps_date             = { .raw = 0 };
+PackedTime  gps_time             = { .raw = GPS_EMPTY_DATE_TIME };
+PackedDate  gps_date             = { .raw = GPS_EMPTY_DATE_TIME };
 char        gps_latitude[9]      = { '\0' };
 char        gps_longitude[9]     = { '\0' };
 char        gps_n_s[2]           = { '\0' };
@@ -433,7 +433,7 @@ static void gps_parse(char* line)
             char y1    = pch[5] - '0';
             int  day   = d0 * 10 + d1;
             int  month = m0 * 10 + m1;
-            int  year  = y0 * 10 + y1;
+            int  year  = 2000 + y0 * 10 + y1;
 
             if (gps_time_offset != 0) {
                 day += gps_day_offset;

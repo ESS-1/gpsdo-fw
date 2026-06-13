@@ -71,7 +71,7 @@ static const UIElement ui_save_screen_elements[] = {
     { 95, 48, 38,  21, UI_STYLE_FOCUSABLE, ui_proc_back_to_main_no   },
 };
 
-UIScreen ui_save_screen = {
+static UIScreen ui_save_screen = {
     ui_save_screen_elements,
     sizeof(ui_save_screen_elements) / sizeof(UIElement),
     3,
@@ -87,7 +87,7 @@ static const UIElement ui_save_error_screen_elements[] = {
     { 70, 48, 38,  21, UI_STYLE_FOCUSABLE, ui_proc_back_to_main_ok   },
 };
 
-UIScreen ui_save_error_screen = {
+static UIScreen ui_save_error_screen = {
     ui_save_error_screen_elements,
     sizeof(ui_save_error_screen_elements) / sizeof(UIElement),
     2,
@@ -103,7 +103,7 @@ static const UIElement ui_setpwm_screen_elements[] = {
     { 70, 48, 38,  21, UI_STYLE_FOCUSABLE, ui_proc_back_to_main_ok   },
 };
 
-UIScreen ui_setpwm_screen = {
+static UIScreen ui_setpwm_screen = {
     ui_setpwm_screen_elements,
     sizeof(ui_setpwm_screen_elements) / sizeof(UIElement),
     2,
@@ -200,8 +200,8 @@ static void ui_proc_gps(const struct UIElement* element, UICommand command, int3
     ui_default_element_proc(element, command, encoder_step);
 }
 
-FrequencyStability ui_cache_frequency_stability = FREQ_STABILITY_UNSTABLE;
-int32_t            ui_cache_frequency_ppb_x100  = PPB_UNSET_VALUE;
+static FrequencyStability ui_cache_frequency_stability = FREQ_STABILITY_UNSTABLE;
+static int32_t            ui_cache_frequency_ppb_x100  = PPB_UNSET_VALUE;
 static void ui_proc_ppb(const struct UIElement* element, UICommand command, int32_t encoder_step)
 {
     // Draw icon
@@ -327,12 +327,48 @@ static void ui_proc_warmup(const struct UIElement* element, UICommand command, i
     ui_default_element_proc(element, command, encoder_step);
 }
 
+static PackedDate ui_cache_gps_date = { .raw = GPS_EMPTY_DATE_TIME };
+static PackedTime ui_cache_gps_time = { .raw = GPS_EMPTY_DATE_TIME };
 static void ui_proc_datetime(const struct UIElement* element, UICommand command, int32_t encoder_step)
 {
-    if (command & UICommand_Init) {
-        //todo
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height, "15 Apr 2026", Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
-        ST7735_WriteStringNoWrap(element->x + 12 * 7, element->y + 1, element->height, "02:41:36", Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
+    // Draw date
+    if ((command & UICommand_Init) || (gps_date.raw != ui_cache_gps_date.raw)) {
+        ui_cache_gps_date = gps_date;
+
+        const char* date_str = NULL;
+        char buf_str[12] = { '\0' };
+
+        if (ui_cache_gps_date.raw != GPS_EMPTY_DATE_TIME) {
+            snprintf(buf_str, ARRAY_SIZE(buf_str), "%2u %.3s %04u",
+                                                   (ui_cache_gps_date.day > 99u) ? 99u : ui_cache_gps_date.day,
+                                                   ui_get_month_name_3char(ui_cache_gps_date.month),
+                                                   (ui_cache_gps_date.year > 9999u) ? 9999u : ui_cache_gps_date.year);
+            date_str = buf_str;
+        } else {
+            date_str = "           ";
+        }
+
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height, date_str, Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
+    }
+
+    // Draw time
+    if ((command & UICommand_Init) || (gps_time.raw != ui_cache_gps_time.raw)) {
+        ui_cache_gps_time = gps_time;
+
+        const char* time_str = NULL;
+        char buf_str[9] = { '\0' };
+
+        if (ui_cache_gps_time.raw != GPS_EMPTY_DATE_TIME) {
+            snprintf(buf_str, ARRAY_SIZE(buf_str), "%02u:%02u:%02u",
+                                                   (ui_cache_gps_time.hours > 99u) ? 99u : ui_cache_gps_time.hours,
+                                                   (ui_cache_gps_time.minutes > 99u) ? 99u : ui_cache_gps_time.minutes,
+                                                   (ui_cache_gps_time.seconds > 99u) ? 99u : ui_cache_gps_time.seconds);
+            time_str = buf_str;
+        } else {
+            time_str = "--:--:--";
+        }
+
+        ST7735_WriteStringNoWrap(element->x + 12 * 7, element->y + 1, element->height, time_str, Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
     }
 
     if (command & UICommand_Capture) {
@@ -391,7 +427,7 @@ static void ui_proc_out2(const struct UIElement* element, UICommand command, int
     ui_proc_out(element, command, encoder_step, 2);
 }
 
-uint16_t ui_cache_pwm = 0;
+static uint16_t ui_cache_pwm = 0;
 static void ui_proc_pwm(const struct UIElement* element, UICommand command, int32_t encoder_step)
 {
     // Draw label
