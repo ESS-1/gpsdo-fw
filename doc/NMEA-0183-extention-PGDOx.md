@@ -18,7 +18,7 @@ $PGDOS,<STATE>,<UPTIME>,<NUM_SATS>,<ERR_MEAN>,<ERR_INST>,<PWM>,<COMM_ERRORS>*CS\
 | `UPTIME` | 8 chars | Device uptime in seconds, encoded as a 32-bit unsigned integer in uppercase hex. |
 | `NUM_SATS` | 2 chars | Number of satellites, encoded as an 8-bit unsigned integer in uppercase hex. |
 | `ERR_MEAN` | 8 chars | Mean frequency error in ppb/100, encoded as a 32-bit signed integer in uppercase hex. `7FFFFFFF` means unset. |
-| `ERR_INST` | 8 chars | Last calculated frequency error in ppb/100, encoded as a 32-bit signed integer in uppercase hex. |
+| `ERR_INST` | 8 chars | Last calculated frequency error in ppb/100, encoded as a 32-bit signed integer in uppercase hex. `7FFFFFFF` means unset. |
 | `PWM` | 4 chars | OCXO control PWM value, encoded as a 16-bit unsigned integer in uppercase hex. |
 | `COMM_ERRORS` | 6 chars | Three 8-bit communication error counters in uppercase hex. |
 
