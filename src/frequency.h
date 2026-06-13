@@ -34,7 +34,6 @@ void    circbuf_add(volatile circbuf_t* circbuf, int32_t val);
 int32_t circbuf_sum(volatile circbuf_t* circbuf);
 
 void    frequency_start();
-int32_t frequency_get();
 int32_t frequency_get_error();
 void    frequency_allow_adjustment(bool allow);
 bool    frequency_adjustment_allowed();

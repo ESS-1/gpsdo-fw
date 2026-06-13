@@ -5,7 +5,7 @@
 
 #define BOOTLOG_BG_COLOR (ST7735_COLOR565(28, 28, 28))
 
-int32_t bootlog_current_line = 0;
+static int32_t bootlog_current_line = 0;
 
 void bootlog_write(int32_t x, int32_t y, uint16_t color, const char* msg)
 {

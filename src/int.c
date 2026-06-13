@@ -6,34 +6,31 @@
 #include <stdlib.h>
 #include <string.h>
 
-volatile bool     allow_adjustment    = false;
-volatile uint32_t previous_capture    = 0;
-volatile uint32_t frequency           = 0;
-volatile uint32_t capture             = 0;
-volatile uint32_t pps_capture         = 0;
-volatile uint32_t num_samples         = 0;
-volatile uint32_t timer_overflows     = 0;
-volatile uint32_t pps_overflows       = 0;
-volatile uint32_t device_uptime       = 0;
-volatile uint8_t  first               = 1;
-volatile uint32_t last_pps            = 0;
-volatile uint32_t last_pps_out        = 0;
-volatile bool     pps_out_up          = false;
-volatile bool     pps_led_toogle      = false;
-volatile int32_t  ppb_frequency       = 0;
-volatile int32_t  ppb_frequency_error = PPB_UNSET_VALUE;
-volatile int32_t  ppb_correction      = 0;
-volatile int32_t  ppb_millis          = 0;
-volatile int32_t  pps_error           = 0;
-volatile int32_t  pps_millis          = 0;
-volatile uint32_t pps_shift_count     = 0;
-volatile uint32_t pps_sync_count      = 0;
-// Icon to shwow at the top right corner of the screen
-volatile bool     sync_pps_out        = false;
-volatile bool     update_trend        = false;
-
-// Lock outputs
-volatile bool     gps_lock_status  = false;
+volatile bool            allow_adjustment    = false;
+static volatile uint32_t previous_capture    = 0;
+volatile uint32_t        frequency           = 0;
+static volatile uint32_t capture             = 0;
+static volatile uint32_t pps_capture         = 0;
+volatile uint32_t        num_samples         = 0;
+static volatile uint32_t timer_overflows     = 0;
+static volatile uint32_t pps_overflows       = 0;
+volatile uint32_t        device_uptime       = 0;
+static volatile uint8_t  first               = 1;
+static volatile uint32_t last_pps            = 0;
+volatile uint32_t        last_pps_out        = 0;
+volatile bool            pps_out_up          = false;
+static volatile bool     pps_led_toogle      = false;
+volatile int32_t         ppb_frequency       = 0;
+volatile int32_t         ppb_frequency_error = PPB_UNSET_VALUE;
+volatile int32_t         ppb_correction      = 0;
+volatile int32_t         ppb_millis          = 0;
+volatile int32_t         pps_error           = 0;
+volatile int32_t         pps_millis          = 0;
+static volatile uint32_t pps_shift_count     = 0;
+volatile uint32_t        pps_sync_count      = 0;
+volatile bool            sync_pps_out        = false;
+volatile bool            update_trend        = false;
+volatile bool            gps_lock_status     = false;
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 {
@@ -352,5 +349,3 @@ uint32_t get_default_warmup_time(ocxo_model_type model)
             break;
     }
 }
-
-

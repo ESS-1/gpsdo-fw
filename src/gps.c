@@ -19,28 +19,26 @@
 #define MAX_GPS_LINE        512
 #define GPS_LOCATOR_SIZE    8
 
-char     gps_line[MAX_GPS_LINE];
-char     gps_time[9]      = { '\0' };
-char     gps_date[9]      = { ' ', ' ', '/', ' ', ' ', '/', ' ', ' ', '\0' };
-char     gps_latitude[9]  = { '\0' };
-char     gps_longitude[9] = { '\0' };
-char     gps_n_s[2]       = { '\0' };
-char     gps_e_w[2]       = { '\0' };
-double   gps_msl_altitude;
-double   gps_geoid_separation;
-double   gps_latitude_double  = 0;
-double   gps_longitude_double = 0;
-char     gps_locator[GPS_LOCATOR_SIZE+1];
+static char gps_line[MAX_GPS_LINE];
+PackedTime  gps_time             = { .raw = 0 };
+PackedDate  gps_date             = { .raw = 0 };
+char        gps_latitude[9]      = { '\0' };
+char        gps_longitude[9]     = { '\0' };
+char        gps_n_s[2]           = { '\0' };
+char        gps_e_w[2]           = { '\0' };
+double      gps_msl_altitude;
+double      gps_geoid_separation;
+double      gps_latitude_double  = 0;
+double      gps_longitude_double = 0;
+char        gps_locator[GPS_LOCATOR_SIZE + 1];
 
-char     gps_hdop[9]      = { '\0' };
-char     gps_last_frame[9]= { '\0' };
-bool     gps_last_frame_changed = false;
-uint8_t  num_sats         = 0;
-uint32_t gga_frames       = 0;
+char     gps_hdop[9] = { '\0' };
+uint8_t  num_sats    = 0;
+uint32_t gga_frames  = 0;
 
-size_t   gps_line_len     = 0;
-int8_t          gps_time_offset = 0; // -14/+14
-int8_t          gps_day_offset  = 0; // -1/+1
+static size_t gps_line_len    = 0;
+int8_t        gps_time_offset = 0; // -14/+14
+static int8_t gps_day_offset  = 0; // -1/+1
 
 // Store last frame receive time
 uint32_t last_frame_receive_time = 0;
@@ -49,7 +47,7 @@ uint32_t gps_invalid_frames      = 0;
 uint32_t gps_fifo_overflow_gps   = 0;
 uint32_t gps_fifo_overflow_comm  = 0;
 
-uint32_t gps_last_pgdos_generated_sec = 0;
+static uint32_t gps_last_pgdos_generated_sec = 0;
 
 #define FIFO_BUFFER_SIZE 1024
 
@@ -65,8 +63,8 @@ typedef struct {
 
 typedef enum { FIFO_WRITE, FIFO_READ } fifo_operation;
 
-volatile fifo_buffer_t fifo_buffer_gps  = { 0 };
-volatile fifo_buffer_t fifo_buffer_comm = { 0 };
+static volatile fifo_buffer_t fifo_buffer_gps  = { 0 };
+static volatile fifo_buffer_t fifo_buffer_comm = { 0 };
 
 static void gps_cdc_rx_callback(const uint8_t* buf, uint32_t len);
 
@@ -79,7 +77,7 @@ static size_t fifo_next(volatile const fifo_buffer_t* fifo, fifo_operation op)
     }
 }
 
-bool fifo_write(volatile fifo_buffer_t* fifo, const uint8_t c)
+static bool fifo_write(volatile fifo_buffer_t* fifo, const uint8_t c)
 {
     size_t next = fifo_next(fifo, FIFO_WRITE);
     if (next == fifo->read) {
@@ -90,7 +88,7 @@ bool fifo_write(volatile fifo_buffer_t* fifo, const uint8_t c)
     return true;
 }
 
-bool fifo_read(volatile fifo_buffer_t* fifo, uint8_t* c)
+static bool fifo_read(volatile fifo_buffer_t* fifo, uint8_t* c)
 {
     if (fifo->read == fifo->write) {
         return false;
@@ -102,7 +100,7 @@ bool fifo_read(volatile fifo_buffer_t* fifo, uint8_t* c)
 }
 
 #define GPS_RX_BUFFER_SIZE  20
-volatile uint8_t gps_it_buf[GPS_RX_BUFFER_SIZE];
+static volatile uint8_t gps_it_buf[GPS_RX_BUFFER_SIZE];
 
 static void gps_start_gps_rx()
 {
@@ -110,6 +108,7 @@ static void gps_start_gps_rx()
         Error_Handler();
     }
 }
+
 static void gps_start_comm_rx()
 {
     CDC_SetRxHandler_FS(gps_cdc_rx_callback);
@@ -295,22 +294,22 @@ static void gps_compute_locator(double lat, double lon) {
     gps_locator[i*2]=0;
 }
 
-static bool change_time(char* time_source, char* time_dest, int correction, int max_value)
+static bool change_time(int time_source, uint8_t *time_dest, int correction, int max_value)
 {
     bool overlap = false;
-    int value = (10*(time_source[0]-'0')) + (time_source[1]-'0') + correction;
+    int value = time_source + correction;
     if(value > max_value)
     {
         value = 0;
         overlap = true;
     }
-    time_dest[0] = (char)((value/10)+'0');
-    time_dest[1] = (char)((value%10)+'0');
+
+    *time_dest = (uint8_t)value;
     return overlap;
 }
 
 // Maybe use X-CUBE-GNSS here?
-void gps_parse(char* line)
+static void gps_parse(char* line)
 {
     if (strstr(line, "GGA") == line+3) 
     {
@@ -325,28 +324,27 @@ void gps_parse(char* line)
             // To achieve accurate time display, we will add one second to the received time
             // to compensate this delay
 
+            int hour = (10 * (pch[0] - '0')) + (pch[1] - '0');
+            int min  = (10 * (pch[2] - '0')) + (pch[3] - '0');
+            int sec  = (10 * (pch[4] - '0')) + (pch[5] - '0');
+
             // Let's start with seconds value, to propagate overlap to minutes and hours if needed
-            bool overlap = change_time(pch+4,gps_time+6,1,59);
+            bool overlap = change_time(sec, &(gps_time.seconds), 1, 59);
             if(overlap)
             {   // Need to propagate overlap to minutes
-                overlap = change_time(pch+2,gps_time+3,1,59);
+                overlap = change_time(min, &(gps_time.minutes), 1, 59);
             }
             else
             {
-                gps_time[3] = pch[2];
-                gps_time[4] = pch[3];
+                gps_time.minutes = (uint8_t)min;
             }
 
             if (gps_time_offset == 0 && !overlap) 
             {   // Leave hour unchanged
-              gps_time[0] = pch[0];
-              gps_time[1] = pch[1];
+                gps_time.hours = (uint8_t)hour;
             } 
             else 
             {   // Need to fix hour
-                char p0 = pch[0] - '0';
-                char p1 = pch[1] - '0';
-                int hour = p0 * 10 + p1;
                 int relative_hour = (hour + (int)gps_time_offset);
                 if(overlap)
                 {   // Propagate second / minute overlap
@@ -367,15 +365,9 @@ void gps_parse(char* line)
                     hour = relative_hour;
                     gps_day_offset = 0;
                 }
-                gps_time[0] = (char)((hour / 10) + '0');
-                gps_time[1] = (char)((hour % 10) + '0');
-            }
 
-            // Add separators
-            gps_time[2] = ':';
-            gps_time[5] = ':';
-            // Terminate time string
-            gps_time[8] = '\0';
+                gps_time.hours = (uint8_t)hour;
+            }
 
             pch = strsep(&line, ","); // Latitude
             gps_latitude_double = gps_parse_coordinate(pch,gps_latitude,sizeof(gps_latitude));
@@ -433,31 +425,19 @@ void gps_parse(char* line)
 
         if(pch!=NULL && strlen(pch)>=6)
         {   // Ignore empty dates
-            char day0;
-            char day1;
-            char month0;
-            char month1;
-            char year0;
-            char year1;
-            if (gps_time_offset == 0) {
-                day0 = pch[0];
-                day1 = pch[1];
-                month0 = pch[2];
-                month1 = pch[3];
-                year0 = pch[4];
-                year1 = pch[5];
-            } else {
-                char d0 = pch[0] - '0';
-                char d1 = pch[1] - '0';
-                char m0 = pch[2] - '0';
-                char m1 = pch[3] - '0';
-                char y0 = pch[4] - '0';
-                char y1 = pch[5] - '0';
-                int day   = d0 * 10 + d1;
-                int month = m0 * 10 + m1;
-                int year  = y0 * 10 + y1;
+            char d0    = pch[0] - '0';
+            char d1    = pch[1] - '0';
+            char m0    = pch[2] - '0';
+            char m1    = pch[3] - '0';
+            char y0    = pch[4] - '0';
+            char y1    = pch[5] - '0';
+            int  day   = d0 * 10 + d1;
+            int  month = m0 * 10 + m1;
+            int  year  = y0 * 10 + y1;
+
+            if (gps_time_offset != 0) {
                 day += gps_day_offset;
-                // Quick and dirty poor man's gregorian calendar handling
+                // Quick and dirty poor man's Gregorian calendar handling
                 bool is_leap_year = ((year % 4) == 0);
                 if((day > (is_leap_year ? 29 : 28)) && month == 2)
                 {   // Case of February
@@ -500,28 +480,16 @@ void gps_parse(char* line)
                         month--;
                     }
                 }
-                day0   = (char)((day   / 10) + '0');
-                day1   = (char)((day   % 10) + '0');
-                month0 = (char)((month / 10) + '0');
-                month1 = (char)((month % 10) + '0');
-                year0  = (char)((year  / 10) + '0');
-                year1  = (char)((year  % 10) + '0');
             }
 
-                    gps_date[0] = day0;
-                    gps_date[1] = day1;
-                    gps_date[3] = month0;
-                    gps_date[4] = month1;
-                    gps_date[6] = year0;
-                    gps_date[7] = year1;
-                    gps_date[2] = '/';
-                    gps_date[5] = '/';
-            gps_date[8] = '\0';
+            gps_date.day   = day;
+            gps_date.month = month;
+            gps_date.year  = year;
         }
     }
 }
 
-bool gps_is_valid(const char* line)
+static bool gps_is_valid(const char* line)
 {
     // Check the basic structure
     if (line == NULL || line[0] != '$') {
@@ -552,20 +520,13 @@ bool gps_is_valid(const char* line)
     return (unsigned char)received_checksum == calculated_checksum;
 }
 
-void gps_process(char* line)
+static void gps_process(char* line)
 {
     // Validate and parse the frame
     if (gps_is_valid(line)) {
         gps_parse(line);
     } else {
         ++gps_invalid_frames;
-    }
-
-    // Store last received frame for debug purpose
-    if(strlen(line)>(sizeof(gps_last_frame)+3))
-    {
-        strncpy(gps_last_frame,line+3,sizeof(gps_last_frame)-1);
-        gps_last_frame_changed = true;
     }
 
     // Get reception time
@@ -652,10 +613,8 @@ static void gps_run_pgdos(uint8_t* buf, size_t* buf_offset, size_t buf_size)
 }
 
 #define SEND_BUFFER_SIZE FIFO_BUFFER_SIZE
-uint8_t send_buf[SEND_BUFFER_SIZE];
-uint8_t comm_send_buf[SEND_BUFFER_SIZE];
-
-uint32_t last_pgdos_generated_sec = 0;
+static uint8_t send_buf[SEND_BUFFER_SIZE];
+static uint8_t comm_send_buf[SEND_BUFFER_SIZE];
 
 void gps_read()
 {

@@ -581,15 +581,6 @@
 //                            break;
 //                    }
 //                    break;
-//                case SCREEN_GPS_LAST_FRAME:
-//                    LCD_Puts(1, 0, "Frame:");
-//                    LCD_Puts(0, 1, gps_last_frame);
-//                    if(gps_last_frame_changed)
-//                    {
-//                        menu_force_redraw();
-//                        gps_last_frame_changed = false;
-//                    }
-//                    break;
 //            }
 //        }
 //        break;

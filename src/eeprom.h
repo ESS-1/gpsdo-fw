@@ -20,7 +20,7 @@ typedef struct
     uint32_t trend_v_scale;
     uint32_t trend_h_scale;
     uint32_t gps_baudrate;
-/*todo*/    uint32_t gps_time_offset;
+    uint32_t gps_time_offset;
     uint8_t  gps_model;
     uint32_t ppb_lock_threshold;
     uint8_t  ocxo_model;

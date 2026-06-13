@@ -8,10 +8,10 @@
 
 volatile cdc_status cdcio_status;
 
-bool     cdcio_is_overflow    = false;
-uint32_t cdcio_overflow_start = 0;
+static bool     cdcio_is_overflow    = false;
+static uint32_t cdcio_overflow_start = 0;
 
-uint32_t cdcio_tx_wait_time_ms = 0;
+static uint32_t cdcio_tx_wait_time_ms = 0;
 
 static void cdcio_update_status(uint8_t result)
 {
