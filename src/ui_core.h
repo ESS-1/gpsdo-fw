@@ -29,8 +29,6 @@ typedef enum {
 #define UI_STYLE_INPUT_CAPTURING 0x0002U
 
 
-#define UI_FOCUSED_ELEMENT_IDX_NONE -1
-
 struct UIElement;
 typedef void (*UI_ElementProc)(const struct UIElement* element, UICommand command, int32_t encoder_step);
 
@@ -47,13 +45,14 @@ typedef struct UIElement {
 typedef struct {
     const UIElement* const elements;
     const int32_t          num_elements;
-    int16_t                focused_element_idx;
+    const UIElement*       focused_element;
     bool                   is_input_captured;
 } UIScreen;
 
-void ui_default_element_proc(const struct UIElement* element, UICommand command, int32_t encoder_step);
+void ui_default_element_proc(const UIElement* element, UICommand command, int32_t encoder_step);
+bool ui_is_captured(const UIElement* element);
 
-void ui_show_screen(UIScreen* screen);
+    void ui_show_screen(UIScreen* screen);
 void ui_run();
 
 #endif

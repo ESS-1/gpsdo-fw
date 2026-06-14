@@ -540,11 +540,6 @@
 //                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld/%ld/%ld", gps_invalid_frames, gps_fifo_overflow_gps, gps_fifo_overflow_comm);
 //                    LCD_Puts(0, 1, screen_buffer);
 //                    break;
-//                case SCREEN_GPS_TIME_OFFSET:
-//                    LCD_Puts(1, 0, menu_level == 1 ? "TZ ofs:":"TZ ofs?");
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%2d", (int)gps_time_offset);
-//                    LCD_Puts(0, 1, screen_buffer);
-//                    break;
 //                case SCREEN_GPS_MODEL:
 //                    LCD_Puts(1, 0, menu_level == 1 ? "Model:":"Model?");
 //                    switch(ee_storage.gps_model)
@@ -830,18 +825,6 @@
 //                        ee_is_changed = true;
 //                    }
 //                    break;
-//                case SCREEN_GPS_TIME_OFFSET:
-//                    {   // Update time offset
-//                        gps_time_offset += encoder_increment;
-//                        if (gps_time_offset > GPS_MAX_TIME_OFFSET) {
-//                            gps_time_offset = GPS_MIN_TIME_OFFSET;
-//                        } 
-//                        else if(gps_time_offset < GPS_MIN_TIME_OFFSET)
-//                        {
-//                            gps_time_offset = GPS_MAX_TIME_OFFSET;
-//                        }
-//                    }
-//                    break;
 //                case SCREEN_GPS_MODEL:
 //                    { // Update model
 //                    ee_storage.gps_model =  (ee_storage.gps_model + encoder_increment) % (GPS_MODEL_UNKNOWN+1);
@@ -903,13 +886,6 @@
 //                        {   // Reconfigure UART
 //                            gps_reconfigure_gps_uart(ee_storage.gps_baudrate);
 //                        }
-//                    break;
-//                case SCREEN_GPS_TIME_OFFSET:
-//                    if(ee_storage.gps_time_offset != ((uint32_t)(gps_time_offset-MIN_TIME_OFFSET)))
-//                    {   // Save changes
-//                        ee_storage.gps_time_offset = gps_time_offset-MIN_TIME_OFFSET;
-//                        ee_is_changed = true;
-//                    }
 //                    break;
 //            }
 //        }

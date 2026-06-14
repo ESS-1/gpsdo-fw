@@ -59,3 +59,15 @@ const char* ui_get_month_name_3char(uint8_t month_num)
 
     return months[month_num];
 }
+
+void ui_change_setting_i8(int8_t* value, int32_t step, int8_t min, int8_t max)
+{
+    int8_t v = (*value) + step;
+    if (v > max) {
+        *value = min;
+    } else if (v < min) {
+        *value = max;
+    } else {
+        *value = v;
+    }
+}
