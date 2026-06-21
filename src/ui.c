@@ -1,5 +1,6 @@
 #include "ui.h"
 #include "ui_helpers.h"
+#include "ui_msgbox.h"
 
 #include "int.h"
 #include "gps.h"
@@ -18,10 +19,9 @@
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 
+static void ui_proc_back_to_main(const UIElement* element, UICommand command, int32_t encoder_step);
+
 // Main UI screen
-static void ui_proc_back_to_main_icon(const UIElement* element, UICommand command, int32_t encoder_step);
-static void ui_proc_back_to_main_ok(const UIElement* element, UICommand command, int32_t encoder_step);
-static void ui_proc_back_to_main_no(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_menu(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_save(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_gps(const UIElement* element, UICommand command, int32_t encoder_step);
@@ -57,63 +57,29 @@ static const UIElement ui_main_screen_elements[] = {
 
 UIScreen ui_main_screen = {
     ui_main_screen_elements,
-    sizeof(ui_main_screen_elements) / sizeof(UIElement),
+    ARRAY_SIZE(ui_main_screen_elements),
     NULL,
     false,
 };
 
-// Save screen
-static void ui_save_proc_label(const UIElement* element, UICommand command, int32_t encoder_step);
-static void ui_save_proc_yes(const UIElement* element, UICommand command, int32_t encoder_step);
+// Main menu screen
+//TODO: procs
 
-static const UIElement ui_save_screen_elements[] = {
-    { 1,  1,  15,  16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main_icon },
-    { 22, 4,  133, 34, UI_STYLE_NONE,      ui_save_proc_label        },
-    { 43, 48, 39,  21, UI_STYLE_FOCUSABLE, ui_save_proc_yes          },
-    { 95, 48, 38,  21, UI_STYLE_FOCUSABLE, ui_proc_back_to_main_no   },
+static const UIElement ui_menu_screen_elements[] = {
+    { 1, 1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main },
+//TODO
 };
 
-static UIScreen ui_save_screen = {
-    ui_save_screen_elements,
-    sizeof(ui_save_screen_elements) / sizeof(UIElement),
-    &(ui_save_screen_elements[3]),
-    false,
-};
-
-// Save failed screen
-static void ui_save_error_proc_label(const UIElement* element, UICommand command, int32_t encoder_step);
-
-static const UIElement ui_save_error_screen_elements[] = {
-    { 1,  1,  15,  16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main_icon },
-    { 22, 4,  133, 34, UI_STYLE_NONE,      ui_save_error_proc_label  },
-    { 70, 48, 38,  21, UI_STYLE_FOCUSABLE, ui_proc_back_to_main_ok   },
-};
-
-static UIScreen ui_save_error_screen = {
-    ui_save_error_screen_elements,
-    sizeof(ui_save_error_screen_elements) / sizeof(UIElement),
-    &(ui_save_error_screen_elements[2]),
-    false,
-};
-
-// Set PWM screen
-static void ui_setpwm_proc_label(const UIElement* element, UICommand command, int32_t encoder_step);
-
-static const UIElement ui_setpwm_screen_elements[] = {
-    { 1,  1,  15,  16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main_icon },
-    { 22, 4,  133, 34, UI_STYLE_NONE,      ui_setpwm_proc_label      },
-    { 70, 48, 38,  21, UI_STYLE_FOCUSABLE, ui_proc_back_to_main_ok   },
-};
-
-static UIScreen ui_setpwm_screen = {
-    ui_setpwm_screen_elements,
-    sizeof(ui_setpwm_screen_elements) / sizeof(UIElement),
-    &(ui_save_error_screen_elements[2]),
+static UIScreen ui_menu_screen = {
+    ui_menu_screen_elements,
+    ARRAY_SIZE(ui_menu_screen_elements),
+    NULL,
     false,
 };
 
 
-static void ui_proc_back_to_main_icon(const UIElement* element, UICommand command, int32_t encoder_step)
+// UI element procedures
+static void ui_proc_back_to_main(const UIElement* element, UICommand command, int32_t encoder_step)
 {
     if (command & UICommand_Init) {
         ST7735_DrawImage(element->x, element->y, 15, 16, icon_back_15x16);
@@ -125,30 +91,6 @@ static void ui_proc_back_to_main_icon(const UIElement* element, UICommand comman
     ui_default_element_proc(element, command, encoder_step);
 }
 
-static void ui_proc_back_to_main_ok(const UIElement* element, UICommand command, int32_t encoder_step)
-{
-    if (command & UICommand_Init) {
-        ST7735_FillRectangleFast(element->x, element->y, element->width, element->height, UI_COLOR_BUTTON_BG);
-        ST7735_WriteStringNoWrap(element->x + 8, element->y + 2, 18, "OK", Font_11x18, UI_COLOR_TEXT, UI_COLOR_BUTTON_BG);
-    }
-    if (command & UICommand_Click) {
-        ui_show_screen(&ui_main_screen);
-    }
-    ui_default_element_proc(element, command, encoder_step);
-}
-
-static void ui_proc_back_to_main_no(const UIElement* element, UICommand command, int32_t encoder_step)
-{
-    if (command & UICommand_Init) {
-        ST7735_FillRectangleFast(element->x, element->y, element->width, element->height, UI_COLOR_BUTTON_BG);
-        ST7735_WriteStringNoWrap(element->x + 8, element->y + 2, 18, "No", Font_11x18, UI_COLOR_TEXT, UI_COLOR_BUTTON_BG);
-    }
-    if (command & UICommand_Click) {
-        ui_show_screen(&ui_main_screen);
-    }
-    ui_default_element_proc(element, command, encoder_step);
-}
-
 static void ui_proc_menu(const UIElement* element, UICommand command, int32_t encoder_step)
 {
     if (command & UICommand_Init) {
@@ -156,13 +98,14 @@ static void ui_proc_menu(const UIElement* element, UICommand command, int32_t en
     }
 
     if (command & UICommand_Click) {
-        // todo
+        ui_show_screen(&ui_menu_screen);
     }
 
     ui_default_element_proc(element, command, encoder_step);
 }
 
 static bool ui_cache_ee_is_changed = false;
+static void ui_proc_save_handler(UI_MsgBoxButton result);
 static void ui_proc_save(const UIElement* element, UICommand command, int32_t encoder_step)
 {
     if ((command & UICommand_Init) || (ee_is_changed != ui_cache_ee_is_changed)) {
@@ -171,9 +114,30 @@ static void ui_proc_save(const UIElement* element, UICommand command, int32_t en
     }
 
     if ((command & UICommand_Click) && ui_cache_ee_is_changed) {
-        ui_show_screen(&ui_save_screen);
+        const char* msg[] = {
+            "Save current device",
+            " configuration to",
+            "      EEPROM?",
+            NULL };
+        ui_msgbox(msg, UI_MsgBoxType_YesNo, UI_MsgBoxButton_No, ui_proc_save_handler);
     }
     ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_proc_save_handler(UI_MsgBoxButton result)
+{
+    if (result == UI_MsgBoxButton_Yes) {
+        // Save configuration
+        if (!ee_save_config()) {
+            // EEPROM write failed
+            const char* msg[] = {
+                "    Cannot save",
+                "   configuration:",
+                "EEPROM write failed",
+                NULL };
+            ui_msgbox(msg, UI_MsgBoxType_Error, UI_MsgBoxButton_Ok, NULL);
+        }
+    }
 }
 
 static bool    ui_cache_gps_lock_status = false;
@@ -477,7 +441,11 @@ static void ui_proc_pwm(const UIElement* element, UICommand command, int32_t enc
             ee_is_changed = true;
         }
 
-        ui_show_screen(&ui_setpwm_screen);
+        const char* msg[] = {
+            " The PWM value has",
+            "     been set.",
+            NULL };
+        ui_msgbox(msg, UI_MsgBoxType_Ok, UI_MsgBoxButton_Ok, NULL);
     }
 
     ui_default_element_proc(element, command, encoder_step);
@@ -533,56 +501,8 @@ static void ui_proc_trend_graph(const UIElement* element, UICommand command, int
 {
     if (command & UICommand_Init) {
         // todo
-        ST7735_FillRectangleFast(element->x, element->y, element->width, 1, ST7735_COLOR565(150, 175, 210));
+        ST7735_FillRectangleFast(element->x, element->y, element->width, element->height, ST7735_COLOR565(30, 30, 30));
     }
     // TODO: draw
-    ui_default_element_proc(element, command, encoder_step);
-}
-
-static void ui_save_proc_label(const UIElement* element, UICommand command, int32_t encoder_step)
-{
-    if (command & UICommand_Init) {
-        ST7735_WriteStringNoWrap(element->x,    element->y,    10, "Save current device", Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
-        ST7735_WriteStringNoWrap(element->x+10, element->y+12, 10, "configuration to",    Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
-        ST7735_WriteStringNoWrap(element->x+42, element->y+24, 10, "EEPROM?",             Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
-    }
-    ui_default_element_proc(element, command, encoder_step);
-}
-
-static void ui_save_proc_yes(const UIElement* element, UICommand command, int32_t encoder_step)
-{
-    if (command & UICommand_Init) {
-        ST7735_FillRectangleFast(element->x, element->y, element->width, element->height, UI_COLOR_BUTTON_BG);
-        ST7735_WriteStringNoWrap(element->x + 3, element->y + 2, 18, "Yes", Font_11x18, UI_COLOR_TEXT, UI_COLOR_BUTTON_BG);
-    }
-    if (command & UICommand_Click) {
-        // Save configuration
-        if (ee_save_config()) {
-            // EEPROM write succeeded
-            ui_show_screen(&ui_main_screen);
-        } else {
-            // EEPROM write failed
-            ui_show_screen(&ui_save_error_screen);
-        }
-    }
-    ui_default_element_proc(element, command, encoder_step);
-}
-
-static void ui_save_error_proc_label(const UIElement* element, UICommand command, int32_t encoder_step)
-{
-    if (command & UICommand_Init) {
-        ST7735_WriteStringNoWrap(element->x+28, element->y,    10, "Cannot save",         Font_7x10, ST7735_RED, UI_COLOR_BG);
-        ST7735_WriteStringNoWrap(element->x+18, element->y+12, 10, "configuration:",      Font_7x10, ST7735_RED, UI_COLOR_BG);
-        ST7735_WriteStringNoWrap(element->x,    element->y+24, 10, "EEPROM write failed", Font_7x10, ST7735_RED, UI_COLOR_BG);
-    }
-    ui_default_element_proc(element, command, encoder_step);
-}
-
-static void ui_setpwm_proc_label(const UIElement* element, UICommand command, int32_t encoder_step)
-{
-    if (command & UICommand_Init) {
-        ST7735_WriteStringNoWrap(element->x + 7,  element->y,      10, "The PWM value has", Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
-        ST7735_WriteStringNoWrap(element->x + 35, element->y + 12, 10, "been set.",         Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
-    }
     ui_default_element_proc(element, command, encoder_step);
 }

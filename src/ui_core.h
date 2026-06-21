@@ -10,6 +10,7 @@
 #define UI_COLOR_CAPTURE_FRAME (ST7735_COLOR565(255, 115, 21))
 #define UI_COLOR_TREND         (ST7735_COLOR565(250, 170, 80))
 #define UI_COLOR_TEXT          (ST7735_WHITE)
+#define UI_COLOR_ERROR         (ST7735_RED)
 
 typedef enum {
     UICommand_None           = 0x00000000,
@@ -43,16 +44,18 @@ typedef struct UIElement {
 } UIElement;
 
 typedef struct {
-    const UIElement* const elements;
-    const int32_t          num_elements;
-    const UIElement*       focused_element;
-    bool                   is_input_captured;
+    const UIElement* elements;
+    int32_t          num_elements;
+    const UIElement* focused_element;
+    bool             is_input_captured;
 } UIScreen;
+
+extern UIScreen* ui_current_screen;
 
 void ui_default_element_proc(const UIElement* element, UICommand command, int32_t encoder_step);
 bool ui_is_captured(const UIElement* element);
 
-    void ui_show_screen(UIScreen* screen);
+void ui_show_screen(UIScreen* screen);
 void ui_run();
 
 #endif

@@ -5,7 +5,7 @@
 #include "st7735.h"
 #include "st7735_config.h"
 
-static UIScreen* ui_current_screen = NULL;
+UIScreen* ui_current_screen = NULL;
 
 void ui_default_element_proc(const UIElement* element, UICommand command, int32_t encoder_step)
 {

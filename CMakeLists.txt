@@ -46,8 +46,9 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     src/pll.c
     src/pll_presets.c
     src/icons.c
-    src/ui_helpers.c
     src/ui_core.c
+    src/ui_helpers.c
+    src/ui_msgbox.c
     src/ui.c
     src/encoder.c
 )
