@@ -16,7 +16,7 @@ void pll_init_primary_vco()
 
 bool pll_wait_primary_lock()
 {
-    return si5351_WaitPLLReady(SI5351_PLL_A, 150, 200);
+    return si5351_WaitPLLReady(SI5351_PLL_A, 1000, 1000);
 }
 
 bool pll_enable_primary_output()
@@ -33,19 +33,8 @@ bool pll_enable_primary_output()
         return false;
     }
 
-    // CLK1: 880M / 88 = 10M
-    out_config.allowIntegerMode = 1;
-    out_config.div = 88;
-    out_config.num = 0;
-    out_config.denom = 1;
-    out_config.rdiv  = SI5351_R_DIV_1;
-    if (si5351_SetupOutput(1, SI5351_PLL_A, SI5351_DRIVE_STRENGTH_8MA, &out_config, 0) != 0)
-    {
-        return false;
-    }
-
     // Enable output
-    si5351_EnableOutputs(0x03);
+    si5351_EnableOutputs(0x01);
 
     return true;
 }

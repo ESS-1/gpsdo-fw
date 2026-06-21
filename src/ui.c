@@ -375,33 +375,39 @@ static void ui_proc_datetime(const UIElement* element, UICommand command, int32_
 static void ui_proc_out(const UIElement* element, UICommand command, int32_t encoder_step, uint8_t out)
 {
     if (!ui_is_captured(element)) {
-        // Draw icon and label
         if (command & (UICommand_Init | UICommand_Release)) {
+            // Draw icon and label
             ST7735_DrawImage(element->x, element->y + 2, 7, 7, icon_out_7x7);
             char s[3] = { '\0' };
             snprintf(s, ARRAY_SIZE(s), "%1u:", out);
             ST7735_WriteStringNoWrap(element->x + 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
-        }
 
-        // Draw value
-        //TODO
-        if (command & (UICommand_Init | UICommand_Release)) {
-//            ui_cache_XXX = XXX;
-            //TODO
-            char s[7] = { '\0' };
-            snprintf(s, ARRAY_SIZE(s), "%5dM", 8*out);//TODO
-            ST7735_WriteStringNoWrap(element->x + 3 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
+            // Draw value
+            OutFreqConfig preset = (out == 1)
+                ? pll_out1_presets[ee_storage.pll_out1_preset]
+                : pll_out2_presets[ee_storage.pll_out2_preset];
+
+            ST7735_WriteStringNoWrap(element->x + 3 * 7, element->y + 1, element->height - 1, preset.label, Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
         }
     }
 
-    if (command & UICommand_Capture) {
-        // todo
-    }
-    if (command & UICommand_EncoderStep) {
-        // todo
-    }
-    if (command & UICommand_Release) {
-        // todo
+    // Preset selection
+    {
+        if (command & UICommand_Capture) {
+            // todo
+        }
+
+        if (command & UICommand_EncoderStep) {
+            // todo
+        }
+
+        if (command & (UICommand_Capture | UICommand_EncoderStep)) {
+            // todo
+        }
+
+        if (command & UICommand_Release) {
+            // todo
+        }
     }
 
     ui_default_element_proc(element, command, encoder_step);

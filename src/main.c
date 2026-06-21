@@ -196,6 +196,20 @@ void gpsdo()
         ee_storage.warmup_time_seconds = get_default_warmup_time(ee_storage.ocxo_model);
         ee_is_changed                  = true;
     }
+    // PLL output 1 preset
+    if (ee_storage.pll_out1_preset >= pll_out1_preset_count) {
+        ee_storage.pll_out1_preset = 0;
+        ee_is_changed              = true;
+    }
+    // PLL output 2 preset
+    if (ee_storage.pll_out2_preset >= pll_out2_preset_count) {
+        ee_storage.pll_out2_preset = 0;
+        ee_is_changed              = true;
+    }
+
+    // Configure outputs
+    pll_configure_output(1, pll_out1_presets[ee_storage.pll_out1_preset]);
+    pll_configure_output(2, pll_out2_presets[ee_storage.pll_out2_preset]);
 
     enable_usb();
     gps_start_it();

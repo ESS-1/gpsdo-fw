@@ -9,7 +9,10 @@ typedef struct {
     const char* label;
 } OutFreqConfig;
 
-extern const OutFreqConfig pll_out1_options[];
-extern const OutFreqConfig pll_out2_options[];
+extern const OutFreqConfig pll_out1_presets[];
+extern const OutFreqConfig pll_out2_presets[];
+
+extern const uint16_t pll_out1_preset_count;
+extern const uint16_t pll_out2_preset_count;
 
 #endif
