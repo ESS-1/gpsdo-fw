@@ -6,6 +6,8 @@
 #include "cdcio.h"
 #include "eeprom.h"
 #include "frequency.h"
+#include "pll.h"
+#include "pll_presets.h"
 
 #include "icons.h"
 #include "fonts.h"
@@ -44,8 +46,8 @@ static const UIElement ui_main_screen_elements[] = {
     // Line 2
     { 0,   21, 17,  20, UI_STYLE_NONE,                                 ui_proc_warmup      },
     { 19,  19, 140, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_datetime    },
-    { 19,  32, 63,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out1        },
-    { 89,  32, 63,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out2        },
+    { 19,  32, 49,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out1        },
+    { 82,  32, 77,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out2        },
     { 19,  44, 63,  10, UI_STYLE_FOCUSABLE,                            ui_proc_pwm         },
     { 89,  44, 28,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_h     },
     { 124, 44, 35,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_v     },

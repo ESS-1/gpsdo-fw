@@ -49,3 +49,8 @@ bool pll_enable_primary_output()
 
     return true;
 }
+
+void pll_configure_output(uint8_t output, OutFreqConfig config)
+{
+    //TODO
+}
