@@ -16,7 +16,7 @@ void pll_init_primary_vco()
 
 bool pll_wait_primary_lock()
 {
-    return si5351_WaitPLLReady(SI5351_PLL_A, 1000, 1000);
+    return si5351_WaitPLLReady(SI5351_PLL_A, 2000);
 }
 
 bool pll_enable_primary_output()
