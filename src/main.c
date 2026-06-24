@@ -208,8 +208,8 @@ void gpsdo()
     }
 
     // Configure outputs
-    pll_configure_output(1, pll_out1_presets[ee_storage.pll_out1_preset]);
-    pll_configure_output(2, pll_out2_presets[ee_storage.pll_out2_preset]);
+    pll_configure_output(1, &(pll_out1_presets[ee_storage.pll_out1_preset]));
+    pll_configure_output(2, &(pll_out2_presets[ee_storage.pll_out2_preset]));
 
     enable_usb();
     gps_start_it();

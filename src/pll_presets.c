@@ -5,16 +5,30 @@ const OutFreqConfig pll_out1_presets[] = {
     // Because its VCO is locked to a constant 880  MHz (for a 10 MHz OCXO),
     // the pll_mult value is not used for Out 1.
     { .pll_mult = 0xFF, .out_div = 0,    .label = "OFF " },
+    { .pll_mult = 0xFF, .out_div = 2000, .label = "0.44" },
     { .pll_mult = 0xFF, .out_div = 1760, .label = "0.5 " },
+    { .pll_mult = 0xFF, .out_div = 1600, .label = "0.55" },
+    { .pll_mult = 0xFF, .out_div = 1100, .label = "0.8 " },
+    { .pll_mult = 0xFF, .out_div = 1000, .label = "0.88" },
     { .pll_mult = 0xFF, .out_div = 880,  .label = "1   " },
+    { .pll_mult = 0xFF, .out_div = 800,  .label = "1.1 " },
+    { .pll_mult = 0xFF, .out_div = 704,  .label = "1.25" },
+    { .pll_mult = 0xFF, .out_div = 550,  .label = "1.6 " },
+    { .pll_mult = 0xFF, .out_div = 500,  .label = "1.76" },
     { .pll_mult = 0xFF, .out_div = 440,  .label = "2   " },
+    { .pll_mult = 0xFF, .out_div = 400,  .label = "2.2 " },
     { .pll_mult = 0xFF, .out_div = 352,  .label = "2.5 " },
+    { .pll_mult = 0xFF, .out_div = 320,  .label = "2.75" },
+    { .pll_mult = 0xFF, .out_div = 250,  .label = "3.52" },
     { .pll_mult = 0xFF, .out_div = 220,  .label = "4   " },
+    { .pll_mult = 0xFF, .out_div = 200,  .label = "4.4 " },
     { .pll_mult = 0xFF, .out_div = 176,  .label = "5   " },
     { .pll_mult = 0xFF, .out_div = 160,  .label = "5.5 " },
     { .pll_mult = 0xFF, .out_div = 110,  .label = "8   " },
+    { .pll_mult = 0xFF, .out_div = 100,  .label = "8.8 " },
     { .pll_mult = 0xFF, .out_div = 88,   .label = "10  " },
     { .pll_mult = 0xFF, .out_div = 80,   .label = "11  " },
+    { .pll_mult = 0xFF, .out_div = 50,   .label = "17.6" },
     { .pll_mult = 0xFF, .out_div = 44,   .label = "20  " },
     { .pll_mult = 0xFF, .out_div = 40,   .label = "22  " },
     { .pll_mult = 0xFF, .out_div = 32,   .label = "27.5" },
@@ -22,14 +36,14 @@ const OutFreqConfig pll_out1_presets[] = {
     { .pll_mult = 0xFF, .out_div = 20,   .label = "44  " },
     { .pll_mult = 0xFF, .out_div = 16,   .label = "55  " },
     { .pll_mult = 0xFF, .out_div = 10,   .label = "88  " },
-    { .pll_mult = 0xFF, .out_div = 8,    .label = "10  " },
+    { .pll_mult = 0xFF, .out_div = 8,    .label = "110 " },
 };
 
 const uint16_t pll_out1_preset_count = sizeof(pll_out1_presets) / sizeof(pll_out1_presets[0]);
 
 
 const OutFreqConfig pll_out2_presets[] = {
-    { .pll_mult = 0,  .out_div = 0,    .label = "OFF     " },
+    { .pll_mult = 60, .out_div = 0,    .label = "OFF     " },
     { .pll_mult = 60, .out_div = 2000, .label = "0.3     " },
     { .pll_mult = 80, .out_div = 2000, .label = "0.4     " },
     { .pll_mult = 90, .out_div = 1800, .label = "0.5     " },

@@ -8,6 +8,6 @@
 void pll_init_primary_vco();
 bool pll_wait_primary_lock();
 bool pll_enable_primary_output();
-void pll_configure_output(uint8_t output, OutFreqConfig config);
+void pll_configure_output(uint8_t output, const OutFreqConfig *config);
 
 #endif

@@ -2,6 +2,20 @@
 #include "pll.h"
 #include "si5351.h"
 
+static uint8_t pll_enabled_outputs = 0;
+
+static void pll_enable_output(uint8_t output, bool enable)
+{
+    uint8_t f = (uint8_t)(1u << output);
+    if (enable) {
+        pll_enabled_outputs |= f;
+    } else {
+        pll_enabled_outputs &= (uint8_t)~f;
+    }
+
+    si5351_EnableOutputs(pll_enabled_outputs);
+}
+
 void pll_init_primary_vco()
 {
     si5351_Init(0, SI5351_CRYSTAL_LOAD_6PF);
@@ -28,18 +42,44 @@ bool pll_enable_primary_output()
     out_config.num = 0;
     out_config.denom = 1;
     out_config.rdiv  = SI5351_R_DIV_1;
-    if (si5351_SetupOutput(0, SI5351_PLL_A, SI5351_DRIVE_STRENGTH_8MA, &out_config, 0) != 0)
-    {
+    if (si5351_SetupOutput(0, SI5351_PLL_A, SI5351_DRIVE_STRENGTH_8MA, &out_config, 0) != 0) {
         return false;
     }
 
     // Enable output
-    si5351_EnableOutputs(0x01);
+    pll_enable_output(1, true);
 
     return true;
 }
 
-void pll_configure_output(uint8_t output, OutFreqConfig config)
+void pll_configure_output(uint8_t output, const OutFreqConfig *config)
 {
-    //TODO
+    // Disable output
+    pll_enable_output(output, false);
+
+    // Set up the PLL if we are configuring output 2; output 1 uses PLL A,
+    // which is shared with the GPSDO control loop, so its settings should not be changed.
+    if (output == 2) {
+        si5351PLLConfig_t pll_config = {
+            .mult = config->pll_mult,
+            .num = 0,
+            .denom = 1 };
+        si5351_SetupPLL(SI5351_PLL_B, &pll_config);
+    }
+
+    // Configure output
+    if (config->out_div != 0) {
+        si5351OutputConfig_t out_config = {
+            .allowIntegerMode = 1,
+            .div = config->out_div,
+            .num = 0,
+            .denom = 1,
+            .rdiv = SI5351_R_DIV_1 };
+
+        si5351PLL_t pll = output == 1 ? SI5351_PLL_A : SI5351_PLL_B;
+        si5351_SetupOutput(output, pll, SI5351_DRIVE_STRENGTH_8MA, &out_config, 0);
+
+        // Enable output
+        pll_enable_output(output, true);
+    }
 }
