@@ -37,14 +37,14 @@ static UIScreen ui_msgbox_screen = {
 
 
 // Message Box state variables
-static UIScreen*        ui_msgbox_previous_screen = NULL;
-static const char**     ui_msgbox_message         = NULL;
-static UI_MsgBoxHandler ui_msgbox_handler         = NULL;
-static bool             ui_msgbox_type_error      = false;
+static UIScreen*          ui_msgbox_previous_screen = NULL;
+static const char* const* ui_msgbox_message         = NULL;
+static UI_MsgBoxHandler   ui_msgbox_handler         = NULL;
+static bool               ui_msgbox_type_error      = false;
 
 
 // Message Box API
-bool ui_msgbox(const char* message[], UI_MsgBoxType type, UI_MsgBoxButton selected_button, UI_MsgBoxHandler handler)
+bool ui_msgbox(const char* const message[], UI_MsgBoxType type, UI_MsgBoxButton selected_button, UI_MsgBoxHandler handler)
 {
     if (ui_current_screen == &ui_msgbox_screen) {
         // Cannot invoke a message box from within another message box handler
@@ -143,16 +143,23 @@ static void ui_msgbox_proc_back(const UIElement* element, UICommand command, int
 static void ui_msgbox_proc_label(const UIElement* element, UICommand command, int32_t encoder_step)
 {
     if (command & UICommand_Init) {
-        uint16_t    y    = element->y;
-        uint16_t    text_color = ui_msgbox_type_error ? UI_COLOR_ERROR : UI_COLOR_TEXT;
+        uint16_t y          = element->y;
+        uint16_t text_color = ui_msgbox_type_error ? UI_COLOR_ERROR : UI_COLOR_TEXT;
 
-        const char** line = ui_msgbox_message;
-        while (*line != NULL)
+        const char* const* line = ui_msgbox_message;
+        while (line != NULL && *line != NULL)
         {
             ST7735_WriteStringNoWrap(element->x, y, 10, *line, Font_7x10, text_color, UI_COLOR_BG);
             y += 12;
             ++line;
         };
+
+        // The first 'UICommand_Init' call is performed synchronously when 'ui_msgbox'
+        // calls 'ui_show_screen(&ui_msgbox_screen)'. Therefore, at that moment,
+        // we can safely access 'ui_msgbox_message' even if it was allocated on the stack.
+        // After that call, we should not access it because it may become invalid,
+        // so we assign 'NULL' to it to prevent any possibility of this happening.
+        ui_msgbox_message = NULL;
     }
 
     ui_default_element_proc(element, command, encoder_step);

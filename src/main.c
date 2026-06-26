@@ -244,6 +244,7 @@ void gpsdo()
         }
         
         gps_read();
+        pll_update();
         ui_run();
     }
 }

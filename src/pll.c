@@ -2,6 +2,8 @@
 #include "pll.h"
 #include "si5351.h"
 
+PllStatus pll_status = PllStatus_Ok;
+
 static uint8_t pll_enabled_outputs = 0;
 
 static void pll_enable_output(uint8_t output, bool enable)
@@ -82,4 +84,23 @@ void pll_configure_output(uint8_t output, const OutFreqConfig *config)
         // Enable output
         pll_enable_output(output, true);
     }
+}
+
+void pll_update()
+{
+    si5351ReadyFlags_t flags = si5351_GetReadyStatus();
+
+    PllStatus new_status = PllStatus_Ok;
+    if ((flags & SI5351_READY_SYS_INIT_DONE) == 0 || (flags & SI5351_READY_XTAL_VALID) == 0) {
+        new_status |= PllStatus_General_Error;
+    }
+
+    if ((flags & SI5351_READY_PLLA_LOCKED) == 0) {
+        new_status |= PllStatus_PllA_Error;
+    }
+    if ((flags & SI5351_READY_PLLB_LOCKED) == 0) {
+        new_status |= PllStatus_PllB_Error;
+    }
+
+    pll_status = new_status;
 }

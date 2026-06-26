@@ -71,3 +71,15 @@ void ui_change_setting_i8(int8_t* value, int32_t step, int8_t min, int8_t max)
         *value = v;
     }
 }
+
+void ui_change_setting_u16(uint16_t* value, int32_t step, uint16_t max)
+{
+    int32_t v = (*value) + step;
+    if (v > max) {
+        *value = 0;
+    } else if (v < 0) {
+        *value = max;
+    } else {
+        *value = (uint16_t)v;
+    }
+}

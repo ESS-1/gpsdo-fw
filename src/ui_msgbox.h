@@ -19,6 +19,6 @@ typedef enum {
 
 typedef void (*UI_MsgBoxHandler)(UI_MsgBoxButton result);
 
-bool ui_msgbox(const char* message[], UI_MsgBoxType type, UI_MsgBoxButton selected_button, UI_MsgBoxHandler handler);
+bool ui_msgbox(const char* const message[], UI_MsgBoxType type, UI_MsgBoxButton selected_button, UI_MsgBoxHandler handler);
 
 #endif
