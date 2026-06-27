@@ -21,7 +21,10 @@
 
 static void ui_proc_back_to_main(const UIElement* element, UICommand command, int32_t encoder_step);
 
-// Main UI screen
+
+//------------------------------------------------------------------------------
+// Main UI Screen Layout
+//------------------------------------------------------------------------------
 static void ui_proc_menu(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_save(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_gps(const UIElement* element, UICommand command, int32_t encoder_step);
@@ -44,15 +47,16 @@ static const UIElement ui_main_screen_elements[] = {
     { 72,  1, 71, 16, UI_STYLE_FOCUSABLE, ui_proc_ppb  },
     { 144, 1, 16, 16, UI_STYLE_NONE,      ui_proc_usb  },
     // Main part
-    { 19,  19, 140, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_datetime    },
-    { 1,   33, 17,  20, UI_STYLE_FOCUSABLE,                            ui_proc_status      },
-    { 21,  32, 49,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out1        },
-    { 82,  32, 77,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out2        },
-    { 21,  44, 63,  10, UI_STYLE_FOCUSABLE,                            ui_proc_pwm         },
-    { 90,  44, 28,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_h     },
-    { 124, 44, 35,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_v     },
+    { 19,  19, 140, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_datetime        },
+    { 1,   33, 17,  12, UI_STYLE_FOCUSABLE,                            ui_proc_status          },
+//  { 1,   46, 17,  7 } - empty space reserved for the warm-up countdown timer drawn by 'ui_proc_status'
+    { 21,  32, 49,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out1            },
+    { 82,  32, 77,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out2            },
+    { 21,  44, 63,  10, UI_STYLE_FOCUSABLE,                            ui_proc_pwm             },
+    { 90,  44, 28,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_h         },
+    { 124, 44, 35,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_v         },
     // Trend
-    { 0,   55, 160, 25, UI_STYLE_NONE,                                 ui_proc_trend_graph },
+    { 0,   55, 160, 25, UI_STYLE_NONE,                                 ui_proc_trend_graph     },
 };
 
 UIScreen ui_main_screen = {
@@ -62,7 +66,10 @@ UIScreen ui_main_screen = {
     false,
 };
 
-// Main menu screen
+
+//------------------------------------------------------------------------------
+// Main Menu Screen Layout
+//------------------------------------------------------------------------------
 //TODO: procs
 
 static const UIElement ui_menu_screen_elements[] = {
@@ -78,7 +85,9 @@ static UIScreen ui_menu_screen = {
 };
 
 
-// UI element procedures
+//------------------------------------------------------------------------------
+// Back to Main
+//------------------------------------------------------------------------------
 static void ui_proc_back_to_main(const UIElement* element, UICommand command, int32_t encoder_step)
 {
     if (command & UICommand_Init) {
@@ -91,6 +100,10 @@ static void ui_proc_back_to_main(const UIElement* element, UICommand command, in
     ui_default_element_proc(element, command, encoder_step);
 }
 
+
+//------------------------------------------------------------------------------
+// Main Menu
+//------------------------------------------------------------------------------
 static void ui_proc_menu(const UIElement* element, UICommand command, int32_t encoder_step)
 {
     if (command & UICommand_Init) {
@@ -104,6 +117,10 @@ static void ui_proc_menu(const UIElement* element, UICommand command, int32_t en
     ui_default_element_proc(element, command, encoder_step);
 }
 
+
+//------------------------------------------------------------------------------
+// Save
+//------------------------------------------------------------------------------
 static bool ui_cache_ee_is_changed = false;
 static void ui_proc_save_handler(UI_MsgBoxButton result);
 static void ui_proc_save(const UIElement* element, UICommand command, int32_t encoder_step)
@@ -141,6 +158,10 @@ static void ui_proc_save_handler(UI_MsgBoxButton result)
     }
 }
 
+
+//------------------------------------------------------------------------------
+// GPS
+//------------------------------------------------------------------------------
 static bool    ui_cache_gps_lock_status = false;
 static uint8_t ui_cache_num_sats = 0;
 static void ui_proc_gps(const UIElement* element, UICommand command, int32_t encoder_step)
@@ -167,6 +188,10 @@ static void ui_proc_gps(const UIElement* element, UICommand command, int32_t enc
     ui_default_element_proc(element, command, encoder_step);
 }
 
+
+//------------------------------------------------------------------------------
+// PPB
+//------------------------------------------------------------------------------
 static FrequencyStability ui_cache_frequency_stability = FREQ_STABILITY_UNSTABLE;
 static int32_t            ui_cache_frequency_ppb_x100  = PPB_UNSET_VALUE;
 static void ui_proc_ppb(const UIElement* element, UICommand command, int32_t encoder_step)
@@ -205,6 +230,10 @@ static void ui_proc_ppb(const UIElement* element, UICommand command, int32_t enc
     ui_default_element_proc(element, command, encoder_step);
 }
 
+
+//------------------------------------------------------------------------------
+// USB
+//------------------------------------------------------------------------------
 static cdc_status ui_cache_cdcio_status = CDC_STATUS_NO_CONN;
 static void ui_proc_usb(const UIElement* element, UICommand command, int32_t encoder_step)
 {
@@ -228,6 +257,10 @@ static void ui_proc_usb(const UIElement* element, UICommand command, int32_t enc
     ui_default_element_proc(element, command, encoder_step);
 }
 
+
+//------------------------------------------------------------------------------
+// Status and Warmup Countdown
+//------------------------------------------------------------------------------
 static uint32_t ui_cache_warmup_remaining_sec = UINT16_MAX;
 static bool     ui_cache_pll_status_error     = false;
 static void ui_proc_status_show_status();
@@ -322,6 +355,10 @@ static void ui_proc_status_show_status()
         "Normal operation",
         "No errors",
         NULL };
+    static const char* const msg_warmup[] = {
+        "Normal operation",
+        "OCXO warming up...",
+        NULL };
     static const char* const msg_err_gen[] = {
         "General PLL error",
         NULL };
@@ -352,13 +389,17 @@ static void ui_proc_status_show_status()
     } else if (err_pll_b) { // PLL B: no lock
         msg = msg_err_b;
     } else { // No error
-        msg = msg_ok;
+        msg  = (ui_cache_warmup_remaining_sec > 0) ? msg_warmup : msg_ok;
         type = UI_MsgBoxType_Ok;
     }
 
     ui_msgbox(msg, type, UI_MsgBoxButton_Ok, NULL);
 }
 
+
+//------------------------------------------------------------------------------
+// Date and Time
+//------------------------------------------------------------------------------
 static PackedDate ui_cache_gps_date = { .raw = GPS_EMPTY_DATE_TIME };
 static PackedTime ui_cache_gps_time = { .raw = GPS_EMPTY_DATE_TIME };
 static void ui_proc_datetime(const UIElement* element, UICommand command, int32_t encoder_step)
@@ -438,6 +479,10 @@ static void ui_proc_datetime(const UIElement* element, UICommand command, int32_
     ui_default_element_proc(element, command, encoder_step);
 }
 
+
+//------------------------------------------------------------------------------
+// Outputs
+//------------------------------------------------------------------------------
 static void ui_proc_out(const UIElement* element, UICommand command, int32_t encoder_step,
     uint8_t out, const OutFreqConfig *pll_presets, uint16_t preset_count, uint16_t *ui_edit_preset, uint16_t *ee_preset)
 {
@@ -499,6 +544,10 @@ static void ui_proc_out2(const UIElement* element, UICommand command, int32_t en
     ui_proc_out(element, command, encoder_step, 2, pll_out2_presets, pll_out2_preset_count, &ui_edit_pll_out2_preset, &(ee_storage.pll_out2_preset));
 }
 
+
+//------------------------------------------------------------------------------
+// PWM
+//------------------------------------------------------------------------------
 static uint16_t ui_cache_pwm = 0;
 static void ui_proc_pwm(const UIElement* element, UICommand command, int32_t encoder_step)
 {
@@ -533,6 +582,10 @@ static void ui_proc_pwm(const UIElement* element, UICommand command, int32_t enc
     ui_default_element_proc(element, command, encoder_step);
 }
 
+
+//------------------------------------------------------------------------------
+// Trend
+//------------------------------------------------------------------------------
 static void ui_proc_trend_h(const UIElement* element, UICommand command, int32_t encoder_step)
 {
     if (!ui_is_captured(element)) {

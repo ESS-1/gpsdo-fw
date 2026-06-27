@@ -51,6 +51,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     src/ui_msgbox.c
     src/ui.c
     src/encoder.c
+    src/timer.c
 )
 
 # Add include paths

@@ -1,8 +1,10 @@
 #include "main.h"
 #include "pll.h"
+#include "timer.h"
 #include "si5351.h"
 
 PllStatus pll_status = PllStatus_Ok;
+static uint32_t pll_status_last_update = 0;
 
 static uint8_t pll_enabled_outputs = 0;
 
@@ -56,6 +58,9 @@ bool pll_enable_primary_output()
 
 void pll_configure_output(uint8_t output, const OutFreqConfig *config)
 {
+    // Reset the 'pll_status' update timer to prevent transitions from disturbing the UI
+    timer_reset(&pll_status_last_update);
+
     // Disable output
     pll_enable_output(output, false);
 
@@ -88,6 +93,11 @@ void pll_configure_output(uint8_t output, const OutFreqConfig *config)
 
 void pll_update()
 {
+    // Update every 0.5 seconds
+    if (!timer_is_elapsed(&pll_status_last_update, 500)) {
+        return;
+    }
+
     si5351ReadyFlags_t flags = si5351_GetReadyStatus();
 
     PllStatus new_status = PllStatus_Ok;
