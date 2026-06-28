@@ -132,6 +132,6 @@ void ui_run()
     // Update all controls
     for (int i = 0; i < ui_current_screen->num_elements; ++i) {
         const UIElement* element = &(ui_current_screen->elements[i]);
-        element->proc(element, UICommand_None, step);
+        element->proc(element, UICommand_None, 0);
     }
 }

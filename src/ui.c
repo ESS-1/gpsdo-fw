@@ -9,6 +9,7 @@
 #include "frequency.h"
 #include "pll.h"
 #include "pll_presets.h"
+#include "timer.h"
 
 #include "icons.h"
 #include "fonts.h"
@@ -30,8 +31,9 @@ static void ui_proc_save(const UIElement* element, UICommand command, int32_t en
 static void ui_proc_gps(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_ppb(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_usb(const UIElement* element, UICommand command, int32_t encoder_step);
-static void ui_proc_status(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_datetime(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_pps(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_status(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_out1(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_out2(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_pwm(const UIElement* element, UICommand command, int32_t encoder_step);
@@ -47,7 +49,8 @@ static const UIElement ui_main_screen_elements[] = {
     { 72,  1, 71, 16, UI_STYLE_FOCUSABLE, ui_proc_ppb  },
     { 144, 1, 16, 16, UI_STYLE_NONE,      ui_proc_usb  },
     // Main part
-    { 19,  19, 140, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_datetime        },
+    { 1,   19, 140, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_datetime        },
+    { 142, 20, 18,  9,  UI_STYLE_NONE,                                 ui_proc_pps             },
     { 1,   33, 17,  12, UI_STYLE_FOCUSABLE,                            ui_proc_status          },
 //  { 1,   46, 17,  7 } - empty space reserved for the warm-up countdown timer drawn by 'ui_proc_status'
     { 21,  32, 49,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out1            },
@@ -259,6 +262,124 @@ static void ui_proc_usb(const UIElement* element, UICommand command, int32_t enc
 
 
 //------------------------------------------------------------------------------
+// Date and Time
+//------------------------------------------------------------------------------
+static PackedDate ui_cache_gps_date = { .raw = GPS_EMPTY_DATE_TIME };
+static PackedTime ui_cache_gps_time = { .raw = GPS_EMPTY_DATE_TIME };
+static void ui_proc_datetime(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    if (!ui_is_captured(element)) {
+        // Draw date
+        if ((command & (UICommand_Init | UICommand_Release)) || (gps_date.raw != ui_cache_gps_date.raw)) {
+            ui_cache_gps_date = gps_date;
+
+            const char* date_str = NULL;
+            char buf_str[12] = { '\0' };
+
+            if (ui_cache_gps_date.raw != GPS_EMPTY_DATE_TIME) {
+                snprintf(buf_str, ARRAY_SIZE(buf_str), "%2u %.3s %04u",
+                                                       (ui_cache_gps_date.day > 99u) ? 99u : ui_cache_gps_date.day,
+                                                       ui_get_month_name_3char(ui_cache_gps_date.month),
+                                                       (ui_cache_gps_date.year > 9999u) ? 9999u : ui_cache_gps_date.year);
+                date_str = buf_str;
+            } else {
+                date_str = "           ";
+            }
+
+            ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height, date_str, Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
+        }
+
+        // Draw time
+        if ((command & (UICommand_Init | UICommand_Release)) || (gps_time.raw != ui_cache_gps_time.raw)) {
+            ui_cache_gps_time = gps_time;
+
+            const char* time_str = NULL;
+            char buf_str[10] = { '\0' };
+
+            if (ui_cache_gps_time.raw != GPS_EMPTY_DATE_TIME) {
+                snprintf(buf_str, ARRAY_SIZE(buf_str), " %02u:%02u:%02u",
+                                                       (ui_cache_gps_time.hours > 99u) ? 99u : ui_cache_gps_time.hours,
+                                                       (ui_cache_gps_time.minutes > 99u) ? 99u : ui_cache_gps_time.minutes,
+                                                       (ui_cache_gps_time.seconds > 99u) ? 99u : ui_cache_gps_time.seconds);
+                time_str = buf_str;
+            } else {
+                time_str = " --:--:--";
+            }
+
+            ST7735_WriteStringNoWrap(element->x + 11 * 7, element->y + 1, element->height, time_str, Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
+        }
+    }
+
+    // Time offset edit
+    {
+        if (command & (UICommand_Capture | UICommand_RestoreCapture)) {
+            // Draw label and erase the remaining element area
+            ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height, "Time offset: ", Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
+            ST7735_FillRectangleFast(element->x + 13 * 7, element->y + 1, 7*7, element->height, UI_COLOR_BG);
+        }
+
+        if (command & UICommand_EncoderStep) {
+            // Modify setting
+            ui_change_setting_i8(&gps_time_offset, encoder_step, GPS_MIN_TIME_OFFSET, GPS_MAX_TIME_OFFSET);
+        }
+
+        if (command & (UICommand_Capture | UICommand_RestoreCapture | UICommand_EncoderStep)) {
+            // Draw value
+            char s[5] = { '\0' };
+            snprintf(s, ARRAY_SIZE(s), "%3d", gps_time_offset);
+            ST7735_WriteStringNoWrap(element->x + 13 * 7, element->y + 1, element->height, s, Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
+        }
+
+        if (command & UICommand_Release) {
+            // Save changes
+            uint32_t new_time_offset = (uint32_t)(gps_time_offset - GPS_MIN_TIME_OFFSET);
+            if (ee_storage.gps_time_offset != new_time_offset) {
+                ee_storage.gps_time_offset = new_time_offset;
+                ee_is_changed = true;
+            }
+        }
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+
+//------------------------------------------------------------------------------
+// PPS Indicator and Spinner
+//------------------------------------------------------------------------------
+static uint32_t ui_spinner_last_update = 0;
+static uint8_t  ui_spinner_frame       = 0;
+static bool     ui_cache_pps_active    = false;
+static void ui_proc_pps(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    if (command & UICommand_Init) {
+        ui_spinner_last_update = 0;
+        ui_spinner_frame       = 0;
+    }
+
+    // Draw spinner
+    if (timer_is_elapsed(&ui_spinner_last_update, 125)) {
+        ST7735_DrawImage(element->x + 10, element->y + 1, 7, 7, icon_spinner_12st_7x7[ui_spinner_frame]);
+
+        if (++ui_spinner_frame > 11) {
+            ui_spinner_frame = 0;
+        }
+    }
+
+    // Draw PPS
+    bool pps_active = (HAL_GPIO_ReadPin(PPS_GPIO_Port, PPS_Pin) == GPIO_PIN_SET);
+    if ((command & UICommand_Init) || (pps_active != ui_cache_pps_active)) {
+        ui_cache_pps_active = pps_active;
+
+        uint16_t color = ui_cache_pps_active ? UI_COLOR_PPS_INDICATOR : UI_COLOR_BG;
+        ST7735_FillRectangleFast(element->x + 1, element->y + 1, 7, 7, color);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+
+//------------------------------------------------------------------------------
 // Status and Warmup Countdown
 //------------------------------------------------------------------------------
 static uint32_t ui_cache_warmup_remaining_sec = UINT16_MAX;
@@ -398,89 +519,6 @@ static void ui_proc_status_show_status()
 
 
 //------------------------------------------------------------------------------
-// Date and Time
-//------------------------------------------------------------------------------
-static PackedDate ui_cache_gps_date = { .raw = GPS_EMPTY_DATE_TIME };
-static PackedTime ui_cache_gps_time = { .raw = GPS_EMPTY_DATE_TIME };
-static void ui_proc_datetime(const UIElement* element, UICommand command, int32_t encoder_step)
-{
-    if (!ui_is_captured(element)) {
-        // Draw date
-        if ((command & (UICommand_Init | UICommand_Release)) || (gps_date.raw != ui_cache_gps_date.raw)) {
-            ui_cache_gps_date = gps_date;
-
-            const char* date_str = NULL;
-            char buf_str[12] = { '\0' };
-
-            if (ui_cache_gps_date.raw != GPS_EMPTY_DATE_TIME) {
-                snprintf(buf_str, ARRAY_SIZE(buf_str), "%2u %.3s %04u",
-                                                       (ui_cache_gps_date.day > 99u) ? 99u : ui_cache_gps_date.day,
-                                                       ui_get_month_name_3char(ui_cache_gps_date.month),
-                                                       (ui_cache_gps_date.year > 9999u) ? 9999u : ui_cache_gps_date.year);
-                date_str = buf_str;
-            } else {
-                date_str = "           ";
-            }
-
-            ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height, date_str, Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
-        }
-
-        // Draw time
-        if ((command & (UICommand_Init | UICommand_Release)) || (gps_time.raw != ui_cache_gps_time.raw)) {
-            ui_cache_gps_time = gps_time;
-
-            const char* time_str = NULL;
-            char buf_str[10] = { '\0' };
-
-            if (ui_cache_gps_time.raw != GPS_EMPTY_DATE_TIME) {
-                snprintf(buf_str, ARRAY_SIZE(buf_str), " %02u:%02u:%02u",
-                                                       (ui_cache_gps_time.hours > 99u) ? 99u : ui_cache_gps_time.hours,
-                                                       (ui_cache_gps_time.minutes > 99u) ? 99u : ui_cache_gps_time.minutes,
-                                                       (ui_cache_gps_time.seconds > 99u) ? 99u : ui_cache_gps_time.seconds);
-                time_str = buf_str;
-            } else {
-                time_str = " --:--:--";
-            }
-
-            ST7735_WriteStringNoWrap(element->x + 11 * 7, element->y + 1, element->height, time_str, Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
-        }
-    }
-
-    // Time offset edit
-    {
-        if (command & (UICommand_Capture | UICommand_RestoreCapture)) {
-            // Draw label and erase the remaining element area
-            ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height, "Time offset: ", Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
-            ST7735_FillRectangleFast(element->x + 13 * 7, element->y + 1, 7*7, element->height, UI_COLOR_BG);
-        }
-
-        if (command & UICommand_EncoderStep) {
-            // Modify setting
-            ui_change_setting_i8(&gps_time_offset, encoder_step, GPS_MIN_TIME_OFFSET, GPS_MAX_TIME_OFFSET);
-        }
-
-        if (command & (UICommand_Capture | UICommand_RestoreCapture | UICommand_EncoderStep)) {
-            // Draw value
-            char s[5] = { '\0' };
-            snprintf(s, ARRAY_SIZE(s), "%3d", gps_time_offset);
-            ST7735_WriteStringNoWrap(element->x + 13 * 7, element->y + 1, element->height, s, Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
-        }
-
-        if (command & UICommand_Release) {
-            // Save changes
-            uint32_t new_time_offset = (uint32_t)(gps_time_offset - GPS_MIN_TIME_OFFSET);
-            if (ee_storage.gps_time_offset != new_time_offset) {
-                ee_storage.gps_time_offset = new_time_offset;
-                ee_is_changed = true;
-            }
-        }
-    }
-
-    ui_default_element_proc(element, command, encoder_step);
-}
-
-
-//------------------------------------------------------------------------------
 // Outputs
 //------------------------------------------------------------------------------
 static void ui_proc_out(const UIElement* element, UICommand command, int32_t encoder_step,
@@ -493,7 +531,7 @@ static void ui_proc_out(const UIElement* element, UICommand command, int32_t enc
         ST7735_DrawImage(element->x, element->y + 2, 7, 7, icon_out_7x7);
         char s[3] = { '\0' };
         snprintf(s, ARRAY_SIZE(s), "%1u:", out);
-        ST7735_WriteStringNoWrap(element->x + 7, element->y + 1, element->height - 1, s, Font_7x10, ST7735_COLOR565(34, 177, 76), UI_COLOR_BG);
+        ST7735_WriteStringNoWrap(element->x + 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_OUT_LABEL, UI_COLOR_BG);
 
         // Draw value
         if (!ui_is_captured(element)) {
@@ -591,8 +629,8 @@ static void ui_proc_trend_h(const UIElement* element, UICommand command, int32_t
     if (!ui_is_captured(element)) {
         if (command & (UICommand_Init | UICommand_Release)) {
             // todo
-            ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "H:", Font_7x10, UI_COLOR_TREND, UI_COLOR_BG);
-            ST7735_WriteStringNoWrap(element->x + 2 * 7, element->y + 1, element->height - 1, "10", Font_7x10, UI_COLOR_TREND, UI_COLOR_BG);
+            ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "H:", Font_7x10, UI_COLOR_TREND_BAR, UI_COLOR_BG);
+            ST7735_WriteStringNoWrap(element->x + 2 * 7, element->y + 1, element->height - 1, "10", Font_7x10, UI_COLOR_TREND_BAR, UI_COLOR_BG);
         }
     }
 
@@ -614,8 +652,8 @@ static void ui_proc_trend_v(const UIElement* element, UICommand command, int32_t
     if (!ui_is_captured(element)) {
         if (command & (UICommand_Init | UICommand_Release)) {
             // todo
-            ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "V:", Font_7x10, UI_COLOR_TREND, UI_COLOR_BG);
-            ST7735_WriteStringNoWrap(element->x + 2 * 7, element->y + 1, element->height - 1, "120", Font_7x10, UI_COLOR_TREND, UI_COLOR_BG);
+            ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "V:", Font_7x10, UI_COLOR_TREND_BAR, UI_COLOR_BG);
+            ST7735_WriteStringNoWrap(element->x + 2 * 7, element->y + 1, element->height - 1, "120", Font_7x10, UI_COLOR_TREND_BAR, UI_COLOR_BG);
         }
     }
 
@@ -636,7 +674,7 @@ static void ui_proc_trend_graph(const UIElement* element, UICommand command, int
 {
     if (command & UICommand_Init) {
         // todo
-        ST7735_FillRectangleFast(element->x, element->y, element->width, element->height, ST7735_COLOR565(30, 30, 30));
+        ST7735_FillRectangleFast(element->x, element->y, element->width, element->height, UI_COLOR_TREND_BG);
     }
     // TODO: draw
     ui_default_element_proc(element, command, encoder_step);
