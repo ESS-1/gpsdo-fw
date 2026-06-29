@@ -5,7 +5,8 @@
 #include "st7735.h"
 #include "st7735_config.h"
 
-UIScreen* ui_current_screen = NULL;
+static UIScreen* ui_current_screen = NULL;
+static UIScreen* ui_screen_to_show = NULL;
 
 void ui_default_element_proc(const UIElement* element, UICommand command, int32_t encoder_step)
 {
@@ -40,10 +41,21 @@ bool ui_is_captured(const UIElement* element)
     return (ui_current_screen != NULL) && ui_current_screen->is_input_captured && (ui_current_screen->focused_element == element);
 }
 
-void ui_show_screen(UIScreen* screen)
+UIScreen* ui_get_active_screen()
+{
+    return (ui_screen_to_show != NULL)
+        ? ui_screen_to_show
+        : ui_current_screen;
+}
+
+static void ui_force_set_screen(UIScreen* screen)
 {
     ST7735_FillRectangleFast(0, 0, ST7735_WIDTH, ST7735_HEIGHT, UI_COLOR_BG);
     ui_current_screen = screen;
+
+    if (ui_current_screen == NULL) {
+        return;
+    }
 
     for (int32_t i = 0; i < screen->num_elements; ++i)
     {
@@ -61,9 +73,25 @@ void ui_show_screen(UIScreen* screen)
     }
 }
 
+void ui_show_screen(UIScreen* screen)
+{
+    ui_screen_to_show = screen;
+}
+
 void ui_run()
 {
+    if (ui_screen_to_show != NULL) {
+        // Activate new screen
+        ui_force_set_screen(ui_screen_to_show);
+        ui_screen_to_show = NULL;
+    }
+
     if (ui_current_screen == NULL) {
+        return;
+    }
+
+    const int32_t num_elements = ui_current_screen->num_elements;
+    if (num_elements < 1) {
         return;
     }
 
@@ -93,6 +121,11 @@ void ui_run()
         }
     }
 
+    if (ui_screen_to_show != NULL) {
+        // We will show a new screen; no need to update the current controls
+        return;
+    }
+
     // Scroll through controls
     if (!click && step != 0 && !ui_current_screen->is_input_captured)
     {
@@ -102,20 +135,25 @@ void ui_run()
 
         // Find the next element to focus
         int32_t next_element_idx = current_idx;
+        int32_t dir = (step < 0) ? -1 : 1;
+        int32_t attempts = 0;
+        bool    next_element_focusable = false;
+
         do
         {
-            next_element_idx += step;
+            next_element_idx += dir;
             if (next_element_idx < 0) {
-                next_element_idx = ui_current_screen->num_elements - 1;
-            }
-            if (next_element_idx >= ui_current_screen->num_elements) {
+                next_element_idx = num_elements - 1;
+            } else if (next_element_idx >= num_elements) {
                 next_element_idx = 0;
             }
-        } while (next_element_idx != current_idx &&
-                 ((ui_current_screen->elements[next_element_idx].styles & UI_STYLE_FOCUSABLE) == 0));
+
+            next_element_focusable = ((ui_current_screen->elements[next_element_idx].styles & UI_STYLE_FOCUSABLE) != 0);
+            ++attempts;
+        } while (!next_element_focusable && attempts < num_elements);
 
         // Change focused element
-        if (next_element_idx != current_idx) {
+        if (next_element_focusable && next_element_idx != current_idx) {
             const UIElement* focused_element = ui_current_screen->focused_element;
             const UIElement* next_element    = &(ui_current_screen->elements[next_element_idx]);
 
@@ -130,7 +168,7 @@ void ui_run()
     }
 
     // Update all controls
-    for (int i = 0; i < ui_current_screen->num_elements; ++i) {
+    for (int32_t i = 0; i < num_elements; ++i) {
         const UIElement* element = &(ui_current_screen->elements[i]);
         element->proc(element, UICommand_None, 0);
     }

@@ -21,7 +21,7 @@ extern volatile bool     sync_pps_out;
 extern volatile bool     update_trend;
 extern volatile bool     gps_lock_status;
 
-// For correction algorythms
+// For correction algorithms
 // OCXO models
 typedef enum { OCXO_MODEL_ISOTEMP, OCXO_MODEL_OX256B, OCXO_MODEL_UNKNOWN } ocxo_model_type;
 

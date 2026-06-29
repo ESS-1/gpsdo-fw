@@ -38,6 +38,7 @@ static void ui_proc_out1(const UIElement* element, UICommand command, int32_t en
 static void ui_proc_out2(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_pwm(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_trend_h(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_trend_separator(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_trend_v(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_trend_graph(const UIElement* element, UICommand command, int32_t encoder_step);
 
@@ -53,19 +54,20 @@ static const UIElement ui_main_screen_elements[] = {
     { 142, 20, 18,  9,  UI_STYLE_NONE,                                 ui_proc_pps             },
     { 1,   33, 17,  12, UI_STYLE_FOCUSABLE,                            ui_proc_status          },
 //  { 1,   46, 17,  7 } - empty space reserved for the warm-up countdown timer drawn by 'ui_proc_status'
-    { 21,  32, 49,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out1            },
+    { 23,  32, 49,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out1            },
     { 82,  32, 77,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out2            },
-    { 21,  44, 63,  10, UI_STYLE_FOCUSABLE,                            ui_proc_pwm             },
-    { 90,  44, 28,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_h         },
-    { 124, 44, 35,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_v         },
+    { 23,  44, 63,  10, UI_STYLE_FOCUSABLE,                            ui_proc_pwm             },
     // Trend
+    { 91,  44, 28,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_h         },
+    { 120, 44, 3,   10, UI_STYLE_NONE,                                 ui_proc_trend_separator },
+    { 124, 44, 35,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_v         },
     { 0,   55, 160, 25, UI_STYLE_NONE,                                 ui_proc_trend_graph     },
 };
 
 UIScreen ui_main_screen = {
     ui_main_screen_elements,
-    ARRAY_SIZE(ui_main_screen_elements),
     NULL,
+    ARRAY_SIZE(ui_main_screen_elements),
     false,
 };
 
@@ -73,17 +75,56 @@ UIScreen ui_main_screen = {
 //------------------------------------------------------------------------------
 // Main Menu Screen Layout
 //------------------------------------------------------------------------------
-//TODO: procs
+static void ui_proc_menu_main_label(const UIElement* element, UICommand command, int32_t encoder_step);
 
 static const UIElement ui_menu_screen_elements[] = {
-    { 1, 1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main },
+    { 1,  1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main    },
+    { 27, 6, 28, 10, UI_STYLE_NONE,      ui_proc_menu_main_label },
 //TODO
 };
 
 static UIScreen ui_menu_screen = {
     ui_menu_screen_elements,
-    ARRAY_SIZE(ui_menu_screen_elements),
     NULL,
+    ARRAY_SIZE(ui_menu_screen_elements),
+    false,
+};
+
+
+//------------------------------------------------------------------------------
+// GPS Menu Screen Layout
+//------------------------------------------------------------------------------
+static void ui_proc_menu_gps_label(const UIElement* element, UICommand command, int32_t encoder_step);
+
+static const UIElement ui_gps_screen_elements[] = {
+    { 1,  1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main   },
+    { 27, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_gps_label },
+//TODO
+};
+
+static UIScreen ui_gps_screen = {
+    ui_gps_screen_elements,
+    NULL,
+    ARRAY_SIZE(ui_gps_screen_elements),
+    false,
+};
+
+
+//------------------------------------------------------------------------------
+// PPB Menu Screen Layout
+//------------------------------------------------------------------------------
+static void ui_proc_menu_ppb_label(const UIElement* element, UICommand command, int32_t encoder_step);
+
+static const UIElement ui_ppb_screen_elements[] = {
+    { 1,  1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main   },
+    { 27, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_ppb_label },
+//TODO
+};
+
+static UIScreen ui_ppb_screen = {
+    ui_ppb_screen_elements,
+    NULL,
+    ARRAY_SIZE(ui_ppb_screen_elements),
     false,
 };
 
@@ -185,7 +226,7 @@ static void ui_proc_gps(const UIElement* element, UICommand command, int32_t enc
     }
 
     if (command & UICommand_Click) {
-        // todo
+        ui_show_screen(&ui_gps_screen);
     }
 
     ui_default_element_proc(element, command, encoder_step);
@@ -227,7 +268,7 @@ static void ui_proc_ppb(const UIElement* element, UICommand command, int32_t enc
     }
 
     if (command & UICommand_Click) {
-        //TODO
+        ui_show_screen(&ui_ppb_screen);
     }
 
     ui_default_element_proc(element, command, encoder_step);
@@ -629,8 +670,9 @@ static void ui_proc_trend_h(const UIElement* element, UICommand command, int32_t
     if (!ui_is_captured(element)) {
         if (command & (UICommand_Init | UICommand_Release)) {
             // todo
-            ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "H:", Font_7x10, UI_COLOR_TREND_BAR, UI_COLOR_BG);
-            ST7735_WriteStringNoWrap(element->x + 2 * 7, element->y + 1, element->height - 1, "10", Font_7x10, UI_COLOR_TREND_BAR, UI_COLOR_BG);
+            ST7735_FillRectangleFast(element->x, element->y, element->width, 1, UI_COLOR_TREND_BG);
+            ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "H:", Font_7x10, UI_COLOR_TREND_BAR, UI_COLOR_TREND_BG);
+            ST7735_WriteStringNoWrap(element->x + 2 * 7, element->y + 1, element->height - 1, "10", Font_7x10, UI_COLOR_TREND_BAR, UI_COLOR_TREND_BG);
         }
     }
 
@@ -647,13 +689,23 @@ static void ui_proc_trend_h(const UIElement* element, UICommand command, int32_t
     ui_default_element_proc(element, command, encoder_step);
 }
 
+static void ui_proc_trend_separator(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    if (command & UICommand_Init) {
+        ST7735_FillRectangle(element->x, element->y, element->width, element->height, UI_COLOR_TREND_BG);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
 static void ui_proc_trend_v(const UIElement* element, UICommand command, int32_t encoder_step)
 {
     if (!ui_is_captured(element)) {
         if (command & (UICommand_Init | UICommand_Release)) {
             // todo
-            ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "V:", Font_7x10, UI_COLOR_TREND_BAR, UI_COLOR_BG);
-            ST7735_WriteStringNoWrap(element->x + 2 * 7, element->y + 1, element->height - 1, "120", Font_7x10, UI_COLOR_TREND_BAR, UI_COLOR_BG);
+            ST7735_FillRectangleFast(element->x, element->y, element->width, 1, UI_COLOR_TREND_BG);
+            ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "V:", Font_7x10, UI_COLOR_TREND_BAR, UI_COLOR_TREND_BG);
+            ST7735_WriteStringNoWrap(element->x + 2 * 7, element->y + 1, element->height - 1, "120", Font_7x10, UI_COLOR_TREND_BAR, UI_COLOR_TREND_BG);
         }
     }
 
@@ -677,5 +729,44 @@ static void ui_proc_trend_graph(const UIElement* element, UICommand command, int
         ST7735_FillRectangleFast(element->x, element->y, element->width, element->height, UI_COLOR_TREND_BG);
     }
     // TODO: draw
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+
+//------------------------------------------------------------------------------
+// Main Menu Procedures
+//------------------------------------------------------------------------------
+static void ui_proc_menu_main_label(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y, 10, "MENU", Font_7x10, UI_COLOR_MENU_TITLE, UI_COLOR_BG);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+
+//------------------------------------------------------------------------------
+// GPS Menu Procedures
+//------------------------------------------------------------------------------
+static void ui_proc_menu_gps_label(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y, 10, "GPS", Font_7x10, UI_COLOR_MENU_TITLE, UI_COLOR_BG);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+
+//------------------------------------------------------------------------------
+// PPB Menu Procedures
+//------------------------------------------------------------------------------
+static void ui_proc_menu_ppb_label(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y, 10, "PPB", Font_7x10, UI_COLOR_MENU_TITLE, UI_COLOR_BG);
+    }
+
     ui_default_element_proc(element, command, encoder_step);
 }

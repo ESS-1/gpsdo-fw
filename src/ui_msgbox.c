@@ -17,21 +17,21 @@ static void ui_msgbox_proc_no(const UIElement* element, UICommand command, int32
 // Message Box screen
 static const UIElement ui_msgbox_ok_screen_elements[] = {
     { 1,  1, 15,  16, UI_STYLE_FOCUSABLE, ui_msgbox_proc_back  },
-    { 22, 4, 133, 34, UI_STYLE_NONE,      ui_msgbox_proc_label },
+    { 22, 6, 133, 34, UI_STYLE_NONE,      ui_msgbox_proc_label },
     { 70, 48, 38, 21, UI_STYLE_FOCUSABLE, ui_msgbox_proc_ok    },
 };
 
 static const UIElement ui_msgbox_yesno_screen_elements[] = {
     { 1,  1, 15,  16, UI_STYLE_FOCUSABLE, ui_msgbox_proc_back  },
-    { 22, 4, 133, 34, UI_STYLE_NONE,      ui_msgbox_proc_label },
+    { 22, 6, 133, 34, UI_STYLE_NONE,      ui_msgbox_proc_label },
     { 43, 48, 39, 21, UI_STYLE_FOCUSABLE, ui_msgbox_proc_yes   },
     { 95, 48, 38, 21, UI_STYLE_FOCUSABLE, ui_msgbox_proc_no    },
 };
 
 static UIScreen ui_msgbox_screen = {
     NULL,
-    0,
     NULL,
+    0,
     false,
 };
 
@@ -46,12 +46,13 @@ static bool               ui_msgbox_type_error      = false;
 // Message Box API
 bool ui_msgbox(const char* const message[], UI_MsgBoxType type, UI_MsgBoxButton selected_button, UI_MsgBoxHandler handler)
 {
-    if (ui_current_screen == &ui_msgbox_screen) {
+    UIScreen *active_screen = ui_get_active_screen();
+    if (active_screen == &ui_msgbox_screen) {
         // Cannot invoke a message box from within another message box handler
         return false;
     }
 
-    ui_msgbox_previous_screen = ui_current_screen;
+    ui_msgbox_previous_screen = active_screen;
 
     ui_msgbox_screen.focused_element   = NULL;
     ui_msgbox_screen.is_input_captured = false;
