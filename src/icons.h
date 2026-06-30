@@ -20,6 +20,10 @@ extern const uint16_t icon_status_ok_warmup_15x12[];
 extern const uint16_t icon_status_err_15x12[];
 extern const uint16_t icon_status_err_warmup_15x12[];
 extern const uint16_t icon_out_7x7[];
+extern const uint16_t icon_page_left_10x15[];
+extern const uint16_t icon_page_left_inactive_10x15[];
+extern const uint16_t icon_page_right_10x15[];
+extern const uint16_t icon_page_right_inactive_10x15[];
 
 extern const uint16_t icon_digits_0_9_5x7[10][35];
 extern const uint16_t icon_spinner_12st_7x7[12][49];

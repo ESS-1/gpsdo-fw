@@ -23,6 +23,15 @@
 
 
 static void ui_proc_back_to_main(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_label(const UIElement* element, UICommand command, int32_t encoder_step, const char* label);
+static void ui_proc_menu_label_page_1of2(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_label_page_2of2(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_readonly_entry(const UIElement* element, UICommand command, int32_t encoder_step, const char* label, int32_t value_offset, const char* value);
+static void ui_proc_menu_page_switch(const UIElement* element, UICommand command, int32_t encoder_step, const uint16_t* icon_10x15, UIScreen* page);
+static void ui_proc_menu_page_left(const UIElement* element, UICommand command, int32_t encoder_step, UIScreen* left_page);
+static void ui_proc_menu_page_right(const UIElement* element, UICommand command, int32_t encoder_step, UIScreen* right_page);
+static void ui_proc_menu_page_left_inactive(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_page_right_inactive(const UIElement* element, UICommand command, int32_t encoder_step);
 
 
 //------------------------------------------------------------------------------
@@ -50,7 +59,7 @@ static const UIElement ui_main_screen_elements[] = {
     { 17,  1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_save },
     { 33,  1, 38, 16, UI_STYLE_FOCUSABLE, ui_proc_gps  },
     { 72,  1, 71, 16, UI_STYLE_FOCUSABLE, ui_proc_ppb  },
-    { 144, 1, 16, 16, UI_STYLE_NONE,      ui_proc_usb  },
+    { 144, 1, 16, 16, UI_STYLE_FOCUSABLE, ui_proc_usb  },
     // Main part
     { 1,   19, 140, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_datetime        },
     { 142, 20, 18,  9,  UI_STYLE_NONE,                                 ui_proc_pps             },
@@ -106,17 +115,40 @@ static UIScreen ui_menu_screen = {
 // GPS Menu Screen Layout
 //------------------------------------------------------------------------------
 static void ui_proc_menu_gps_label(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_gps_to_page1(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_gps_to_page2(const UIElement* element, UICommand command, int32_t encoder_step);
 
-static const UIElement ui_gps_screen_elements[] = {
-    { 1,  1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main   },
-    { 27, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_gps_label },
+// Page 1
+static const UIElement ui_gps_screen_elements_page1[] = {
+    { 1,   1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main            },
+    { 27,  6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_gps_label          },
+    { 116, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_page_left_inactive },
+    { 127, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_label_page_1of2    },
+    { 149, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_gps_to_page2       },
 //TODO
 };
 
-static UIScreen ui_gps_screen = {
-    ui_gps_screen_elements,
+static UIScreen ui_gps_screen_page1 = {
+    ui_gps_screen_elements_page1,
     NULL,
-    ARRAY_SIZE(ui_gps_screen_elements),
+    ARRAY_SIZE(ui_gps_screen_elements_page1),
+    false,
+};
+
+// Page 2
+static const UIElement ui_gps_screen_elements_page2[] = {
+    { 1,   1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main             },
+    { 27,  6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_gps_label           },
+    { 116, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_gps_to_page1        },
+    { 127, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_label_page_2of2     },
+    { 149, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_page_right_inactive },
+//TODO
+};
+
+static UIScreen ui_gps_screen_page2 = {
+    ui_gps_screen_elements_page2,
+    NULL,
+    ARRAY_SIZE(ui_gps_screen_elements_page2),
     false,
 };
 
@@ -141,7 +173,7 @@ static UIScreen ui_ppb_screen = {
 
 
 //------------------------------------------------------------------------------
-// Back to Main
+// Common Procedures
 //------------------------------------------------------------------------------
 static void ui_proc_back_to_main(const UIElement* element, UICommand command, int32_t encoder_step)
 {
@@ -153,6 +185,67 @@ static void ui_proc_back_to_main(const UIElement* element, UICommand command, in
     }
 
     ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_proc_menu_label(const UIElement* element, UICommand command, int32_t encoder_step, const char* label)
+{
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y, 10, label, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_proc_menu_label_page_1of2(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_proc_menu_label(element, command, encoder_step, "1/2");
+}
+
+static void ui_proc_menu_label_page_2of2(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_proc_menu_label(element, command, encoder_step, "2/2");
+}
+
+static void ui_proc_menu_readonly_entry(const UIElement* element, UICommand command, int32_t encoder_step, const char* label, int32_t value_offset, const char* value)
+{
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, label, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+        ST7735_WriteStringNoWrap(element->x + value_offset * 7, element->y + 1, element->height - 1, value, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_proc_menu_page_switch(const UIElement* element, UICommand command, int32_t encoder_step, const uint16_t* icon_10x15, UIScreen* page)
+{
+    if (command & UICommand_Init) {
+        ST7735_DrawImage(element->x, element->y, 10, 15, icon_10x15);
+    }
+    if ((command & UICommand_Click) && page != NULL) {
+        ui_show_screen(page);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_proc_menu_page_left(const UIElement* element, UICommand command, int32_t encoder_step, UIScreen *left_page)
+{
+    ui_proc_menu_page_switch(element, command, encoder_step, icon_page_left_10x15, left_page);
+}
+
+static void ui_proc_menu_page_right(const UIElement* element, UICommand command, int32_t encoder_step, UIScreen *right_page)
+{
+    ui_proc_menu_page_switch(element, command, encoder_step, icon_page_right_10x15, right_page);
+}
+
+static void ui_proc_menu_page_left_inactive(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_proc_menu_page_switch(element, command, encoder_step, icon_page_left_inactive_10x15, NULL);
+}
+
+static void ui_proc_menu_page_right_inactive(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_proc_menu_page_switch(element, command, encoder_step, icon_page_right_inactive_10x15, NULL);
 }
 
 
@@ -188,8 +281,8 @@ static void ui_proc_save(const UIElement* element, UICommand command, int32_t en
     if ((command & UICommand_Click) && ui_cache_ee_is_changed) {
         static const char* const msg[] = {
             "Save current device",
-            " configuration to",
-            "      EEPROM?",
+            "configuration to",
+            "EEPROM?",
             NULL };
         ui_msgbox(msg, UI_MsgBoxType_YesNo, UI_MsgBoxButton_No, ui_proc_save_handler);
     }
@@ -204,8 +297,8 @@ static void ui_proc_save_handler(UI_MsgBoxButton result)
         if (!ee_save_config()) {
             // EEPROM write failed
             static const char* const msg[] = {
-                "    Cannot save",
-                "   configuration:",
+                "Cannot save",
+                "configuration:",
                 "EEPROM write failed",
                 NULL };
             ui_msgbox(msg, UI_MsgBoxType_Error, UI_MsgBoxButton_Ok, NULL);
@@ -237,7 +330,7 @@ static void ui_proc_gps(const UIElement* element, UICommand command, int32_t enc
     }
 
     if (command & UICommand_Click) {
-        ui_show_screen(&ui_gps_screen);
+        ui_show_screen(&ui_gps_screen_page1);
     }
 
     ui_default_element_proc(element, command, encoder_step);
@@ -305,6 +398,39 @@ static void ui_proc_usb(const UIElement* element, UICommand command, int32_t enc
         case CDC_STATUS_NO_CONN:
         default:
             ST7735_DrawImage(element->x, element->y, 16, 16, icon_usb_err_16x16);
+            break;
+        }
+    }
+
+    if (command & UICommand_Click) {
+        switch (ui_cache_cdcio_status) {
+        case CDC_STATUS_OK:
+            {
+                static const char* const msg[] = {
+                    "USB connected",
+                    NULL };
+                ui_msgbox(msg, UI_MsgBoxType_Ok, UI_MsgBoxButton_Ok, NULL);
+            }
+            break;
+
+        case CDC_STATUS_OVERFLOW:
+            {
+                static const char* const msg[] = {
+                    "USB connected",
+                    "PC software is not running",
+                    NULL };
+                ui_msgbox(msg, UI_MsgBoxType_Ok, UI_MsgBoxButton_Ok, NULL);
+            }
+            break;
+
+        case CDC_STATUS_NO_CONN:
+        default:
+            {
+                static const char* const msg[] = {
+                    "No USB connection",
+                    NULL };
+                ui_msgbox(msg, UI_MsgBoxType_Ok, UI_MsgBoxButton_Ok, NULL);
+            }
             break;
         }
     }
@@ -667,8 +793,8 @@ static void ui_proc_pwm(const UIElement* element, UICommand command, int32_t enc
         }
 
         static const char* const msg[] = {
-            " The PWM value has",
-            "     been set.",
+            "The PWM value has",
+            "been set",
             NULL };
         ui_msgbox(msg, UI_MsgBoxType_Ok, UI_MsgBoxButton_Ok, NULL);
     }
@@ -753,11 +879,7 @@ static void ui_proc_trend_graph(const UIElement* element, UICommand command, int
 //------------------------------------------------------------------------------
 static void ui_proc_menu_main_label(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-    if (command & UICommand_Init) {
-        ST7735_WriteStringNoWrap(element->x, element->y, 10, "MENU", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
-    }
-
-    ui_default_element_proc(element, command, encoder_step);
+    ui_proc_menu_label(element, command, encoder_step, "MENU");
 }
 
 static uint8_t ui_edit_brightness = 0;
@@ -833,39 +955,22 @@ static void ui_proc_menu_main_uptime(const UIElement* element, UICommand command
 
 static void ui_proc_menu_main_model(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-    if (command & UICommand_Init) {
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "Model:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
-        ST7735_WriteStringNoWrap(element->x + 16 * 7, element->y + 1, element->height - 1, DEVICE_MODEL, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
-    }
-
-    ui_default_element_proc(element, command, encoder_step);
+    ui_proc_menu_readonly_entry(element, command, encoder_step, "Model:", 16, DEVICE_MODEL);
 }
 
 static void ui_proc_menu_main_sn(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-    if (command & UICommand_Init) {
-        // Draw label
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "S/N:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    uint32_t uid_w0 = *(volatile uint32_t*)UID_BASE;
+    uint32_t uid_w1 = *(volatile uint32_t*)(UID_BASE + 4);
+    char     s[17]  = { '\0' };
+    snprintf(s, ARRAY_SIZE(s), "%08" PRIX32 "%08" PRIX32, uid_w0, uid_w1);
 
-        // Draw value
-        uint32_t uid_w0 = *(volatile uint32_t*)UID_BASE;
-        uint32_t uid_w1 = *(volatile uint32_t*)(UID_BASE + 4);
-        char     s[17]  = { '\0' };
-        snprintf(s, ARRAY_SIZE(s), "%08" PRIX32 "%08" PRIX32, uid_w0, uid_w1);
-        ST7735_WriteStringNoWrap(element->x + 6 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
-    }
-
-    ui_default_element_proc(element, command, encoder_step);
+    ui_proc_menu_readonly_entry(element, command, encoder_step, "S/N:", 6, s);
 }
 
 static void ui_proc_menu_main_version(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-    if (command & UICommand_Init) {
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "Version:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
-        ST7735_WriteStringNoWrap(element->x + 12 * 7, element->y + 1, element->height - 1, FIRMWARE_VERSION, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
-    }
-
-    ui_default_element_proc(element, command, encoder_step);
+    ui_proc_menu_readonly_entry(element, command, encoder_step, "Version:", 12, FIRMWARE_VERSION);
 }
 
 
@@ -874,11 +979,17 @@ static void ui_proc_menu_main_version(const UIElement* element, UICommand comman
 //------------------------------------------------------------------------------
 static void ui_proc_menu_gps_label(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-    if (command & UICommand_Init) {
-        ST7735_WriteStringNoWrap(element->x, element->y, 10, "GPS", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
-    }
+    ui_proc_menu_label(element, command, encoder_step, "GPS");
+}
 
-    ui_default_element_proc(element, command, encoder_step);
+static void ui_proc_menu_gps_to_page2(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_proc_menu_page_right(element, command, encoder_step, &ui_gps_screen_page2);
+}
+
+static void ui_proc_menu_gps_to_page1(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_proc_menu_page_left(element, command, encoder_step, &ui_gps_screen_page1);
 }
 
 
@@ -887,9 +998,5 @@ static void ui_proc_menu_gps_label(const UIElement* element, UICommand command, 
 //------------------------------------------------------------------------------
 static void ui_proc_menu_ppb_label(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-    if (command & UICommand_Init) {
-        ST7735_WriteStringNoWrap(element->x, element->y, 10, "PPB", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
-    }
-
-    ui_default_element_proc(element, command, encoder_step);
+    ui_proc_menu_label(element, command, encoder_step, "PPB");
 }
