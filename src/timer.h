@@ -1,5 +1,5 @@
-#ifndef _PLL_5AB4F8B44E12_H_
-#define _PLL_5AB4F8B44E12_H_
+#ifndef _TIMER_5AB4F8B44E12_H_
+#define _TIMER_5AB4F8B44E12_H_
 
 #include <stdint.h>
 #include <stdbool.h>

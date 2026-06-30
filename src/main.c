@@ -5,7 +5,7 @@
 #include "eeprom.h"
 #include "frequency.h"
 #include "gps.h"
-#include "menu.h"
+#include "version.h"
 #include "ui.h"
 #include "int.h"
 #include "tim.h"
@@ -124,7 +124,7 @@ void gpsdo()
         ee_storage.brightness = 50;
         ee_is_changed         = true;
     }
-    update_brightness();
+    set_brightness(ee_storage.brightness);
     if (ee_storage.pps_sync_on == 0xff) {
         ee_storage.pps_sync_on = true;
         ee_is_changed          = true;

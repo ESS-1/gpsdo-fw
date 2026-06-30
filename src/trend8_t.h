@@ -1,5 +1,5 @@
-#ifndef _TREND8_T_H_
-#define _TREND8_T_H_
+#ifndef _TREND8_T_A6E097742470_H_
+#define _TREND8_T_A6E097742470_H_
 
 #include <stdint.h>
 
@@ -65,4 +65,4 @@ static inline uint32_t decode_trend8_t(trend8_t c)
     return val;
 }
 
-#endif // _TREND8_T_H_
+#endif // _TREND8_T_A6E097742470_H_

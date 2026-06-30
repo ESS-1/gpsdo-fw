@@ -1,5 +1,5 @@
-#ifndef _BOOTLOG_H_
-#define _BOOTLOG_H_
+#ifndef _BOOTLOG_58B39A7297C6_H_
+#define _BOOTLOG_58B39A7297C6_H_
 
 #include <stdbool.h>
 

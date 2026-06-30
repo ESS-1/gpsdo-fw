@@ -1,5 +1,10 @@
+#ifndef _SI5351_CONFIG_048A9F940AA3_H_
+#define _SI5351_CONFIG_048A9F940AA3_H_
+
 #define SI5351_ADDRESS 0x60
 #define I2C_HANDLE hi2c1
 extern I2C_HandleTypeDef I2C_HANDLE;
 
 #define SI5351_XTAL_FREQ 10000000
+
+#endif

@@ -1,5 +1,5 @@
-#ifndef _INT_H_
-#define _INT_H_
+#ifndef _INT_060B0C260189_H_
+#define _INT_060B0C260189_H_
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -28,7 +28,7 @@ typedef enum { OCXO_MODEL_ISOTEMP, OCXO_MODEL_OX256B, OCXO_MODEL_UNKNOWN } ocxo_
 // Correction algorithms
 typedef enum { CORRECTION_ALGO_DANKAR, CORRECTION_ALGO_FREDZO, CORRECTION_ALGO_ERIC_H, CORRECTION_ALGO_ERIC_H_PLUS } correction_algo_type;
 
-void update_brightness();
+void set_brightness(uint8_t brightness);
 
 uint32_t get_default_correction_factor(correction_algo_type algo);
 

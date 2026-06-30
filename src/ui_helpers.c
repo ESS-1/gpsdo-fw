@@ -60,26 +60,41 @@ const char* ui_get_month_name_3char(uint8_t month_num)
     return months[month_num];
 }
 
-void ui_change_setting_i8(int8_t* value, int32_t step, int8_t min, int8_t max)
+void ui_change_setting_i8(int8_t* value, int32_t step, int8_t min, int8_t max, bool wrap_around)
 {
-    int8_t v = (*value) + step;
+    int32_t v = (int32_t)(*value) + step;
+
     if (v > max) {
-        *value = min;
+        *value = wrap_around ? min : max;
     } else if (v < min) {
-        *value = max;
+        *value = wrap_around ? max : min;
     } else {
-        *value = v;
+        *value = (int8_t)v;
     }
 }
 
-void ui_change_setting_u16(uint16_t* value, int32_t step, uint16_t max)
+void ui_change_setting_u16(uint16_t* value, int32_t step, uint16_t min, uint16_t max, bool wrap_around)
 {
-    int32_t v = (*value) + step;
+    int32_t v = (int32_t)(*value) + step;
+
     if (v > max) {
-        *value = 0;
-    } else if (v < 0) {
-        *value = max;
+        *value = wrap_around ? min : max;
+    } else if (v < min) {
+        *value = wrap_around ? max : min;
     } else {
         *value = (uint16_t)v;
+    }
+}
+
+void ui_change_setting_u8(uint8_t* value, int32_t step, uint8_t min, uint8_t max, bool wrap_around)
+{
+    int32_t v = (int32_t)(*value) + step;
+
+    if (v > max) {
+        *value = wrap_around ? min : max;
+    } else if (v < min) {
+        *value = wrap_around ? max : min;
+    } else {
+        *value = (uint8_t)v;
     }
 }

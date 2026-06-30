@@ -1,5 +1,5 @@
-#ifndef _EEPROM_H_
-#define _EEPROM_H_
+#ifndef _EEPROM_E0F460175E35_H_
+#define _EEPROM_E0F460175E35_H_
 
 #include "ee.h"
 #include <stdint.h>

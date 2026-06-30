@@ -1,5 +1,5 @@
-#ifndef _FREQUENCY_H_
-#define _FREQUENCY_H_
+#ifndef _FREQUENCY_76AB08914AC0_H_
+#define _FREQUENCY_76AB08914AC0_H_
 
 #include <stdbool.h>
 #include <stddef.h>

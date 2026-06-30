@@ -155,11 +155,6 @@ static void ui_msgbox_proc_label(const UIElement* element, UICommand command, in
             ++line;
         };
 
-        // The first 'UICommand_Init' call is performed synchronously when 'ui_msgbox'
-        // calls 'ui_show_screen(&ui_msgbox_screen)'. Therefore, at that moment,
-        // we can safely access 'ui_msgbox_message' even if it was allocated on the stack.
-        // After that call, we should not access it because it may become invalid,
-        // so we assign 'NULL' to it to prevent any possibility of this happening.
         ui_msgbox_message = NULL;
     }
 

@@ -1,5 +1,5 @@
-#ifndef _GPS_H_
-#define _GPS_H_
+#ifndef _GPS_890A365E2D91_H_
+#define _GPS_890A365E2D91_H_
 
 #include <stdint.h>
 #include <stdbool.h>

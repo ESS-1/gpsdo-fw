@@ -2,7 +2,6 @@
 #include "frequency.h"
 #include "tim.h"
 #include "eeprom.h"
-#include "menu.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -275,9 +274,9 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
     }
 }
 
-void update_brightness()
+void set_brightness(uint8_t brightness)
 {
-    uint32_t pwm_value = ee_storage.brightness * 0xFFFF / 100;
+    uint32_t pwm_value = brightness * 0xFFFF / 100;
     TIM1->CCR3 = pwm_value;
 }
 

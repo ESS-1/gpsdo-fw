@@ -562,19 +562,9 @@
 //            }
 //        }
 //        break;
-//    case SCREEN_UPTIME:
-//        LCD_Puts(1, 0, "UPTIME:");
-//        snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", device_uptime);
-//        LCD_Puts(0, 1, screen_buffer);
-//        break;
 //    case SCREEN_FRAMES:
 //        LCD_Puts(1, 0, "GGA FR:");
 //        snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", gga_frames);
-//        LCD_Puts(0, 1, screen_buffer);
-//        break;
-//    case SCREEN_BRIGHTNESS:
-//        LCD_Puts(1, 0, menu_level == 0 ? "BRIGHT:":"BRIGHT?");
-//        snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%d", ee_storage.brightness);
 //        LCD_Puts(0, 1, screen_buffer);
 //        break;
 //    case SCREEN_PPS:
@@ -638,46 +628,15 @@
 //            }
 //        }
 //        break;
-//    case SCREEN_VERSION:
-//        if(menu_level == 0)
-//        {
-//            LCD_Puts(1, 0, "Vers.:");
-//            LCD_Puts(0, 1, FIRMWARE_VERSION);
-//        }
-//        else
-//        {
-//            // Print MCU info
-//            snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "MCU %dK", *(uint16_t*)FLASHSIZE_BASE);
-//            LCD_Puts(0, 0, screen_buffer);
-//            snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%08lX", DBGMCU->IDCODE);
-//            LCD_Puts(0, 1, screen_buffer);
-//        }
-//        break;
 //    }
 //}
 //
 //void menu_run()
 //{
-//    // Detect rotary encoder value change
-//    uint32_t new_encoder_value = TIM4->CNT / 2;
-//
 //    if(new_encoder_value != last_encoder_value)
 //    {
 //        if(menu_level == 0)
 //        else if(menu_level == 1)
-//        {   // Sub menu
-//            switch(current_menu_screen)
-//            {
-//                case SCREEN_BRIGHTNESS:
-//                    // Update brightness
-//                    ee_storage.brightness += encoder_increment*5;
-//                    if(ee_storage.brightness < 5) ee_storage.brightness = 5;
-//                    if(ee_storage.brightness > 100) ee_storage.brightness = 100;
-//                    ee_is_changed = true;
-//                    update_brightness();
-//                    break;
-//            }
-//        }
 //        else if(menu_level == 2 && current_menu_screen == SCREEN_TREND)
 //        {   // Sub-sub menu for TREND screen
 //            switch(current_menu_trend_screen)

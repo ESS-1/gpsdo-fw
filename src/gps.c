@@ -1,7 +1,6 @@
 #include "gps.h"
 #include "main.h"
 #include "int.h"
-#include "menu.h"
 #include "stm32f1xx_hal_uart.h"
 #include "usbd_cdc_if.h"
 #include "usart.h"
