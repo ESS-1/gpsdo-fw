@@ -26,6 +26,9 @@ static void ui_proc_back_to_main(const UIElement* element, UICommand command, in
 static void ui_proc_menu_label(const UIElement* element, UICommand command, int32_t encoder_step, const char* label);
 static void ui_proc_menu_label_page_1of2(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_menu_label_page_2of2(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_label_page_1of3(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_label_page_2of3(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_label_page_3of3(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_menu_readonly_entry(const UIElement* element, UICommand command, int32_t encoder_step, const char* label, int32_t value_offset, const char* value);
 static void ui_proc_menu_page_switch(const UIElement* element, UICommand command, int32_t encoder_step, const uint16_t* icon_10x15, UIScreen* page);
 static void ui_proc_menu_page_left(const UIElement* element, UICommand command, int32_t encoder_step, UIScreen* left_page);
@@ -94,8 +97,10 @@ static void ui_proc_menu_main_sn(const UIElement* element, UICommand command, in
 static void ui_proc_menu_main_version(const UIElement* element, UICommand command, int32_t encoder_step);
 
 static const UIElement ui_menu_screen_elements[] = {
+    // Header
     { 1,  1,  15,  16, UI_STYLE_FOCUSABLE,                            ui_proc_back_to_main         },
     { 27, 6,  28,  10, UI_STYLE_NONE,                                 ui_proc_menu_main_label      },
+    // Content
     { 1,  20, 154, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_menu_main_brightness },
     { 1,  32, 154, 11, UI_STYLE_NONE,                                 ui_proc_menu_main_uptime     },
     { 1,  44, 154, 11, UI_STYLE_NONE,                                 ui_proc_menu_main_model      },
@@ -116,15 +121,25 @@ static UIScreen ui_menu_screen = {
 //------------------------------------------------------------------------------
 static void ui_proc_menu_gps_label(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_menu_gps_to_page1(const UIElement* element, UICommand command, int32_t encoder_step);
-static void ui_proc_menu_gps_to_page2(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_gps_to_page2_right(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_gps_to_page2_left(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_gps_to_page3(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_gps_module(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_gps_baud_rate(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_gps_gga_frames(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_gps_errors_1(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_gps_errors_2(const UIElement* element, UICommand command, int32_t encoder_step);
+
 
 // Page 1
 static const UIElement ui_gps_screen_elements_page1[] = {
+    // Header
     { 1,   1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main            },
     { 27,  6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_gps_label          },
     { 116, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_page_left_inactive },
-    { 127, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_label_page_1of2    },
-    { 149, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_gps_to_page2       },
+    { 127, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_label_page_1of3    },
+    { 149, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_gps_to_page2_right },
+    // Content
 //TODO
 };
 
@@ -137,11 +152,13 @@ static UIScreen ui_gps_screen_page1 = {
 
 // Page 2
 static const UIElement ui_gps_screen_elements_page2[] = {
-    { 1,   1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main             },
-    { 27,  6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_gps_label           },
-    { 116, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_gps_to_page1        },
-    { 127, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_label_page_2of2     },
-    { 149, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_page_right_inactive },
+    // Header
+    { 1,   1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main         },
+    { 27,  6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_gps_label       },
+    { 116, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_gps_to_page1    },
+    { 127, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_label_page_2of3 },
+    { 149, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_gps_to_page3    },
+    // Content
 //TODO
 };
 
@@ -152,6 +169,29 @@ static UIScreen ui_gps_screen_page2 = {
     false,
 };
 
+// Page 3
+static const UIElement ui_gps_screen_elements_page3[] = {
+    // Header
+    { 1,   1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main             },
+    { 27,  6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_gps_label           },
+    { 116, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_gps_to_page2_left   },
+    { 127, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_label_page_3of3     },
+    { 149, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_page_right_inactive },
+    // Content
+    { 1,  20, 154, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_menu_gps_module     },
+    { 1,  32, 154, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_menu_gps_baud_rate  },
+    { 1,  44, 154, 11, UI_STYLE_NONE,                                 ui_proc_menu_gps_gga_frames },
+    { 1,  56, 154, 11, UI_STYLE_NONE,                                 ui_proc_menu_gps_errors_1   },
+    { 1,  68, 154, 11, UI_STYLE_NONE,                                 ui_proc_menu_gps_errors_2   },
+};
+
+static UIScreen ui_gps_screen_page3 = {
+    ui_gps_screen_elements_page3,
+    NULL,
+    ARRAY_SIZE(ui_gps_screen_elements_page3),
+    false,
+};
+
 
 //------------------------------------------------------------------------------
 // PPB Menu Screen Layout
@@ -159,8 +199,10 @@ static UIScreen ui_gps_screen_page2 = {
 static void ui_proc_menu_ppb_label(const UIElement* element, UICommand command, int32_t encoder_step);
 
 static const UIElement ui_ppb_screen_elements[] = {
+    // Header
     { 1,  1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main   },
     { 27, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_ppb_label },
+    // Content
 //TODO
 };
 
@@ -197,13 +239,20 @@ static void ui_proc_menu_label(const UIElement* element, UICommand command, int3
 }
 
 static void ui_proc_menu_label_page_1of2(const UIElement* element, UICommand command, int32_t encoder_step)
+
+static void ui_proc_menu_label_page_1of3(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-    ui_proc_menu_label(element, command, encoder_step, "1/2");
+    ui_proc_menu_label(element, command, encoder_step, "1/3");
 }
 
-static void ui_proc_menu_label_page_2of2(const UIElement* element, UICommand command, int32_t encoder_step)
+static void ui_proc_menu_label_page_2of3(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-    ui_proc_menu_label(element, command, encoder_step, "2/2");
+    ui_proc_menu_label(element, command, encoder_step, "2/3");
+}
+
+static void ui_proc_menu_label_page_3of3(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_proc_menu_label(element, command, encoder_step, "3/3");
 }
 
 static void ui_proc_menu_readonly_entry(const UIElement* element, UICommand command, int32_t encoder_step, const char* label, int32_t value_offset, const char* value)
@@ -714,6 +763,8 @@ static void ui_proc_out(const UIElement* element, UICommand command, int32_t enc
         // Draw value
         if (!ui_is_captured(element)) {
             preset_to_draw = &(pll_presets[*ee_preset]);
+        } else {
+            preset_to_draw = &(pll_presets[*ui_edit_preset]);
         }
     }
 
@@ -731,17 +782,14 @@ static void ui_proc_out(const UIElement* element, UICommand command, int32_t enc
             preset_to_draw = &(pll_presets[*ui_edit_preset]);
         }
 
-        if (command & UICommand_RestoreCapture) {
-            preset_to_draw = &(pll_presets[*ui_edit_preset]);
-        }
-
         if (command & UICommand_Release) {
             // Save changes and configure PLL
             if (*ee_preset != *ui_edit_preset) {
                 *ee_preset = *ui_edit_preset;
                 ee_is_changed = true;
+
+                pll_configure_output(out, &(pll_presets[*ee_preset]));
             }
-            pll_configure_output(out, &(pll_presets[*ee_preset]));
         }
     }
 
@@ -982,14 +1030,185 @@ static void ui_proc_menu_gps_label(const UIElement* element, UICommand command, 
     ui_proc_menu_label(element, command, encoder_step, "GPS");
 }
 
-static void ui_proc_menu_gps_to_page2(const UIElement* element, UICommand command, int32_t encoder_step)
+static void ui_proc_menu_gps_to_page1(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_proc_menu_page_left(element, command, encoder_step, &ui_gps_screen_page1);
+}
+
+static void ui_proc_menu_gps_to_page2_right(const UIElement* element, UICommand command, int32_t encoder_step)
 {
     ui_proc_menu_page_right(element, command, encoder_step, &ui_gps_screen_page2);
 }
 
+static void ui_proc_menu_gps_to_page2_left(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_proc_menu_page_left(element, command, encoder_step, &ui_gps_screen_page2);
+}
+
+static void ui_proc_menu_gps_to_page3(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_proc_menu_page_right(element, command, encoder_step, &ui_gps_screen_page3);
+}
+
 static void ui_proc_menu_gps_to_page1(const UIElement* element, UICommand command, int32_t encoder_step)
+static void ui_proc_menu_gps_module(const UIElement* element, UICommand command, int32_t encoder_step)
 {
     ui_proc_menu_page_left(element, command, encoder_step, &ui_gps_screen_page1);
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+void ui_change_baudrate(uint32_t* baudrate, int32_t step)
+{
+    uint32_t b = *baudrate;
+
+    if (step > 0)
+    {
+        if (b < 9600)        b = 9600;
+        else if (b < 19200)  b = 19200;
+        else if (b < 38400)  b = 38400;
+        else if (b < 57600)  b = 57600;
+        else if (b < 115200) b = 115200;
+        else if (b < 230400) b = 230400;
+        else if (b < 460800) b = 460800;
+        else if (b < 921600) b = 921600;
+    }
+    else
+    {
+        if (b > 921600)      b = 921600;
+        else if (b > 460800) b = 460800;
+        else if (b > 230400) b = 230400;
+        else if (b > 115200) b = 115200;
+        else if (b > 57600)  b = 57600;
+        else if (b > 38400)  b = 38400;
+        else if (b > 19200)  b = 19200;
+        else if (b > 9600)   b = 9600;
+    }
+
+    *baudrate = b;
+}
+
+static uint32_t ui_edit_gps_baudrate = GPS_DEFAULT_BAUDRATE;
+static void ui_proc_menu_gps_baud_rate(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    uint32_t *baudrate_to_draw = NULL;
+
+    if (command & UICommand_Init) {
+        // Draw label
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "Baud Rate:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+
+        // Draw value
+        if (!ui_is_captured(element)) {
+            baudrate_to_draw = &(ee_storage.gps_baudrate);
+        } else {
+            baudrate_to_draw = &ui_edit_gps_baudrate;
+        }
+    }
+
+    // Baud rate selection
+    {
+        if (command & UICommand_Capture) {
+            ui_edit_gps_baudrate = ee_storage.gps_baudrate;
+        }
+
+        if (command & UICommand_EncoderStep) {
+            // Modify setting
+            ui_change_baudrate(&ui_edit_gps_baudrate, encoder_step);
+            if ((ee_storage.gps_model == GPS_MODEL_ATGM336H) && ui_edit_gps_baudrate > 115200) {
+                ui_edit_gps_baudrate = 115200;
+            }
+
+            // Draw new value
+            baudrate_to_draw = &ui_edit_gps_baudrate;
+        }
+
+        if (command & UICommand_Release) {
+            // Save changes and re-configure UART
+            if (ee_storage.gps_baudrate != ui_edit_gps_baudrate) {
+                ee_storage.gps_baudrate = ui_edit_gps_baudrate;
+                ee_is_changed = true;
+
+                gps_setbaudrate(ui_edit_gps_baudrate);
+            }
+        }
+    }
+
+    // Draw value
+    if (baudrate_to_draw) {
+        char s[11] = { '\0' };
+        snprintf(s, ARRAY_SIZE(s), "%6" PRIu32, *baudrate_to_draw);
+        ST7735_WriteStringNoWrap(element->x + 16 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static uint32_t ui_cache_gga_frames = 0;
+static void ui_proc_menu_gps_gga_frames(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    // Draw label
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "GGA Frames:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    // Draw value
+    uint32_t frames = gga_frames;
+    if ((command & UICommand_Init) || (frames != ui_cache_gga_frames)) {
+        ui_cache_gga_frames = frames;
+
+        char s[11] = { '\0' };
+        snprintf(s, ARRAY_SIZE(s), "%10" PRIu32, frames);
+        ST7735_WriteStringNoWrap(element->x + 12 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static uint32_t ui_cache_gps_invalid_frames = 0;
+static void ui_proc_menu_gps_errors_1(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    // Draw label
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "Errors:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    // Draw value
+    uint32_t invalid_frames = gps_invalid_frames;
+    if ((command & UICommand_Init) || (invalid_frames != ui_cache_gps_invalid_frames)) {
+        ui_cache_gps_invalid_frames = invalid_frames;
+
+        char s[11] = { '\0' };
+        snprintf(s, ARRAY_SIZE(s), "%10" PRIu32, invalid_frames);
+        ST7735_WriteStringNoWrap(element->x + 12 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static uint32_t ui_cache_gps_fifo_overflow_gps  = 0;
+static uint32_t ui_cache_gps_fifo_overflow_comm = 0;
+static void ui_proc_menu_gps_errors_2(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    // Draw GPS FIFO overflows
+    uint32_t overflow_gps = gps_fifo_overflow_gps;
+    if ((command & UICommand_Init) || (overflow_gps != ui_cache_gps_fifo_overflow_gps)) {
+        ui_cache_gps_fifo_overflow_gps = overflow_gps;
+
+        char s[11] = { '\0' };
+        snprintf(s, ARRAY_SIZE(s), "%10" PRIu32, overflow_gps);
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    // Draw PC Comm. FIFO overflows
+    uint32_t overflow_comm = gps_fifo_overflow_comm;
+    if ((command & UICommand_Init) || (overflow_comm != ui_cache_gps_fifo_overflow_comm)) {
+        ui_cache_gps_fifo_overflow_comm = overflow_comm;
+
+        char s[11] = { '\0' };
+        snprintf(s, ARRAY_SIZE(s), "%10" PRIu32, overflow_comm);
+        ST7735_WriteStringNoWrap(element->x + 12 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
 }
 
 

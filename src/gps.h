@@ -64,7 +64,7 @@ extern uint32_t gps_fifo_overflow_comm;
 void gps_start_it();
 void gps_read();
 
-int  gps_change_module_baudrate(uint32_t baudrate);
-void gps_reconfigure_gps_uart(uint32_t baudrate);
+void gps_setbaudrate(uint32_t baudrate);
+void gps_reset_uart();
 
 #endif

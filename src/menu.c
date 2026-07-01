@@ -1,9 +1,6 @@
 
 #include "trend8_t.h"
 
-//// Possible baudrate values
-//typedef enum { BAUDRATE_9600, BAUDRATE_19200, BAUDRATE_38400, BAUDRATE_57600, BAUDRATE_115200, BAUDRATE_230400, BAUDRATE_460800, BAUDRATE_921600, BAUDRATE_MAX} baudrate;
-//
 //static bool         auto_save_pwm_done  = false;
 //static bool         auto_sync_pps_done  = false;
 //
@@ -18,93 +15,7 @@
 //uint32_t    trend_shift = 0; 
 //uint8_t     trend_arrow = TREND_LEFT_CODE;
 //
-//baudrate    gps_baudrate_enum = BAUDRATE_9600;
-//
 //correction_algo_type displayed_correction_algorithm;
-//
-//uint32_t menu_get_baudrate_value(baudrate baudrate_enum)
-//{
-//    uint32_t result;
-//    switch (baudrate_enum)
-//    {
-//        default:
-//        case BAUDRATE_9600:
-//            result = 9600;
-//            break;
-//        case BAUDRATE_19200:
-//            result = 19200;
-//            break;
-//        case BAUDRATE_38400:
-//            result = 38400;
-//            break;
-//        case BAUDRATE_57600:
-//            result = 57600;
-//            break;
-//        case BAUDRATE_115200:
-//            result = 115200;
-//            break;
-//        case BAUDRATE_230400:
-//            result = 230400;
-//            break;
-//        case BAUDRATE_460800:
-//            result = 460800;
-//            break;
-//        case BAUDRATE_921600:
-//            result = 921600;
-//            break;
-//    }
-//    return result;
-//}
-//
-//baudrate menu_get_baudrate_enum(uint32_t baudrate_value)
-//{
-//    baudrate result;
-//    if(baudrate_value <= 9600)
-//    {
-//        result = BAUDRATE_9600;
-//    }
-//    else if(baudrate_value <= 19200)
-//    {
-//        result = BAUDRATE_19200;
-//    }
-//    else if(baudrate_value <= 38400)
-//    {
-//        result = BAUDRATE_38400;
-//    }
-//    else if(baudrate_value <= 57600)
-//    {
-//        result = BAUDRATE_57600;
-//    }
-//    else if(baudrate_value <= 115200)
-//    {
-//        result = BAUDRATE_115200;
-//    }
-//    else if(baudrate_value <= 230400)
-//    {
-//        result = BAUDRATE_230400;
-//    }
-//    else if(baudrate_value <= 460800)
-//    {
-//        result = BAUDRATE_460800;
-//    }
-//    else // if(baudrate_value <= 921600)
-//    {
-//        result = BAUDRATE_921600;
-//    }
-//    return result;
-//}
-//
-//void menu_set_gps_baudrate(uint32_t baudrate)
-//{
-//    if(baudrate != ee_storage.gps_baudrate)
-//    {   // Baudrate changed
-//        ee_storage.gps_baudrate = baudrate;
-//        ee_is_changed = true;
-//        gps_baudrate_enum = menu_get_baudrate_enum(baudrate);
-//        gps_change_module_baudrate(ee_storage.gps_baudrate);
-//        gps_reconfigure_gps_uart(ee_storage.gps_baudrate);
-//    }
-//}
 //
 //void menu_set_correction_algorithm(correction_algo_type algo)
 //{
@@ -263,7 +174,7 @@
 //        LCD_PutCustom(col_screen,1,col_screen);
 //    }
 //}
-
+//
 //static void menu_format_ppb(int32_t ppb, char *buffer, size_t bufferSize)
 //{
 //    if (ppb == PPB_UNSET_VALUE) {
@@ -277,7 +188,7 @@
 //        snprintf(buffer, bufferSize, "%s%d.%02d", ppb < 0 ? "-" : "", integerPart, decimalPart);
 //    }
 //}
-
+//
 //#define PPB_STRING_SIZE     5
 //#define SCREEN_BUFFER_SIZE  14
 //
@@ -530,16 +441,6 @@
 //                    LCD_Puts(1, 0, "HDOP:");
 //                    LCD_Puts(0, 1, gps_hdop);
 //                    break;
-//                case SCREEN_GPS_BAUDRATE:
-//                    LCD_Puts(1, 0, menu_level == 1 ? "GPS BR:":"GPS BR?");
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", ee_storage.gps_baudrate);
-//                    LCD_Puts(0, 1, screen_buffer);
-//                    break;
-//                case SCREEN_GPS_ERRORS:
-//                    LCD_Puts(1, 0, "GPS Err");
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld/%ld/%ld", gps_invalid_frames, gps_fifo_overflow_gps, gps_fifo_overflow_comm);
-//                    LCD_Puts(0, 1, screen_buffer);
-//                    break;
 //                case SCREEN_GPS_MODEL:
 //                    LCD_Puts(1, 0, menu_level == 1 ? "Model:":"Model?");
 //                    switch(ee_storage.gps_model)
@@ -561,11 +462,6 @@
 //                    break;
 //            }
 //        }
-//        break;
-//    case SCREEN_FRAMES:
-//        LCD_Puts(1, 0, "GGA FR:");
-//        snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", gga_frames);
-//        LCD_Puts(0, 1, screen_buffer);
 //        break;
 //    case SCREEN_PPS:
 //        // Screen with pps
@@ -635,9 +531,7 @@
 //{
 //    if(new_encoder_value != last_encoder_value)
 //    {
-//        if(menu_level == 0)
-//        else if(menu_level == 1)
-//        else if(menu_level == 2 && current_menu_screen == SCREEN_TREND)
+//        if(menu_level == 2 && current_menu_screen == SCREEN_TREND)
 //        {   // Sub-sub menu for TREND screen
 //            switch(current_menu_trend_screen)
 //            {
@@ -769,21 +663,6 @@
 //        {   // Sub-sub menu for GPS screen
 //            switch(current_menu_gps_screen)
 //            {
-//                case SCREEN_GPS_BAUDRATE:
-//                    { // Update GPS module baudrate
-//                        baudrate max_baudrate = BAUDRATE_MAX;
-//                        switch (ee_storage.gps_model)
-//                        {
-//                            case GPS_MODEL_ATGM336H:
-//                                max_baudrate = BAUDRATE_115200 + 1;
-//                                break;
-//                        }
-//                        gps_baudrate_enum = (gps_baudrate_enum + encoder_increment) % max_baudrate;
-//                        if(gps_baudrate_enum >= max_baudrate) gps_baudrate_enum = max_baudrate-1; // Roll over for first screen - 1
-//                        ee_storage.gps_baudrate = menu_get_baudrate_value(gps_baudrate_enum);
-//                        ee_is_changed = true;
-//                    }
-//                    break;
 //                case SCREEN_GPS_MODEL:
 //                    { // Update model
 //                    ee_storage.gps_model =  (ee_storage.gps_model + encoder_increment) % (GPS_MODEL_UNKNOWN+1);
@@ -817,8 +696,7 @@
 //    }
 //
 //    if (rotary_get_click()) {
-//        if (menu_level == 0) {
-//        } else  if (menu_level == 2 && current_menu_screen == SCREEN_PPB){
+//        if (menu_level == 2 && current_menu_screen == SCREEN_PPB){
 //            switch(current_menu_ppb_screen)
 //            {
 //                case SCREEN_PPB_OCXO_MODEL:
@@ -834,17 +712,6 @@
 //                        ee_storage.correction_algorithm = displayed_correction_algorithm;
 //                        ee_is_changed = true;
 //                    }
-//                    break;
-//            }
-//        } else  if (menu_level == 2 && current_menu_screen == SCREEN_GPS){
-//            switch(current_menu_gps_screen)
-//            {
-//                case SCREEN_GPS_BAUDRATE:
-//                        // Reconfigure GPS module
-//                        if(gps_change_module_baudrate(ee_storage.gps_baudrate)>=0)
-//                        {   // Reconfigure UART
-//                            gps_reconfigure_gps_uart(ee_storage.gps_baudrate);
-//                        }
 //                    break;
 //            }
 //        }

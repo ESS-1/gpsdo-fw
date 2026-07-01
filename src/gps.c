@@ -201,6 +201,17 @@ void gps_reconfigure_gps_uart(uint32_t baudrate)
     gps_start_gps_rx();
 }
 
+void gps_setbaudrate(uint32_t baudrate)
+{
+    gps_change_module_baudrate(baudrate);
+    gps_reconfigure_gps_uart(baudrate);
+}
+
+void gps_reset_uart()
+{
+    gps_reconfigure_gps_uart(ee_storage.gps_baudrate);
+}
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 {
     if (huart == &huart3) {

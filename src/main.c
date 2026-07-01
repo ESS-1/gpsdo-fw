@@ -214,7 +214,8 @@ void gpsdo()
     enable_usb();
     gps_start_it();
 
-//todo    menu_set_gps_baudrate(ee_storage.gps_baudrate);
+    gps_setbaudrate(ee_storage.gps_baudrate);
+
 //todo    menu_set_correction_algorithm(ee_storage.correction_algorithm);
 
 //todo    init_trend_values();
@@ -239,7 +240,7 @@ void gpsdo()
         }
         if((now - last_frame_receive_time) > GPS_FRAME_WAIT_DELAY)
         {   // We've not been receiving a frame from GPS for too long, try and restart UART
-            gps_reconfigure_gps_uart(ee_storage.gps_baudrate);
+            gps_reset_uart();
             last_frame_receive_time = now;
         }
         
