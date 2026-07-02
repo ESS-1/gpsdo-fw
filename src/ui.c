@@ -508,7 +508,8 @@ static void ui_proc_usb(const UIElement* element, UICommand command, int32_t enc
             {
                 static const char* const msg[] = {
                     "USB connected",
-                    "PC software is not running",
+                    "PC software is not",
+                    "running",
                     NULL };
                 ui_msgbox(msg, UI_MsgBoxType_Ok, UI_MsgBoxButton_Ok, NULL);
             }
