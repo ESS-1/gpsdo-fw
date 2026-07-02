@@ -1231,21 +1231,27 @@ void ui_change_baudrate(uint32_t* baudrate, int32_t step)
     *baudrate = b;
 }
 
+static uint32_t ui_cache_gps_baudrate = 0;
 static uint32_t ui_edit_gps_baudrate = 0;
 static void ui_proc_menu_gps_baud_rate(const UIElement* element, UICommand command, int32_t encoder_step)
 {
     uint32_t *baudrate_to_draw = NULL;
+    bool is_captured = ui_is_captured(element);
 
     if (command & UICommand_Init) {
         // Draw label
         ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "Baud Rate:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
 
         // Draw value
-        if (!ui_is_captured(element)) {
+        if (!is_captured) {
             baudrate_to_draw = &(ee_storage.gps_baudrate);
         } else {
             baudrate_to_draw = &ui_edit_gps_baudrate;
         }
+    }
+
+    if (!is_captured && (ee_storage.gps_baudrate != ui_cache_gps_baudrate)) {
+        baudrate_to_draw = &(ee_storage.gps_baudrate);
     }
 
     // Baud rate selection
@@ -1278,6 +1284,7 @@ static void ui_proc_menu_gps_baud_rate(const UIElement* element, UICommand comma
 
     // Draw value
     if (baudrate_to_draw) {
+        ui_cache_gps_baudrate = *baudrate_to_draw;
         char s[11] = { '\0' };
         snprintf(s, ARRAY_SIZE(s), "%6" PRIu32, *baudrate_to_draw);
         ST7735_WriteStringNoWrap(element->x + 16 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
