@@ -7,6 +7,7 @@
 
 typedef struct
 {
+    uint32_t total_writes;
     uint16_t pwm;
     uint8_t  brightness;
     /* Reading boolean from EEPROM results in unpredictable behavior so we use a char and cast it to a boolean */

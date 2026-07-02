@@ -98,6 +98,25 @@ static bool fifo_read(volatile fifo_buffer_t* fifo, uint8_t* c)
     return true;
 }
 
+const char* gps_model_type_to_string(gps_model_type model)
+{
+    switch (model)
+    {
+        case GPS_MODEL_ATGM336H:
+            return "ATGM336H";
+
+        case GPS_MODEL_NEO6M:
+            return "NEO-6M";
+
+        case GPS_MODEL_NEOM9N:
+            return "NEO-M9N";
+
+        default:
+        case GPS_MODEL_UNKNOWN:
+            return "Generic";
+    }
+}
+
 #define GPS_RX_BUFFER_SIZE  20
 static volatile uint8_t gps_it_buf[GPS_RX_BUFFER_SIZE];
 
@@ -130,7 +149,7 @@ static void gps_sendcommand(const char* cmd, size_t len)
     while (huart3.gState != HAL_UART_STATE_READY);
 }
 
-int gps_change_module_baudrate(uint32_t baudrate)
+static int gps_change_module_baudrate(uint32_t baudrate)
 {
     const char* command = NULL;
     switch(ee_storage.gps_model)
@@ -195,7 +214,7 @@ static void gps_reconfigure_uart(UART_HandleTypeDef *huart, uint32_t baudrate)
     HAL_Delay(50);
 }
 
-void gps_reconfigure_gps_uart(uint32_t baudrate)
+static void gps_reconfigure_gps_uart(uint32_t baudrate)
 {
     gps_reconfigure_uart(&huart3, baudrate);
     gps_start_gps_rx();

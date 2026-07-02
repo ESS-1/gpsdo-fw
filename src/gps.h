@@ -37,17 +37,24 @@ extern char       gps_latitude[];
 extern char       gps_longitude[];
 extern char       gps_n_s[];
 extern char       gps_e_w[];
+extern double     gps_msl_altitude;
+extern double     gps_geoid_separation;
 extern double     gps_latitude_double;
 extern double     gps_longitude_double;
 extern char       gps_locator[];
-extern double     gps_msl_altitude;
-extern double     gps_geoid_separation;
 extern char       gps_hdop[];
 extern uint8_t    num_sats;
 extern uint32_t   gga_frames;
 
 // GPS module models
-typedef enum { GPS_MODEL_ATGM336H,  GPS_MODEL_NEO6M, GPS_MODEL_NEOM9N, GPS_MODEL_UNKNOWN } gps_model_type;
+typedef enum {
+    GPS_MODEL_ATGM336H,
+    GPS_MODEL_NEO6M,
+    GPS_MODEL_NEOM9N,
+    GPS_MODEL_UNKNOWN,
+
+    GPS_MODEL_MAX = GPS_MODEL_UNKNOWN
+} gps_model_type;
 
 // Min and max values for time offset
 #define GPS_MIN_TIME_OFFSET -14
@@ -61,10 +68,12 @@ extern uint32_t gps_invalid_frames;
 extern uint32_t gps_fifo_overflow_gps;
 extern uint32_t gps_fifo_overflow_comm;
 
-void gps_start_it();
-void gps_read();
+const char* gps_model_type_to_string(gps_model_type model);
 
 void gps_setbaudrate(uint32_t baudrate);
 void gps_reset_uart();
+
+void gps_start_it();
+void gps_read();
 
 #endif

@@ -6,6 +6,7 @@ bool ee_is_changed;
 
 bool ee_save_config()
 {
+    ee_storage.total_writes++;
     if (EE_Write()) {
         ee_is_changed = false;
         return true;

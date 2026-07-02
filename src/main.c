@@ -94,6 +94,7 @@ void gpsdo()
 
     EE_Init(&ee_storage, sizeof(ee_storage_t));
     EE_Read();
+
     // Read OCXO model first since we'll use it to choose PWM starting point
     if (ee_storage.ocxo_model == 0xff) {
         ee_storage.ocxo_model = OCXO_MODEL_UNKNOWN;
@@ -120,27 +121,38 @@ void gpsdo()
         startingPwm = ee_storage.pwm;
     }
     TIM1->CCR2 = startingPwm;
+
+    if (ee_storage.total_writes == 0xffffffff) {
+        ee_storage.total_writes = 0;
+        ee_is_changed         = true;
+    }
+
     if (ee_storage.brightness == 0xff) {
         ee_storage.brightness = 50;
         ee_is_changed         = true;
     }
     set_brightness(ee_storage.brightness);
+
     if (ee_storage.pps_sync_on == 0xff) {
         ee_storage.pps_sync_on = true;
         ee_is_changed          = true;
     }
+
     if (ee_storage.pps_sync_delay == 0xffffffff) {
         ee_storage.pps_sync_delay = 10;
         ee_is_changed             = true;
     }
+
     if (ee_storage.pps_sync_threshold == 0xffffffff) {
         ee_storage.pps_sync_threshold = 30000;
         ee_is_changed                 = true;
     }
+
     if (ee_storage.pps_ppm_auto_sync == 0xff) {
         ee_storage.pps_ppm_auto_sync = true;
         ee_is_changed                = true;
     }
+
     if (ee_storage.pwm_auto_save == 0xff) {
         ee_storage.pwm_auto_save = true;
         ee_is_changed            = true;
@@ -150,57 +162,69 @@ void gpsdo()
         ee_storage.trend_auto_v = true;
         ee_is_changed           = true;
     }
+
     if (ee_storage.trend_auto_h == 0xff) {
         ee_storage.trend_auto_h = true;
         ee_is_changed           = true;
     }
+
     if (ee_storage.trend_v_scale == 0xffffffff) {
         ee_storage.trend_v_scale = 70;
         ee_is_changed            = true;
     }
+
     if (ee_storage.trend_h_scale == 0xffffffff) {
         ee_storage.trend_h_scale = 1;
         ee_is_changed            = true;
     }
+
     // Check for custom gps baudrate
     if (ee_storage.gps_baudrate == 0xffffffff) {
         ee_storage.gps_baudrate = GPS_DEFAULT_BAUDRATE;
         ee_is_changed           = true;
     }
+
     if (ee_storage.gps_time_offset == 0xffffffff) {
         ee_storage.gps_time_offset = -GPS_MIN_TIME_OFFSET;
         ee_is_changed              = true;
     }
     gps_time_offset = ee_storage.gps_time_offset+GPS_MIN_TIME_OFFSET;
+
     if (ee_storage.gps_model == 0xff) {
         ee_storage.gps_model = GPS_MODEL_UNKNOWN;
         ee_is_changed        = true;
     }
+
     // PPB lock threshold (*100)
     if (ee_storage.ppb_lock_threshold == 0xffffffff) {
         ee_storage.ppb_lock_threshold = DEFAULT_PPB_LOCK_THRESHOLD;
         ee_is_changed                 = true;
     }
+
     // Correction algorithm
     if (ee_storage.correction_algorithm == 0xff) {
         ee_storage.correction_algorithm = CORRECTION_ALGO_ERIC_H_PLUS;
         ee_is_changed                   = true;
     }
+
     // Correction factor
     if (ee_storage.correction_factor == 0xffffffff) {
         ee_storage.correction_factor = get_default_correction_factor(ee_storage.correction_algorithm);
         ee_is_changed                = true;
     }
+
     // Warmup time
     if (ee_storage.warmup_time_seconds == 0xffffffff) {
         ee_storage.warmup_time_seconds = get_default_warmup_time(ee_storage.ocxo_model);
         ee_is_changed                  = true;
     }
+
     // PLL output 1 preset
     if (ee_storage.pll_out1_preset >= pll_out1_preset_count) {
         ee_storage.pll_out1_preset = 0;
         ee_is_changed              = true;
     }
+
     // PLL output 2 preset
     if (ee_storage.pll_out2_preset >= pll_out2_preset_count) {
         ee_storage.pll_out2_preset = 0;
