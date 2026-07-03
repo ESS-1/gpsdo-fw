@@ -2,6 +2,6 @@
 #define _VERSION_1756B8390FDE_H_
 
 #define DEVICE_MODEL "MDO-1A"
-#define FIRMWARE_VERSION "0.1.21/MDO"
+#define FIRMWARE_VERSION "0.1.22/MDO"
 
 #endif

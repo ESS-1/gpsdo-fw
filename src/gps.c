@@ -187,6 +187,9 @@ static int gps_change_module_baudrate(uint32_t baudrate)
     if (command != NULL) {
         len = strlen(command);
         gps_sendcommand(command, len);
+        // Wait for the GPS module to process the baud rate change command
+        // and allow the physical RX/TX lines to stabilize (critical for STM32 clones)
+        HAL_Delay(30);
     }
 
     return 0;
@@ -194,9 +197,12 @@ static int gps_change_module_baudrate(uint32_t baudrate)
 
 static void gps_reconfigure_uart(UART_HandleTypeDef *huart, uint32_t baudrate)
 {
+    // Wait for HAL to finish transmission
+    while (huart->gState != HAL_UART_STATE_READY);
+    // Wait for the hardware transmitter to physically send the last bit
+    while (__HAL_UART_GET_FLAG(huart, UART_FLAG_TC) == RESET);
+
     HAL_UART_DeInit(huart);
-    // Wait for buffers to be consumed
-    HAL_Delay(50);
 
     huart->Init.BaudRate = baudrate;
     huart->Init.WordLength = UART_WORDLENGTH_8B;
@@ -209,9 +215,6 @@ static void gps_reconfigure_uart(UART_HandleTypeDef *huart, uint32_t baudrate)
     {
       Error_Handler();
     }
-
-    // Wait for UART to init
-    HAL_Delay(50);
 }
 
 static void gps_reconfigure_gps_uart(uint32_t baudrate)
