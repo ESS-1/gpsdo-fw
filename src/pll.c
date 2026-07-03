@@ -51,7 +51,7 @@ bool pll_enable_primary_output()
     }
 
     // Enable output
-    pll_enable_output(1, true);
+    pll_enable_output(0, true);
 
     return true;
 }
