@@ -59,11 +59,11 @@ static void ui_proc_trend_graph(const UIElement* element, UICommand command, int
 
 static const UIElement ui_main_screen_elements[] = {
     // Top line
-    { 1,   1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_menu },
-    { 17,  1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_save },
-    { 33,  1, 38, 16, UI_STYLE_FOCUSABLE, ui_proc_gps  },
-    { 72,  1, 71, 16, UI_STYLE_FOCUSABLE, ui_proc_ppb  },
-    { 144, 1, 16, 16, UI_STYLE_FOCUSABLE, ui_proc_usb  },
+    { 1,   1, 14, 16, UI_STYLE_FOCUSABLE, ui_proc_menu },
+    { 16,  1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_save },
+    { 32,  1, 38, 16, UI_STYLE_FOCUSABLE, ui_proc_gps  },
+    { 71,  1, 71, 16, UI_STYLE_FOCUSABLE, ui_proc_ppb  },
+    { 143, 1, 16, 16, UI_STYLE_FOCUSABLE, ui_proc_usb  },
     // Main part
     { 1,   19, 140, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_datetime        },
     { 142, 20, 18,  9,  UI_STYLE_NONE,                                 ui_proc_pps             },
@@ -346,7 +346,7 @@ static void ui_proc_menu_page_right_inactive(const UIElement* element, UICommand
 static void ui_proc_menu(const UIElement* element, UICommand command, int32_t encoder_step)
 {
     if (command & UICommand_Init) {
-        ST7735_DrawImage(element->x, element->y, 15, 16, icon_menu_15x16);
+        ST7735_DrawImage(element->x, element->y, 14, 16, icon_menu_14x16);
     }
 
     if (command & UICommand_Click) {
