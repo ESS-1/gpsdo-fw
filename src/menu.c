@@ -659,19 +659,6 @@
 //                    break;
 //            }
 //        }
-//        else if(menu_level == 2 && current_menu_screen == SCREEN_GPS)
-//        {   // Sub-sub menu for GPS screen
-//            switch(current_menu_gps_screen)
-//            {
-//                case SCREEN_GPS_MODEL:
-//                    { // Update model
-//                    ee_storage.gps_model =  (ee_storage.gps_model + encoder_increment) % (GPS_MODEL_UNKNOWN+1);
-//                    if(ee_storage.gps_model > GPS_MODEL_UNKNOWN) ee_storage.gps_model = GPS_MODEL_UNKNOWN; // Roll over for first sceen - 1
-//                    ee_is_changed = true;
-//                    }
-//                    break;
-//            }
-//        }
 //        else if(menu_level == 2 && current_menu_screen == SCREEN_PPS)
 //        {   // Sub-sub menu for PPS screen
 //            switch(current_menu_pps_screen)

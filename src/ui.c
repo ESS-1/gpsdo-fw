@@ -1046,9 +1046,9 @@ static void ui_proc_menu_main_uptime(const UIElement* element, UICommand command
     if ((command & UICommand_Init) || (uptime != ui_cache_device_uptime)) {
         ui_cache_device_uptime = uptime;
 
-        char s[12] = { '\0' };
-        snprintf(s, ARRAY_SIZE(s), "%10" PRIu32 "s", uptime);
-        ST7735_WriteStringNoWrap(element->x + 11 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+        char s[13] = { '\0' };
+        snprintf(s, ARRAY_SIZE(s), "%10" PRIu32 " s", uptime);
+        ST7735_WriteStringNoWrap(element->x + 10 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
     }
 
     ui_default_element_proc(element, command, encoder_step);
