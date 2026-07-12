@@ -292,7 +292,7 @@ static void ui_menu_draw_right_aligned(const UIElement* element, int offset_char
 {
     int len = strlen(str);
     ST7735_FillRectangleFast(element->x + offset_chars * 7, element->y + 1, (22 - offset_chars - len) * 7, element->height - 1, UI_COLOR_BG);
-    ST7735_WriteStringNoWrap(element->x + (22 - len) * 7, element->y + 1, element->height - 1, s, Font_7x10, text_color, UI_COLOR_BG);
+    ST7735_WriteStringNoWrap(element->x + (22 - len) * 7, element->y + 1, element->height - 1, str, Font_7x10, text_color, UI_COLOR_BG);
 }
 
 
