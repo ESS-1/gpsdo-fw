@@ -175,20 +175,6 @@
 //    }
 //}
 //
-//static void menu_format_ppb(int32_t ppb, char *buffer, size_t bufferSize)
-//{
-//    if (ppb == PPB_UNSET_VALUE) {
-//        snprintf(buffer, bufferSize, "N/A");
-//    } else {
-//        // Divide the PPB value by 100 and keep the remainder.
-//        int integerPart = abs(ppb / 100);
-//        int decimalPart = abs(ppb % 100);
-//
-//        // Make sure negative values <0 are displayed correctly.
-//        snprintf(buffer, bufferSize, "%s%d.%02d", ppb < 0 ? "-" : "", integerPart, decimalPart);
-//    }
-//}
-//
 //#define PPB_STRING_SIZE     5
 //#define SCREEN_BUFFER_SIZE  14
 //
@@ -250,53 +236,10 @@
 //    case SCREEN_PPB:
 //        // Screen with ppb
 //        if(menu_level == 0)
-//        {
-//            ppb = frequency_ppb_x100;
-//            LCD_Puts(1, 0, "PPB:   ");
-//            menu_format_ppb(ppb, screen_buffer, SCREEN_BUFFER_SIZE);
-//            LCD_Puts(0, 1, screen_buffer);
-//        }
 //        else
 //        {
 //            switch (current_menu_ppb_screen)
 //            {
-//                default:
-//                case SCREEN_PPB_MEAN:
-//                    ppb = frequency_ppb_x100;
-//                    LCD_Puts(1, 0, "Mean:");
-//                    menu_format_ppb(ppb, screen_buffer, SCREEN_BUFFER_SIZE);
-//                    LCD_Puts(0, 1, screen_buffer);
-//                    break;
-//                case SCREEN_PPB_INST:
-//                    {
-//                    LCD_Puts(1, 0, "Inst:");
-//                    int32_t ppb_inst = frequency_get_inst_ppb_x100();
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld.%02d", ppb_inst / 100, abs(ppb_inst) % 100);
-//                    LCD_Puts(0, 1, screen_buffer);
-//                    }
-//                    break;
-//                case SCREEN_PPB_FREQUENCY:
-//                    LCD_Puts(1, 0, "Freq:");
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", ppb_frequency);
-//                    LCD_Puts(0, 1, screen_buffer);
-//                    break;
-//                case SCREEN_PPB_ERROR:
-//                    LCD_Puts(1, 0, "Error:");
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", ppb_frequency_error);
-//                    LCD_Puts(0, 1, screen_buffer);
-//                    break;
-//                case SCREEN_PPB_CORRECTION:
-//                    LCD_Puts(1, 0, "Corr.:");
-//                    if(frequency_adjustment_allowed())
-//                    {
-//                        snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", ppb_correction);
-//                        LCD_Puts(0, 1, screen_buffer);
-//                    }
-//                    else
-//                    {
-//                        LCD_Puts(0, 1, "Warm-up");
-//                    }
-//                    break;
 //                case SCREEN_PPB_OCXO_MODEL:
 //                    LCD_Puts(1, 0, menu_level == 1 ? "OCXO:":"OCXO?");
 //                    switch(ee_storage.ocxo_model)
@@ -340,11 +283,6 @@
 //                case SCREEN_PPB_CORRECTION_FACTOR:
 //                    LCD_Puts(1, 0, menu_level == 1 ? "Corr.F:":"Corr.F?");
 //                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", ee_storage.correction_factor);
-//                    LCD_Puts(0, 1, screen_buffer);
-//                    break;
-//                case SCREEN_PPB_MILLIS:
-//                    LCD_Puts(1, 0, "Millis:");
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", ppb_millis);
 //                    LCD_Puts(0, 1, screen_buffer);
 //                    break;
 //                case SCREEN_PPB_AUTO_SAVE_PWM:

@@ -48,6 +48,39 @@ void ui_format_ppb_5char(int32_t ppb_signed, char* buffer, size_t bufferSize)
     }
 }
 
+void ui_format_ppb_9char(int32_t ppb_signed, char* buffer, size_t bufferSize)
+{
+    if (buffer == NULL || bufferSize == 0) {
+        return;
+    }
+
+    if (bufferSize < 10) {
+        memset(buffer, '#', bufferSize - 1);
+        buffer[bufferSize - 1] = '\0';
+        return;
+    }
+
+    if (ppb_signed == PPB_UNSET_VALUE) {
+        snprintf(buffer, bufferSize, "      N/A");
+        return;
+    }
+    if (ppb_signed > 9999999) {
+        snprintf(buffer, bufferSize, "   > 100K");
+        return;
+    }
+    if (ppb_signed < -9999999) {
+        snprintf(buffer, bufferSize, "  < -100K");
+        return;
+    }
+
+    uint32_t ppb_abs = (ppb_signed < 0) ? -(uint32_t)ppb_signed : (uint32_t)ppb_signed;
+    if (ppb_signed < 0 && ppb_signed > -100) {
+        snprintf(buffer, bufferSize, "    -0.%02" PRIu32, ppb_abs);
+    } else {
+        snprintf(buffer, bufferSize, "%6" PRIi32 ".%02" PRIu32, ppb_signed / 100, ppb_abs % 100u);
+    }
+}
+
 const char* ui_get_month_name_3char(uint8_t month_num)
 {
     static const char months[13][4] = { "###", // Fallback for invalid month number
@@ -97,4 +130,15 @@ void ui_change_setting_u8(uint8_t* value, int32_t step, uint8_t min, uint8_t max
     } else {
         *value = (uint8_t)v;
     }
+}
+
+int32_t ui_limit_i32(int32_t value, int32_t min, int32_t max)
+{
+    if (value < min) {
+        return min;
+    }
+    if (value > max) {
+        return max;
+    }
+    return value;
 }

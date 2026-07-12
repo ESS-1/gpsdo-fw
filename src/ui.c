@@ -142,7 +142,7 @@ static const UIElement ui_menu_screen_elements_page2[] = {
 
 static UIScreen ui_menu_screen_page2 = {
     ui_menu_screen_elements_page2,
-    NULL,
+    &(ui_menu_screen_elements_page2[2]),
     ARRAY_SIZE(ui_menu_screen_elements_page2),
     false,
 };
@@ -199,7 +199,7 @@ static const UIElement ui_gps_screen_elements_page2[] = {
 
 static UIScreen ui_gps_screen_page2 = {
     ui_gps_screen_elements_page2,
-    NULL,
+    &(ui_gps_screen_elements_page2[4]),
     ARRAY_SIZE(ui_gps_screen_elements_page2),
     false,
 };
@@ -221,7 +221,7 @@ static const UIElement ui_gps_screen_elements_page3[] = {
 
 static UIScreen ui_gps_screen_page3 = {
     ui_gps_screen_elements_page3,
-    NULL,
+    &(ui_gps_screen_elements_page3[2]),
     ARRAY_SIZE(ui_gps_screen_elements_page3),
     false,
 };
@@ -230,22 +230,70 @@ static UIScreen ui_gps_screen_page3 = {
 //------------------------------------------------------------------------------
 // PPB Menu Screen Layout
 //------------------------------------------------------------------------------
+// Header
 static void ui_proc_menu_ppb_label(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_ppb_to_page1(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_ppb_to_page2(const UIElement* element, UICommand command, int32_t encoder_step);
+// Page 1
+static void ui_proc_menu_ppb_mean(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_ppb_inst(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_ppb_freq(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_ppb_pps_err(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_ppb_pwm_corr(const UIElement* element, UICommand command, int32_t encoder_step);
+// Page 2
 
-static const UIElement ui_ppb_screen_elements[] = {
+// Page 1
+static const UIElement ui_ppb_screen_elements_page1[] = {
     // Header
-    { 1,  1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main   },
-    { 27, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_ppb_label },
+    { 1,   1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main            },
+    { 27,  6, 28, 10, UI_STYLE_NONE,      ui_proc_menu_ppb_label          },
+    { 116, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_page_left_inactive },
+    { 127, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_label_page_1of2    },
+    { 149, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_ppb_to_page2       },
+    // Content
+    { 1, 20, 154, 11, UI_STYLE_NONE, ui_proc_menu_ppb_mean     },
+    { 1, 32, 154, 11, UI_STYLE_NONE, ui_proc_menu_ppb_inst     },
+    { 1, 44, 154, 11, UI_STYLE_NONE, ui_proc_menu_ppb_freq     },
+    { 1, 56, 154, 11, UI_STYLE_NONE, ui_proc_menu_ppb_pps_err  },
+    { 1, 68, 154, 11, UI_STYLE_NONE, ui_proc_menu_ppb_pwm_corr },
+};
+
+static UIScreen ui_ppb_screen_page1 = {
+    ui_ppb_screen_elements_page1,
+    NULL,
+    ARRAY_SIZE(ui_ppb_screen_elements_page1),
+    false,
+};
+
+// Page 2
+static const UIElement ui_ppb_screen_elements_page2[] = {
+    // Header
+    { 1,   1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main            },
+    { 27,  6, 28, 10, UI_STYLE_NONE,      ui_proc_menu_ppb_label          },
+    { 116, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_ppb_to_page1       },
+    { 127, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_label_page_2of2     },
+    { 149, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_page_right_inactive },
     // Content
 //TODO
 };
 
-static UIScreen ui_ppb_screen = {
-    ui_ppb_screen_elements,
-    NULL,
-    ARRAY_SIZE(ui_ppb_screen_elements),
+static UIScreen ui_ppb_screen_page2 = {
+    ui_ppb_screen_elements_page2,
+    &(ui_ppb_screen_elements_page2[2]),
+    ARRAY_SIZE(ui_ppb_screen_elements_page2),
     false,
 };
+
+
+//------------------------------------------------------------------------------
+// Helpers
+//------------------------------------------------------------------------------
+static void ui_menu_draw_right_aligned(const UIElement* element, int offset_chars, const char* str, uint16_t text_color)
+{
+    int len = strlen(str);
+    ST7735_FillRectangleFast(element->x + offset_chars * 7, element->y + 1, (22 - offset_chars - len) * 7, element->height - 1, UI_COLOR_BG);
+    ST7735_WriteStringNoWrap(element->x + (22 - len) * 7, element->y + 1, element->height - 1, s, Font_7x10, text_color, UI_COLOR_BG);
+}
 
 
 //------------------------------------------------------------------------------
@@ -463,7 +511,7 @@ static void ui_proc_ppb(const UIElement* element, UICommand command, int32_t enc
     }
 
     if (command & UICommand_Click) {
-        ui_show_screen(&ui_ppb_screen);
+        ui_show_screen(&ui_ppb_screen_page1);
     }
 
     ui_default_element_proc(element, command, encoder_step);
@@ -641,7 +689,7 @@ static void ui_proc_pps(const UIElement* element, UICommand command, int32_t enc
     if ((command & UICommand_Init) || (pps_active != ui_cache_pps_active)) {
         ui_cache_pps_active = pps_active;
 
-        uint16_t color = ui_cache_pps_active ? UI_COLOR_PPS_INDICATOR : UI_COLOR_BG;
+        uint16_t color = pps_active ? UI_COLOR_PPS_INDICATOR : UI_COLOR_BG;
         ST7735_FillRectangleFast(element->x + 1, element->y + 1, 7, 7, color);
     }
 
@@ -1193,10 +1241,7 @@ static void ui_proc_menu_gps_module(const UIElement* element, UICommand command,
 
     // Draw value
     if (model_to_draw) {
-        const char* s = gps_model_type_to_string(*model_to_draw);
-        int         len = strlen(s);
-        ST7735_FillRectangleFast(element->x + 7 * 7, element->y + 1, (22 - 7 - len) * 7, element->height - 1, UI_COLOR_BG);
-        ST7735_WriteStringNoWrap(element->x + (22-len) * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
+        ui_menu_draw_right_aligned(element, 7, gps_model_type_to_string(*model_to_draw), UI_COLOR_TEXT);
     }
 
     ui_default_element_proc(element, command, encoder_step);
@@ -1363,4 +1408,134 @@ static void ui_proc_menu_gps_errors(const UIElement* element, UICommand command,
 static void ui_proc_menu_ppb_label(const UIElement* element, UICommand command, int32_t encoder_step)
 {
     ui_proc_menu_label(element, command, encoder_step, "PPB");
+}
+
+static void ui_proc_menu_ppb_to_page1(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_proc_menu_page_left(element, command, encoder_step, &ui_ppb_screen_page1);
+}
+
+static void ui_proc_menu_ppb_to_page2(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_proc_menu_page_right(element, command, encoder_step, &ui_ppb_screen_page2);
+}
+
+static int32_t ui_cache_menu_frequency_ppb_x100 = PPB_UNSET_VALUE;
+static void ui_proc_menu_ppb_mean(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    // Draw label
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "Mean PPB:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    // Draw value
+    int32_t ppb = frequency_ppb_x100;
+    if ((command & UICommand_Init) || (ppb != ui_cache_menu_frequency_ppb_x100)) {
+        ui_cache_menu_frequency_ppb_x100 = ppb;
+
+        char s[10] = { '\0' };
+        ui_format_ppb_9char(ppb, s, ARRAY_SIZE(s));
+        ST7735_WriteStringNoWrap(element->x + 13 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static int32_t ui_cache_frequency_inst_ppb_x100 = PPB_UNSET_VALUE;
+static void ui_proc_menu_ppb_inst(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    // Draw label
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "Inst. PPB:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    // Draw value
+    int32_t ppb = frequency_get_inst_ppb_x100();
+    if ((command & UICommand_Init) || (ppb != ui_cache_frequency_inst_ppb_x100)) {
+        ui_cache_frequency_inst_ppb_x100 = ppb;
+
+        char s[10] = { '\0' };
+        ui_format_ppb_9char(ppb, s, ARRAY_SIZE(s));
+        ST7735_WriteStringNoWrap(element->x + 13 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static int32_t ui_cache_ppb_frequency = 0;
+static void ui_proc_menu_ppb_freq(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    // Draw label
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "Core Freq.:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    // Draw value
+    int32_t freq = ppb_frequency;
+    if ((command & UICommand_Init) || (freq != ui_cache_ppb_frequency)) {
+        ui_cache_ppb_frequency = freq;
+
+        if (freq == 0) {
+            ST7735_WriteStringNoWrap(element->x + 19 * 7, element->y + 1, element->height - 1, "N/A", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+        } else {
+            char s[11] = { '\0' };
+            snprintf(s, ARRAY_SIZE(s), "%10" PRIi32, freq);
+            ST7735_WriteStringNoWrap(element->x + 12 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+        }
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static int32_t ui_cache_ppb_millis = 0;
+static void ui_proc_menu_ppb_pps_err(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    // Draw label
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "PPS Error:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    // Draw value
+    int32_t millis = ppb_millis;
+    if ((command & UICommand_Init) || (millis != ui_cache_ppb_millis)) {
+        ui_cache_ppb_millis = millis;
+
+        char s[13] = { '\0' };
+        snprintf(s, ARRAY_SIZE(s), "%8" PRIi32 " ms", ui_limit_i32(millis, -9999999, 9999999));
+        ST7735_WriteStringNoWrap(element->x + 11 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static uint16_t ui_cache_menu_pwm         = 0;
+static int32_t  ui_cache_menu_corr        = 0;
+static bool     ui_cache_menu_warmup_done = false;
+static void ui_proc_menu_ppb_pwm_corr(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    // Draw label
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "PWM/Corr.:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    // Draw value
+    uint16_t pwm = TIM1->CCR2;
+    int32_t  corr = ppb_correction;
+    bool     warmup_done = frequency_adjustment_allowed();
+    if ((command & UICommand_Init) || (pwm != ui_cache_menu_pwm) || (corr != ui_cache_menu_corr) || (warmup_done != ui_cache_menu_warmup_done)) {
+        ui_cache_menu_pwm         = pwm;
+        ui_cache_menu_corr        = corr;
+        ui_cache_menu_warmup_done = warmup_done;
+
+        char s[13] = { '\0' };
+        if (warmup_done) {
+            snprintf(s, ARRAY_SIZE(s), "%" PRIu16 "/%" PRIi32, pwm, ui_limit_i32(corr, -99999, 99999));
+        } else {
+            snprintf(s, ARRAY_SIZE(s), "%" PRIu16 "/WARMUP", pwm);
+        }
+
+        ui_menu_draw_right_aligned(element, 10, s, UI_COLOR_MENU_LABEL);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
 }
