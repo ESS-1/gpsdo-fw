@@ -274,6 +274,41 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
     }
 }
 
+const char* ocxo_model_type_to_string(ocxo_model_type model)
+{
+    switch(model)
+    {
+        case OCXO_MODEL_ISOTEMP:
+            return "ISOTEMP";
+
+        case OCXO_MODEL_OX256B:
+            return "OX256B";
+
+        default:
+        case OCXO_MODEL_UNKNOWN:
+            return "Unknown";
+    }
+}
+
+const char* correction_algo_type_to_string(correction_algo_type model)
+{
+    switch (model)
+    {
+        case CORRECTION_ALGO_DANKAR:
+            return "Dankar";
+
+        case CORRECTION_ALGO_FREDZO:
+            return "Fredzo";
+
+        case CORRECTION_ALGO_ERIC_H:
+            return "Eric H";
+
+        default:
+        case CORRECTION_ALGO_ERIC_H_PLUS:
+            return "Eric H+";
+    }
+}
+
 void set_brightness(uint8_t brightness)
 {
     uint32_t pwm_value = brightness * 0xFFFF / 100;
@@ -298,7 +333,7 @@ uint32_t get_default_correction_factor(correction_algo_type algo)
     }
 }
 
-uint32_t increment_correction_factor_value(correction_algo_type algo, uint32_t value, int increment)
+void increment_correction_factor_value(uint32_t* value, correction_algo_type algo, int32_t increment)
 {
     uint32_t minVal;
     uint32_t maxVal;
@@ -323,16 +358,15 @@ uint32_t increment_correction_factor_value(correction_algo_type algo, uint32_t v
             incFactor = 1;
             break;
     }
-    uint32_t new_factor = value + (incFactor*increment);
-    if(new_factor < minVal)
-    {
-        new_factor = minVal;
+
+    uint32_t new_factor = *value + (incFactor*increment);
+    if(new_factor < minVal) {
+        *value = minVal;
+    } else if(new_factor > maxVal) {
+        *value = maxVal;
+    } else {
+        *value = new_factor;
     }
-    else if(new_factor > maxVal)
-    {
-        new_factor = maxVal;
-    }
-    return new_factor;
 }
 
 uint32_t get_default_warmup_time(ocxo_model_type model)

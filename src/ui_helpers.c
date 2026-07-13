@@ -106,6 +106,19 @@ void ui_change_setting_i8(int8_t* value, int32_t step, int8_t min, int8_t max, b
     }
 }
 
+void ui_change_setting_u8(uint8_t* value, int32_t step, uint8_t min, uint8_t max, bool wrap_around)
+{
+    int32_t v = (int32_t)(*value) + step;
+
+    if (v > max) {
+        *value = wrap_around ? min : max;
+    } else if (v < min) {
+        *value = wrap_around ? max : min;
+    } else {
+        *value = (uint8_t)v;
+    }
+}
+
 void ui_change_setting_u16(uint16_t* value, int32_t step, uint16_t min, uint16_t max, bool wrap_around)
 {
     int32_t v = (int32_t)(*value) + step;
@@ -119,16 +132,16 @@ void ui_change_setting_u16(uint16_t* value, int32_t step, uint16_t min, uint16_t
     }
 }
 
-void ui_change_setting_u8(uint8_t* value, int32_t step, uint8_t min, uint8_t max, bool wrap_around)
+void ui_change_setting_u32(uint32_t* value, int32_t step, uint32_t min, uint32_t max, bool wrap_around)
 {
-    int32_t v = (int32_t)(*value) + step;
+    int64_t v = (int64_t)(*value) + step;
 
-    if (v > max) {
+    if (v > (int64_t)max) {
         *value = wrap_around ? min : max;
-    } else if (v < min) {
+    } else if (v < (int64_t)min) {
         *value = wrap_around ? max : min;
     } else {
-        *value = (uint8_t)v;
+        *value = (uint32_t)v;
     }
 }
 

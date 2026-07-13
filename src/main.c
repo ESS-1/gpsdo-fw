@@ -240,8 +240,6 @@ void gpsdo()
 
     gps_setbaudrate(ee_storage.gps_baudrate);
 
-//todo    menu_set_correction_algorithm(ee_storage.correction_algorithm);
-
 //todo    init_trend_values();
     ui_show_screen(&ui_main_screen);
 

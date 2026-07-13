@@ -15,13 +15,6 @@
 //uint32_t    trend_shift = 0; 
 //uint8_t     trend_arrow = TREND_LEFT_CODE;
 //
-//correction_algo_type displayed_correction_algorithm;
-//
-//void menu_set_correction_algorithm(correction_algo_type algo)
-//{
-//    displayed_correction_algorithm = algo;
-//}
-//
 //void init_trend_values()
 //{
 //    for(int i = 0 ; i < TREND_MAX_SIZE ; i++)
@@ -240,51 +233,6 @@
 //        {
 //            switch (current_menu_ppb_screen)
 //            {
-//                case SCREEN_PPB_OCXO_MODEL:
-//                    LCD_Puts(1, 0, menu_level == 1 ? "OCXO:":"OCXO?");
-//                    switch(ee_storage.ocxo_model)
-//                    {
-//                        case OCXO_MODEL_ISOTEMP:
-//                            LCD_Puts(0, 1, "ISOTEMP");
-//                            break;
-//                        case OCXO_MODEL_OX256B:
-//                            LCD_Puts(0, 1, "OX256B");
-//                            break;
-//                        default:
-//                        case OCXO_MODEL_UNKNOWN:
-//                            LCD_Puts(0, 1, "Unknown");
-//                            break;
-//                    }
-//                    break;
-//                case SCREEN_PPB_WARMUP_TIME:
-//                    LCD_Puts(1, 0, menu_level == 1 ? "Warmup:":"Warmup?");
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", ee_storage.warmup_time_seconds);
-//                    LCD_Puts(0, 1, screen_buffer);
-//                    break;
-//                case SCREEN_PPB_ALGO:
-//                    LCD_Puts(1, 0, menu_level == 1 ? "Algo.:":"Algo?");
-//                    switch(displayed_correction_algorithm)
-//                    {
-//                        case CORRECTION_ALGO_DANKAR:
-//                            LCD_Puts(0, 1, "Dankar");
-//                            break;
-//                        case CORRECTION_ALGO_ERIC_H:
-//                            LCD_Puts(0, 1, "Eric H");
-//                            break;
-//                        case CORRECTION_ALGO_ERIC_H_PLUS:
-//                            LCD_Puts(0, 1, "Eric H+");
-//                            break;
-//                        default:
-//                        case CORRECTION_ALGO_FREDZO:
-//                            LCD_Puts(0, 1, "Fredzo");
-//                            break;
-//                    }
-//                    break;
-//                case SCREEN_PPB_CORRECTION_FACTOR:
-//                    LCD_Puts(1, 0, menu_level == 1 ? "Corr.F:":"Corr.F?");
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", ee_storage.correction_factor);
-//                    LCD_Puts(0, 1, screen_buffer);
-//                    break;
 //                case SCREEN_PPB_AUTO_SAVE_PWM:
 //                    LCD_Puts(1, 0, menu_level == 1 ? "PWM S.:":"PWM S.?");
 //                    LCD_Puts(0, 1, ee_settings.pwm_auto_save ? "      ON" : "     OFF");
@@ -292,11 +240,6 @@
 //                case SCREEN_PPB_AUTO_SYNC_PPS:
 //                    LCD_Puts(1, 0, menu_level == 1 ? "PPS S.:":"PPS S.?");
 //                    LCD_Puts(0, 1, ee_settings.pps_ppm_auto_sync ? "      ON" : "     OFF");
-//                    break;
-//                case SCREEN_PPB_LOCK_THRESHOLD:
-//                    LCD_Puts(1, 0, menu_level == 1 ? "PPB Lk:":"PPB Lk?");
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld.%02ld", ee_storage.ppb_lock_threshold / 100, ee_storage.ppb_lock_threshold % 100);
-//                    LCD_Puts(0, 1, screen_buffer);
 //                    break;
 //            }
 //        }
@@ -378,25 +321,6 @@
 //                case SCREEN_GPS_HDOP:
 //                    LCD_Puts(1, 0, "HDOP:");
 //                    LCD_Puts(0, 1, gps_hdop);
-//                    break;
-//                case SCREEN_GPS_MODEL:
-//                    LCD_Puts(1, 0, menu_level == 1 ? "Model:":"Model?");
-//                    switch(ee_storage.gps_model)
-//                    {
-//                        case GPS_MODEL_ATGM336H:
-//                            LCD_Puts(0, 1, "ATGM336H");
-//                            break;
-//                        case GPS_MODEL_NEO6M:
-//                            LCD_Puts(0, 1, "NEO-6M");
-//                            break;
-//                        case GPS_MODEL_NEOM9N:
-//                            LCD_Puts(0, 1, "NEO-M9N");
-//                            break;
-//                        default:
-//                        case GPS_MODEL_UNKNOWN:
-//                            LCD_Puts(0, 1, menu_level == 1 ? "Unknown":"Auto");
-//                            break;
-//                    }
 //                    break;
 //            }
 //        }
@@ -537,40 +461,6 @@
 //        {   // Sub-sub menu for PPB screen
 //            switch(current_menu_ppb_screen)
 //            {
-//                case SCREEN_PPB_OCXO_MODEL:
-//                    { // Update model
-//                    ee_storage.ocxo_model =  (ee_storage.ocxo_model + encoder_increment) % (OCXO_MODEL_UNKNOWN+1);
-//                    if(ee_storage.ocxo_model > OCXO_MODEL_UNKNOWN) ee_storage.ocxo_model = OCXO_MODEL_UNKNOWN;
-//                    ee_is_changed = true;
-//                    }
-//                    break;
-//                case SCREEN_PPB_WARMUP_TIME:
-//                    { // Update ppb lock threshold
-//                    int new_warmup_time = ee_storage.warmup_time_seconds + (encoder_increment);
-//                    if(new_warmup_time < 0)
-//                    {
-//                        new_warmup_time = 0;
-//                    }
-//                    else if(new_warmup_time > 1000)
-//                    {
-//                        new_warmup_time = 1000;
-//                    }
-//                    ee_storage.warmup_time_seconds = new_warmup_time;
-//                    ee_is_changed = true;
-//                    }
-//                    break;
-//                case SCREEN_PPB_ALGO:
-//                    { // Update algorithm
-//                    displayed_correction_algorithm =  (displayed_correction_algorithm + encoder_increment) % (CORRECTION_ALGO_ERIC_H_PLUS+1);
-//                    if(displayed_correction_algorithm > CORRECTION_ALGO_ERIC_H_PLUS) displayed_correction_algorithm = CORRECTION_ALGO_ERIC_H_PLUS;
-//                    }
-//                    break;
-//                case SCREEN_PPB_CORRECTION_FACTOR:
-//                    { // Update correction factor
-//                    ee_storage.correction_factor = increment_correction_factor_value(ee_storage.correction_algorithm,correction_factor,encoder_increment);
-//                    ee_is_changed = true;
-//                    }
-//                    break;
 //                case SCREEN_PPB_AUTO_SAVE_PWM:
 //                    // Update mode
 //                    ee_settings.pwm_auto_save = !ee_settings.pwm_auto_save;
@@ -579,21 +469,6 @@
 //                    // Update mode
 //                    ee_settings.pps_ppm_auto_sync = !ee_settings.pps_ppm_auto_sync;
 //                    ee_is_changed = true;
-//                    break;
-//                case SCREEN_PPB_LOCK_THRESHOLD:
-//                    { // Update ppb lock threshold
-//                    int new_threshold = ee_storage.ppb_lock_threshold + (5*encoder_increment);
-//                    if(new_threshold < 0)
-//                    {
-//                        new_threshold = 0;
-//                    }
-//                    else if(new_threshold > MAX_PPB_LOCK_THRESHOLD)
-//                    {
-//                        new_threshold = MAX_PPB_LOCK_THRESHOLD;
-//                    }
-//                    ee_storage.ppb_lock_threshold = new_threshold;
-//                    ee_is_changed = true;
-//                    }
 //                    break;
 //            }
 //        }
@@ -615,28 +490,6 @@
 //                    // Update threshold
 //                    ee_storage.pps_sync_threshold += encoder_increment;
 //                    ee_is_changed = true;
-//                    break;
-//            }
-//        }
-//    }
-//
-//    if (rotary_get_click()) {
-//        if (menu_level == 2 && current_menu_screen == SCREEN_PPB){
-//            switch(current_menu_ppb_screen)
-//            {
-//                case SCREEN_PPB_OCXO_MODEL:
-//                    // Alsa change warmup time accordingly
-//                    ee_storage.warmup_time_seconds = get_default_warmup_time(ee_storage.ocxo_model);
-//                    ee_is_changed = true;
-//                    break;
-//                case SCREEN_PPB_ALGO:
-//                    if(ee_storage.correction_algorithm != displayed_correction_algorithm)
-//                    {   // Make sure correction algo and correction are consistant before activating new algo
-//                        // Reset correction factor to default value when algo is changed
-//                        ee_storage.correction_factor = get_default_correction_factor(displayed_correction_algorithm);
-//                        ee_storage.correction_algorithm = displayed_correction_algorithm;
-//                        ee_is_changed = true;
-//                    }
 //                    break;
 //            }
 //        }

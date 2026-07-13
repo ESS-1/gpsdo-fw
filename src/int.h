@@ -23,17 +23,31 @@ extern volatile bool     gps_lock_status;
 
 // For correction algorithms
 // OCXO models
-typedef enum { OCXO_MODEL_ISOTEMP, OCXO_MODEL_OX256B, OCXO_MODEL_UNKNOWN } ocxo_model_type;
+typedef enum {
+	OCXO_MODEL_ISOTEMP,
+	OCXO_MODEL_OX256B,
+	OCXO_MODEL_UNKNOWN,
+
+    OCXO_MODEL_MAX = OCXO_MODEL_UNKNOWN
+} ocxo_model_type;
 
 // Correction algorithms
-typedef enum { CORRECTION_ALGO_DANKAR, CORRECTION_ALGO_FREDZO, CORRECTION_ALGO_ERIC_H, CORRECTION_ALGO_ERIC_H_PLUS } correction_algo_type;
+typedef enum {
+	CORRECTION_ALGO_DANKAR,
+	CORRECTION_ALGO_FREDZO,
+	CORRECTION_ALGO_ERIC_H,
+	CORRECTION_ALGO_ERIC_H_PLUS,
+
+    CORRECTION_ALGO_MAX = CORRECTION_ALGO_ERIC_H_PLUS
+} correction_algo_type;
+
+const char* ocxo_model_type_to_string(ocxo_model_type model);
+const char* correction_algo_type_to_string(correction_algo_type model);
 
 void set_brightness(uint8_t brightness);
 
 uint32_t get_default_correction_factor(correction_algo_type algo);
-
-uint32_t increment_correction_factor_value(correction_algo_type algo, uint32_t value, int increment);
-
+void increment_correction_factor_value(uint32_t* value, correction_algo_type algo, int32_t increment);
 uint32_t get_default_warmup_time(ocxo_model_type model);
 
 #endif
