@@ -107,12 +107,12 @@ void gpsdo()
         switch(ee_storage.ocxo_model)
         {
             case OCXO_MODEL_OX256B:
-                startingPwm = 47000; // about 2.5V - several of the OX256B units I have show zero error at this control voltage
+                startingPwm = 44500; // about 2.5V - several of the OX256B units I have show zero error at this control voltage
                 break;
             case OCXO_MODEL_ISOTEMP:
             case OCXO_MODEL_UNKNOWN:
             default:
-                startingPwm = 38000; // about 2V - typical center value of OCXO control voltage
+                startingPwm = 35600; // about 2V - typical center value of OCXO control voltage
                 break;
         }
     }

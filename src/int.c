@@ -220,7 +220,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
             if (allow_adjustment && !is_glitch)
             {   // No correction during warmup
 
-                // Choose from 3 correction algorithms :
+                // Choose from 4 correction algorithms :
                 // - Dankar (original code from Dankar + added correction factor defaulted to values that match the original code)
                 // - Fredzo (same logic as dankar's algo, but with faster correction when frequency error is >= 2)
                 // - Eric-H (algo based on ppm value rather than frequency error (uses 128s rolling average rather than instant values))
@@ -247,7 +247,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
             ppb_frequency = frequency;
             ppb_frequency_error = current_error;
             ppb_millis = current_tick - last_pps - 1000;
-            pps_millis = (pps_error*10/(TARGET_FREQ/1000000)); // Clock is 'TARGET_FREQ' Hz and we want the value in tenth of a microsecond so 10 000 000 / TARGET_FREQ
+            pps_millis = (int32_t)(((int64_t)pps_error * 10000000LL) / TARGET_FREQ); // Clock is 'TARGET_FREQ' Hz and we want the value in tenth of a microsecond so 10 000 000 / TARGET_FREQ
 
             if (allow_adjustment && !is_glitch)
             {   // Also remove warmup samples from circular buffer
@@ -374,11 +374,11 @@ uint32_t get_default_warmup_time(ocxo_model_type model)
     switch(model)
     {
         case OCXO_MODEL_OX256B:
-            return 100;
+            return 150;
             break;
         default:
         case OCXO_MODEL_ISOTEMP:
-            return 70;
+            return 120;
             break;
     }
 }
