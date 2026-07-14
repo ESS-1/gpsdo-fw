@@ -17,7 +17,7 @@ extern PllStatus pll_status;
 void pll_init_primary_vco();
 bool pll_wait_primary_lock();
 bool pll_enable_primary_output();
-void pll_configure_output(uint8_t output, const OutFreqConfig *config);
+void pll_configure_output(uint8_t output, const OutFreqConfig* config, uint8_t drive_strength);
 
 void pll_update();
 

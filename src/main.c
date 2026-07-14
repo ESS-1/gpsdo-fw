@@ -231,9 +231,21 @@ void gpsdo()
         ee_is_changed              = true;
     }
 
+    // PLL output 1 drive strength
+    if (ee_storage.pll_out1_drive_strength > SI5351_DRIVE_STRENGTH_8MA) {
+        ee_storage.pll_out1_drive_strength = 0;
+        ee_is_changed                      = true;
+    }
+
+    // PLL output 2 drive strength
+    if (ee_storage.pll_out2_drive_strength > SI5351_DRIVE_STRENGTH_8MA) {
+        ee_storage.pll_out2_drive_strength = 0;
+        ee_is_changed                      = true;
+    }
+
     // Configure outputs
-    pll_configure_output(1, &(pll_out1_presets[ee_storage.pll_out1_preset]));
-    pll_configure_output(2, &(pll_out2_presets[ee_storage.pll_out2_preset]));
+    pll_configure_output(1, &(pll_out1_presets[ee_storage.pll_out1_preset]), ee_storage.pll_out1_drive_strength);
+    pll_configure_output(2, &(pll_out2_presets[ee_storage.pll_out2_preset]), ee_storage.pll_out2_drive_strength);
 
     enable_usb();
     gps_start_it();

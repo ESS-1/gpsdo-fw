@@ -56,7 +56,7 @@ bool pll_enable_primary_output()
     return true;
 }
 
-void pll_configure_output(uint8_t output, const OutFreqConfig *config)
+void pll_configure_output(uint8_t output, const OutFreqConfig* config, uint8_t drive_strength)
 {
     // Reset the 'pll_status' update timer to prevent transitions from disturbing the UI
     timer_reset(&pll_status_last_update);
@@ -84,7 +84,7 @@ void pll_configure_output(uint8_t output, const OutFreqConfig *config)
             .rdiv = SI5351_R_DIV_1 };
 
         si5351PLL_t pll = output == 1 ? SI5351_PLL_A : SI5351_PLL_B;
-        si5351_SetupOutput(output, pll, SI5351_DRIVE_STRENGTH_8MA, &out_config, 0);
+        si5351_SetupOutput(output, pll, drive_strength, &out_config, 0);
 
         // Enable output
         pll_enable_output(output, true);

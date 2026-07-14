@@ -30,6 +30,8 @@ typedef struct
     uint32_t warmup_time_seconds;
     uint16_t pll_out1_preset;
     uint16_t pll_out2_preset;
+    uint8_t  pll_out1_drive_strength;
+    uint8_t  pll_out2_drive_strength;
 } ee_storage_t;
 
 extern ee_storage_t ee_storage;
