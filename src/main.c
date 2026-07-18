@@ -40,25 +40,29 @@ void init_ext_clock()
     HAL_Delay(500);
 
     // Init SI5351 PLL
-    bootlog_add("Init PLL");
-    pll_init_primary_vco();
-    bootlog_set_status(true);
-
-    // Wait for PLL lock
-    bootlog_add("Wait PLL Lock");
     bool pll_fail = false;
-    if (pll_wait_primary_lock()) {
-        if (pll_enable_primary_output()) {
+    bootlog_add("Init PLL");
+    if (pll_init_primary_pll()) {
+        bootlog_set_status(true);
+
+        // Wait for PLL lock
+        bootlog_add("Wait PLL Lock");
+        if (pll_wait_primary_lock()) {
+            bootlog_set_status(true);
+
+            // Enable output
+            bootlog_add("Enable Output");
+            pll_enable_primary_output();
             bootlog_set_status(true);
         } else {
             bootlog_set_status(false);
             pll_fail = true;
-            bootlog_error("PLL output failure!");
+            bootlog_error("PLL lock failure!");
         }
     } else {
         bootlog_set_status(false);
         pll_fail = true;
-        bootlog_error("PLL lock failure!");
+        bootlog_error("PLL init failure!");
     }
 
     if (pll_fail) {

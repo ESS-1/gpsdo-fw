@@ -20,7 +20,7 @@ static void pll_enable_output(uint8_t output, bool enable)
     si5351_EnableOutputs(pll_enabled_outputs);
 }
 
-void pll_init_primary_vco()
+bool pll_init_primary_pll()
 {
     si5351_Init(0, SI5351_CRYSTAL_LOAD_6PF);
 
@@ -30,15 +30,7 @@ void pll_init_primary_vco()
     pll_config.num   = 0;
     pll_config.denom = 1;
     si5351_SetupPLL(SI5351_PLL_A, &pll_config);
-}
 
-bool pll_wait_primary_lock()
-{
-    return si5351_WaitPLLReady(SI5351_PLL_A, 2000);
-}
-
-bool pll_enable_primary_output()
-{
     // CLK0: 880M / 110 = 8M
     si5351OutputConfig_t out_config = { 0 };
     out_config.allowIntegerMode = 1;
@@ -46,14 +38,24 @@ bool pll_enable_primary_output()
     out_config.num = 0;
     out_config.denom = 1;
     out_config.rdiv  = SI5351_R_DIV_1;
-    if (si5351_SetupOutput(0, SI5351_PLL_A, SI5351_DRIVE_STRENGTH_8MA, &out_config, 0) != 0) {
+    if (si5351_SetupChannel(0, SI5351_PLL_A, SI5351_DRIVE_STRENGTH_8MA, &out_config, 0) != 0) {
         return false;
     }
 
-    // Enable output
-    pll_enable_output(0, true);
+    si5351_ResetPLL(SI5351_PLL_A);
 
     return true;
+}
+
+bool pll_wait_primary_lock()
+{
+    return si5351_WaitPLLReady(SI5351_PLL_A, 2000);
+}
+
+void pll_enable_primary_output()
+{
+    // Enable output
+    pll_enable_output(0, true);
 }
 
 void pll_configure_output(uint8_t output, const OutFreqConfig* config, uint8_t drive_strength)
@@ -75,7 +77,9 @@ void pll_configure_output(uint8_t output, const OutFreqConfig* config, uint8_t d
     }
 
     // Configure output
-    if (config->out_div != 0) {
+    bool enableOutput = (config->out_div != 0);
+
+    if (enableOutput) {
         si5351OutputConfig_t out_config = {
             .allowIntegerMode = 1,
             .div = config->out_div,
@@ -84,9 +88,18 @@ void pll_configure_output(uint8_t output, const OutFreqConfig* config, uint8_t d
             .rdiv = SI5351_R_DIV_1 };
 
         si5351PLL_t pll = output == 1 ? SI5351_PLL_A : SI5351_PLL_B;
-        si5351_SetupOutput(output, pll, drive_strength, &out_config, 0);
+        si5351_SetupChannel(output, pll, drive_strength, &out_config, 0);
+    } else {
+        si5351_DisableChannel(output);
+    }
 
-        // Enable output
+    // Reset the PLL if we are configuring output 2
+    if (output == 2) {
+        si5351_ResetPLL(SI5351_PLL_B);
+    }
+
+    // Enable output
+    if (enableOutput) {
         pll_enable_output(output, true);
     }
 }

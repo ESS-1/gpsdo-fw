@@ -4,6 +4,8 @@ const OutFreqConfig pll_out1_presets[] = {
     // Out 1 uses PLL A, which is also shared by the GPSDO FLL loop.
     // Because its VCO is locked to a constant 880  MHz (for a 10 MHz OCXO),
     // the pll_mult value is not used for Out 1.
+    // NOTE: Do not use '.out_div = 4'; it requires a PLL reset,
+    // which must not be performed on the main PLL.
     { .pll_mult = 0xFF, .out_div = 0,    .label = "OFF " },
     { .pll_mult = 0xFF, .out_div = 2000, .label = "0.44" },
     { .pll_mult = 0xFF, .out_div = 1760, .label = "0.5 " },
