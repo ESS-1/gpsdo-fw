@@ -721,6 +721,7 @@ static void menu_draw()
                     {
                     snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "Lat.D:");
                     LCD_Puts(1, 0, screen_buffer);
+                    // TODO: rework; wrong format
                     const char *fmt = "%d.%d";
                     double gps_latitude_double_abs = gps_latitude_double;
                     if (gps_latitude_double < 0.0)
@@ -738,6 +739,7 @@ static void menu_draw()
                     {
                     snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "Long.D:");
                     LCD_Puts(1, 0, screen_buffer);
+                    // TODO: rework; wrong format
                     const char *fmt = "%d.%d";
                     double gps_longitude_double_abs = gps_longitude_double;
                     if (gps_longitude_double < 0.0)
@@ -758,6 +760,7 @@ static void menu_draw()
                     break;
                 case SCREEN_GPS_ALTITUDE:
                     {
+                        // TODO: rework; wrong format
                         double alt_int = floor(gps_msl_altitude);
                         double alt_frac = (gps_msl_altitude - alt_int)*10;
                         LCD_Puts(1, 0, "Alt.:");
@@ -767,6 +770,7 @@ static void menu_draw()
                     break;
                 case SCREEN_GPS_GEOID:
                     {
+                        // TODO: rework; wrong format
                         double geoid_int = floor(gps_geoid_separation);
                         double geoid_frac = (gps_geoid_separation - geoid_int)*10;
                         LCD_Puts(1, 0, "Geoid:");
