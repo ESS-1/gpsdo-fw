@@ -175,7 +175,6 @@
 //{
 //    char    screen_buffer[SCREEN_BUFFER_SIZE];
 //    char    ppb_string[PPB_STRING_SIZE];
-//    int32_t ppb;
 //
 //    switch (current_menu_screen) {
 //    case SCREEN_TREND:
@@ -240,87 +239,6 @@
 //                case SCREEN_PPB_AUTO_SYNC_PPS:
 //                    LCD_Puts(1, 0, menu_level == 1 ? "PPS S.:":"PPS S.?");
 //                    LCD_Puts(0, 1, ee_settings.pps_ppm_auto_sync ? "      ON" : "     OFF");
-//                    break;
-//            }
-//        }
-//        break;
-//    case SCREEN_GPS:
-//        if(menu_level == 0)
-//        else
-//        {
-//            switch (current_menu_gps_screen)
-//            {
-//                default:
-//                case SCREEN_GPS_LATITUDE:
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "Lat.: %s", gps_n_s);
-//                    LCD_Puts(1, 0, screen_buffer);
-//                    LCD_Puts(0, 1, gps_latitude);
-//                    break;
-//                case SCREEN_GPS_LONGITUDE:
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "Long.:%s", gps_e_w);
-//                    LCD_Puts(1, 0, screen_buffer);
-//                    LCD_Puts(0, 1, gps_longitude);
-//                    break;
-//                case SCREEN_GPS_LATITUDE_DEC:
-//                    {
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "Lat.D:");
-//                    LCD_Puts(1, 0, screen_buffer);
-//                    const char *fmt = "%d.%d";
-//                    double gps_latitude_double_abs = gps_latitude_double;
-//                    if (gps_latitude_double < 0.0)
-//                    {
-//                        gps_latitude_double_abs *= -1.0;
-//                        fmt = "-%d.%d";
-//                    }
-//                    double coord_int = floor(gps_latitude_double_abs);
-//                    double coord_frac = (gps_latitude_double_abs - coord_int)*1000000;
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, fmt, ((int)coord_int), ((int)coord_frac));
-//                    LCD_Puts(0, 1, screen_buffer);
-//                    }
-//                break;
-//                case SCREEN_GPS_LONGITUDE_DEC:
-//                    {
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "Long.D:");
-//                    LCD_Puts(1, 0, screen_buffer);
-//                    const char *fmt = "%d.%d";
-//                    double gps_longitude_double_abs = gps_longitude_double;
-//                    if (gps_longitude_double < 0.0)
-//                    {
-//                        gps_longitude_double_abs *= -1.0;
-//                        fmt = "-%d.%d";
-//                    }
-//                    double coord_int = floor(gps_longitude_double_abs);
-//                    double coord_frac = (gps_longitude_double_abs - coord_int)*1000000;
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, fmt, ((int)coord_int), ((int)coord_frac));
-//                    LCD_Puts(0, 1, screen_buffer);
-//                    }
-//                    break;
-//                case SCREEN_GPS_LOCATOR:
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "Lcator:");
-//                    LCD_Puts(1, 0, screen_buffer);
-//                    LCD_Puts(0, 1, gps_locator);
-//                    break;
-//                case SCREEN_GPS_ALTITUDE:
-//                    {
-//                        double alt_int = floor(gps_msl_altitude);
-//                        double alt_frac = (gps_msl_altitude - alt_int)*10;
-//                        LCD_Puts(1, 0, "Alt.:");
-//                        snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%d.%d", ((int)alt_int), ((int)alt_frac));
-//                        LCD_Puts(0, 1, screen_buffer);
-//                    }
-//                    break;
-//                case SCREEN_GPS_GEOID:
-//                    {
-//                        double geoid_int = floor(gps_geoid_separation);
-//                        double geoid_frac = (gps_geoid_separation - geoid_int)*10;
-//                        LCD_Puts(1, 0, "Geoid:");
-//                        snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%d.%d", ((int)geoid_int), ((int)geoid_frac));
-//                        LCD_Puts(0, 1, screen_buffer);
-//                    }
-//                    break;
-//                case SCREEN_GPS_HDOP:
-//                    LCD_Puts(1, 0, "HDOP:");
-//                    LCD_Puts(0, 1, gps_hdop);
 //                    break;
 //            }
 //        }

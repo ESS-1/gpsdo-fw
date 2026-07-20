@@ -4,9 +4,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define GPS_DEFAULT_BAUDRATE    9600
+#define GPS_DEFAULT_BAUDRATE     9600
+#define GPS_LOCATOR_SIZE         10
 
-#define GPS_EMPTY_DATE_TIME     0xFFFFFFFF
+#define GPS_EMPTY_DATE_TIME      0xFFFFFFFF
+#define PPB_EMPTY_DEG_X10M_COORD 0x7FFFFFFF
 
 #pragma pack(push, 1)
 typedef union {
@@ -33,16 +35,14 @@ typedef union {
 
 extern PackedTime gps_time;
 extern PackedDate gps_date;
-extern char       gps_latitude[];
-extern char       gps_longitude[];
-extern char       gps_n_s[];
-extern char       gps_e_w[];
-extern double     gps_msl_altitude;
-extern double     gps_geoid_separation;
-extern double     gps_latitude_double;
-extern double     gps_longitude_double;
-extern char       gps_locator[];
-extern char       gps_hdop[];
+extern char       gps_latitude_str[16];
+extern char       gps_longitude_str[16];
+extern char       gps_msl_altitude_str[10];
+extern char       gps_geoid_separation_str[10];
+extern int32_t    gps_latitude_deg_x10M;
+extern int32_t    gps_longitude_deg_x10M;
+extern char       gps_locator[GPS_LOCATOR_SIZE + 1];
+extern char       gps_hdop_str[8];
 extern uint8_t    num_sats;
 extern uint32_t   gga_frames;
 

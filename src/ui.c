@@ -20,6 +20,7 @@
 #include <inttypes.h>
 #include <string.h>
 
+#define UI_MENU_STR_LEN (22u)
 
 static void ui_proc_back_to_main(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_menu_label(const UIElement* element, UICommand command, int32_t encoder_step, const char* label);
@@ -160,7 +161,15 @@ static void ui_proc_menu_gps_to_page2_right(const UIElement* element, UICommand 
 static void ui_proc_menu_gps_to_page2_left(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_menu_gps_to_page3(const UIElement* element, UICommand command, int32_t encoder_step);
 // Page 1
+static void ui_proc_menu_gps_latitude_dd(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_gps_latitude_ddm(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_gps_longitude_dd(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_gps_longitude_ddm(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_gps_altitude(const UIElement* element, UICommand command, int32_t encoder_step);
 // Page 2
+static void ui_proc_menu_gps_locator(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_gps_hdop(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_gps_geoid_sep(const UIElement* element, UICommand command, int32_t encoder_step);
 // Page 3
 static void ui_proc_menu_gps_module(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_menu_gps_baud_rate(const UIElement* element, UICommand command, int32_t encoder_step);
@@ -177,7 +186,11 @@ static const UIElement ui_gps_screen_elements_page1[] = {
     { 127, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_label_page_1of3    },
     { 149, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_gps_to_page2_right },
     // Content
-//TODO
+    { 1, 20, 154, 11, UI_STYLE_NONE, ui_proc_menu_gps_latitude_dd   },
+    { 1, 32, 154, 11, UI_STYLE_NONE, ui_proc_menu_gps_latitude_ddm  },
+    { 1, 44, 154, 11, UI_STYLE_NONE, ui_proc_menu_gps_longitude_dd  },
+    { 1, 56, 154, 11, UI_STYLE_NONE, ui_proc_menu_gps_longitude_ddm },
+    { 1, 68, 154, 11, UI_STYLE_NONE, ui_proc_menu_gps_altitude      },
 };
 
 static UIScreen ui_gps_screen_page1 = {
@@ -196,7 +209,9 @@ static const UIElement ui_gps_screen_elements_page2[] = {
     { 127, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_label_page_2of3 },
     { 149, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_gps_to_page3    },
     // Content
-//TODO
+    { 1, 20, 154, 11, UI_STYLE_NONE, ui_proc_menu_gps_locator   },
+    { 1, 44, 154, 11, UI_STYLE_NONE, ui_proc_menu_gps_hdop      },
+    { 1, 56, 154, 11, UI_STYLE_NONE, ui_proc_menu_gps_geoid_sep },
 };
 
 static UIScreen ui_gps_screen_page2 = {
@@ -301,9 +316,11 @@ static UIScreen ui_ppb_screen_page2 = {
 //------------------------------------------------------------------------------
 static void ui_menu_draw_right_aligned(const UIElement* element, int offset_chars, const char* str, uint16_t text_color)
 {
-    int len = strlen(str);
-    ST7735_FillRectangleFast(element->x + offset_chars * 7, element->y + 1, (22 - offset_chars - len) * 7, element->height - 1, UI_COLOR_BG);
-    ST7735_WriteStringNoWrap(element->x + (22 - len) * 7, element->y + 1, element->height - 1, str, Font_7x10, text_color, UI_COLOR_BG);
+    size_t len = strlen(str);
+    if (len < (UI_MENU_STR_LEN - offset_chars)) {
+        ST7735_FillRectangleFast(element->x + offset_chars * 7, element->y + 1, (UI_MENU_STR_LEN - offset_chars - len) * 7, element->height - 1, UI_COLOR_BG);
+    }
+    ST7735_WriteStringNoWrap(element->x + (UI_MENU_STR_LEN - len) * 7, element->y + 1, element->height - 1, str, Font_7x10, text_color, UI_COLOR_BG);
 }
 
 
@@ -419,10 +436,11 @@ static void ui_proc_menu(const UIElement* element, UICommand command, int32_t en
 //------------------------------------------------------------------------------
 // Save
 //------------------------------------------------------------------------------
-static bool ui_cache_ee_is_changed = false;
 static void ui_proc_save_handler(UI_MsgBoxButton result);
 static void ui_proc_save(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static bool ui_cache_ee_is_changed = false;
+
     if ((command & UICommand_Init) || (ee_is_changed != ui_cache_ee_is_changed)) {
         ui_cache_ee_is_changed = ee_is_changed;
         ST7735_DrawImage(element->x, element->y, 15, 16, ui_cache_ee_is_changed ? icon_save_15x16 : icon_save_inactive_15x16);
@@ -460,10 +478,11 @@ static void ui_proc_save_handler(UI_MsgBoxButton result)
 //------------------------------------------------------------------------------
 // GPS
 //------------------------------------------------------------------------------
-static bool    ui_cache_gps_lock_status = false;
-static uint8_t ui_cache_num_sats = 0;
 static void ui_proc_gps(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static bool    ui_cache_gps_lock_status = false;
+    static uint8_t ui_cache_num_sats = 0;
+
     // Draw icon
     if ((command & UICommand_Init) || (gps_lock_status != ui_cache_gps_lock_status)) {
         ui_cache_gps_lock_status = gps_lock_status;
@@ -490,10 +509,11 @@ static void ui_proc_gps(const UIElement* element, UICommand command, int32_t enc
 //------------------------------------------------------------------------------
 // PPB
 //------------------------------------------------------------------------------
-static FrequencyStability ui_cache_frequency_stability = FREQ_STABILITY_UNSTABLE;
-static int32_t            ui_cache_frequency_ppb_x100  = PPB_UNSET_VALUE;
 static void ui_proc_ppb(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static FrequencyStability ui_cache_frequency_stability = FREQ_STABILITY_UNSTABLE;
+    static int32_t            ui_cache_frequency_ppb_x100  = PPB_UNSET_VALUE;
+
     // Draw icon
     if ((command & UICommand_Init) || (frequency_stability != ui_cache_frequency_stability)) {
         ui_cache_frequency_stability = frequency_stability;
@@ -532,9 +552,10 @@ static void ui_proc_ppb(const UIElement* element, UICommand command, int32_t enc
 //------------------------------------------------------------------------------
 // USB
 //------------------------------------------------------------------------------
-static cdc_status ui_cache_cdcio_status = CDC_STATUS_NO_CONN;
 static void ui_proc_usb(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static cdc_status ui_cache_cdcio_status = CDC_STATUS_NO_CONN;
+
     if ((command & UICommand_Init) || (cdcio_status != ui_cache_cdcio_status)) {
         ui_cache_cdcio_status = cdcio_status;
 
@@ -593,10 +614,11 @@ static void ui_proc_usb(const UIElement* element, UICommand command, int32_t enc
 //------------------------------------------------------------------------------
 // Date and Time
 //------------------------------------------------------------------------------
-static PackedDate ui_cache_gps_date = { .raw = GPS_EMPTY_DATE_TIME };
-static PackedTime ui_cache_gps_time = { .raw = GPS_EMPTY_DATE_TIME };
 static void ui_proc_datetime(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static PackedDate ui_cache_gps_date = { .raw = GPS_EMPTY_DATE_TIME };
+    static PackedTime ui_cache_gps_time = { .raw = GPS_EMPTY_DATE_TIME };
+
     if (command & UICommand_Release) {
         // Apply changes
         uint32_t new_time_offset = (uint32_t)(gps_time_offset - GPS_MIN_TIME_OFFSET);
@@ -676,11 +698,12 @@ static void ui_proc_datetime(const UIElement* element, UICommand command, int32_
 //------------------------------------------------------------------------------
 // PPS Indicator and Spinner
 //------------------------------------------------------------------------------
-static uint32_t ui_spinner_last_update = 0;
-static uint8_t  ui_spinner_frame       = 0;
-static bool     ui_cache_pps_active    = false;
 static void ui_proc_pps(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static uint32_t ui_spinner_last_update = 0;
+    static uint8_t  ui_spinner_frame       = 0;
+    static bool     ui_cache_pps_active    = false;
+
     if (command & UICommand_Init) {
         ui_spinner_last_update = 0;
         ui_spinner_frame       = 0;
@@ -711,11 +734,12 @@ static void ui_proc_pps(const UIElement* element, UICommand command, int32_t enc
 //------------------------------------------------------------------------------
 // Status and Warmup Countdown
 //------------------------------------------------------------------------------
-static uint32_t ui_cache_warmup_remaining_sec = UINT16_MAX;
-static bool     ui_cache_pll_status_error     = false;
 static void ui_proc_status_show_status();
 static void ui_proc_status(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static uint32_t ui_cache_warmup_remaining_sec = UINT16_MAX;
+    static bool     ui_cache_pll_status_error     = false;
+
     bool draw_icon = false;
     bool draw_timer = false;
     if (command & UICommand_Init) {
@@ -839,7 +863,7 @@ static void ui_proc_status_show_status()
     } else if (err_pll_b) { // PLL B: no lock
         msg = msg_err_b;
     } else { // No error
-        msg  = (ui_cache_warmup_remaining_sec > 0) ? msg_warmup : msg_ok;
+        msg  = frequency_adjustment_allowed() ? msg_ok : msg_warmup;
         type = UI_MsgBoxType_Ok;
     }
 
@@ -982,30 +1006,34 @@ static void ui_proc_out_freq(const UIElement* element, UICommand command, int32_
     ui_default_element_proc(element, command, encoder_step);
 }
 
-static uint8_t ui_edit_pll_out1_drive_strength = SI5351_DRIVE_STRENGTH_2MA;
 static void ui_proc_out1_drv_str(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static uint8_t ui_edit_pll_out1_drive_strength = SI5351_DRIVE_STRENGTH_2MA;
+
     ui_proc_out_drv_str(element, command, encoder_step, 1, &(pll_out1_presets[ee_storage.pll_out1_preset]),
         &ui_edit_pll_out1_drive_strength, &(ee_storage.pll_out1_drive_strength));
 }
 
-static uint16_t ui_edit_pll_out1_preset = 0;
 static void ui_proc_out1_freq(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static uint16_t ui_edit_pll_out1_preset = 0;
+
     ui_proc_out_freq(element, command, encoder_step, 1, pll_out1_presets, pll_out1_preset_count, &ui_edit_pll_out1_preset,
         &(ee_storage.pll_out1_preset), ee_storage.pll_out1_drive_strength);
 }
 
-static uint8_t ui_edit_pll_out2_drive_strength = SI5351_DRIVE_STRENGTH_2MA;
 static void ui_proc_out2_drv_str(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static uint8_t ui_edit_pll_out2_drive_strength = SI5351_DRIVE_STRENGTH_2MA;
+
     ui_proc_out_drv_str(element, command, encoder_step, 2, &(pll_out2_presets[ee_storage.pll_out2_preset]),
         &ui_edit_pll_out2_drive_strength, &(ee_storage.pll_out2_drive_strength));
 }
 
-static uint16_t ui_edit_pll_out2_preset = 0;
 static void ui_proc_out2_freq(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static uint16_t ui_edit_pll_out2_preset = 0;
+
     ui_proc_out_freq(element, command, encoder_step, 2, pll_out2_presets, pll_out2_preset_count, &ui_edit_pll_out2_preset,
         &(ee_storage.pll_out2_preset), ee_storage.pll_out2_drive_strength);
 }
@@ -1014,9 +1042,10 @@ static void ui_proc_out2_freq(const UIElement* element, UICommand command, int32
 //------------------------------------------------------------------------------
 // PWM
 //------------------------------------------------------------------------------
-static uint16_t ui_cache_pwm = 0;
 static void ui_proc_pwm(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static uint16_t ui_cache_pwm = 0;
+
     // Draw label
     if (command & UICommand_Init) {
         ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "PWM:", Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
@@ -1138,9 +1167,10 @@ static void ui_proc_menu_main_to_page2(const UIElement* element, UICommand comma
     ui_proc_menu_page_right(element, command, encoder_step, &ui_menu_screen_page2);
 }
 
-static uint8_t ui_edit_brightness = 0;
 static void ui_proc_menu_main_brightness(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static uint8_t ui_edit_brightness = 0;
+
     uint8_t* brightness_to_draw = NULL;
 
     if (command & UICommand_Release) {
@@ -1188,9 +1218,10 @@ static void ui_proc_menu_main_brightness(const UIElement* element, UICommand com
     ui_default_element_proc(element, command, encoder_step);
 }
 
-static uint32_t ui_cache_device_uptime = 0;
 static void ui_proc_menu_main_uptime(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static uint32_t ui_cache_device_uptime = 0;
+
     // Draw label
     if (command & UICommand_Init) {
         ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "Uptime:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
@@ -1251,25 +1282,26 @@ static void ui_proc_menu_main_mcu_flash(const UIElement* element, UICommand comm
     ui_default_element_proc(element, command, encoder_step);
 }
 
-static uint32_t ui_cache_eeprom_total_writes = 0;
 static void ui_proc_menu_main_eeprom_writes(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-     // Draw label
-     if (command & UICommand_Init) {
-         ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "EEPROM Writes:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
-     }
+    static uint32_t ui_cache_total_writes = 0;
 
-     // Draw value
-     uint32_t total_writes = ee_storage.total_writes;
-     if ((command & UICommand_Init) || (total_writes != ui_cache_eeprom_total_writes)) {
-         ui_cache_eeprom_total_writes = total_writes;
+    // Draw label
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "EEPROM Writes:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
 
-         char s[11] = { '\0' };
-         snprintf(s, ARRAY_SIZE(s), "%8" PRIu32, total_writes);
-         ST7735_WriteStringNoWrap(element->x + 14 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
-     }
+    // Draw value
+    uint32_t total_writes = ee_storage.total_writes;
+    if ((command & UICommand_Init) || (total_writes != ui_cache_total_writes)) {
+        ui_cache_total_writes = total_writes;
 
-     ui_default_element_proc(element, command, encoder_step);
+        char s[11] = { '\0' };
+        snprintf(s, ARRAY_SIZE(s), "%8" PRIu32, total_writes);
+        ST7735_WriteStringNoWrap(element->x + 14 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
 }
 
 
@@ -1301,9 +1333,244 @@ static void ui_proc_menu_gps_to_page3(const UIElement* element, UICommand comman
     ui_proc_menu_page_right(element, command, encoder_step, &ui_gps_screen_page3);
 }
 
-static uint8_t ui_edit_gps_model = 0;
+static void ui_draw_coord_dd_right_aligned(const UIElement* element, int32_t coord_deg_x10M)
+{
+    char s[13] = { '\0' };
+
+    if (coord_deg_x10M != PPB_EMPTY_DEG_X10M_COORD) {
+        int32_t coord_abs   = (coord_deg_x10M < 0) ? -coord_deg_x10M : coord_deg_x10M;
+        int32_t coord_int   = coord_abs / 10000000;
+        int32_t coord_fract = coord_abs % 10000000;
+
+        const char* sign = (coord_deg_x10M < 0) ? "-" : "";
+
+        snprintf(s, ARRAY_SIZE(s), "%s%" PRIi32 ".%07" PRIi32, sign, coord_int, coord_fract);
+    }
+
+    uint16_t len    = (uint16_t)strlen(s);
+    uint16_t offset = UI_MENU_STR_LEN - len;
+
+    if (len < 12) {
+        uint16_t empty_chars = 12 - len;
+        ST7735_FillRectangleFast(element->x + 10 * 7, element->y + 1, empty_chars * 7, element->height - 1, UI_COLOR_BG);
+    }
+
+    ST7735_WriteStringNoWrap(element->x + offset * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+}
+
+static void ui_draw_coord_ddm_right_aligned(const UIElement* element, const char* nmea_coord, char coord_ns_ew)
+{
+    char      min_str[20] = { 0 };
+    char      deg_str[4]  = { '\0' };
+    size_t    min_len     = 0;
+    ptrdiff_t deg_len     = 0;
+
+    // Find the decimal point separating whole minutes and fractional minutes
+    const char* dot = strchr(nmea_coord, '.');
+    if (dot != NULL) {
+        // Minutes always occupy exactly two numeric characters immediately preceding the decimal point
+        const char* min_start = dot - 2;
+
+        if (min_start >= nmea_coord) {
+            // Format minutes and 'N/S'/'E/W' string
+            snprintf(min_str, ARRAY_SIZE(min_str), " %s' %c", min_start, coord_ns_ew);
+            min_len = strlen(min_str);
+
+            // Format degrees
+            deg_len = min_start - nmea_coord;
+            if (deg_len < (ptrdiff_t)ARRAY_SIZE(deg_str)) {
+                strncpy(deg_str, nmea_coord, deg_len);
+            } else {
+                deg_len = 0;
+            }
+        }
+
+    }
+
+    // Draw minutes
+    uint16_t pos = UI_MENU_STR_LEN;
+    if (pos >= min_len && min_len > 0) {
+        pos -= min_len;
+        ST7735_WriteStringNoWrap(element->x + pos * 7, element->y + 1, element->height - 1, min_str, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    // Draw degrees
+    if (deg_len > 0) {
+        // Draw degree sign
+        if (pos >= 1) {
+            --pos;
+            ST7735_DrawImage(element->x + pos * 7, element->y + 1, 7, 10, icon_symbol_degree_7x10);
+        }
+
+        // Draw value
+        if (pos >= deg_len) {
+            pos -= deg_len;
+            ST7735_WriteStringNoWrap(element->x + pos * 7, element->y + 1, element->height - 1, deg_str, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+        }
+    }
+
+    // Clear remaining space
+    if (pos > 0) {
+        ST7735_FillRectangleFast(element->x, element->y + 1, pos * 7, element->height - 1, UI_COLOR_BG);
+    }
+}
+
+static void ui_proc_menu_gps_latitude_dd(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    static int32_t ui_cache_gps_latitude_deg_x10M = PPB_EMPTY_DEG_X10M_COORD;
+
+    // Draw label
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "Latitude:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    // Draw value
+    int32_t latitude = gps_latitude_deg_x10M;
+    if ((command & UICommand_Init) || (latitude != ui_cache_gps_latitude_deg_x10M)) {
+        ui_cache_gps_latitude_deg_x10M = latitude;
+        ui_draw_coord_dd_right_aligned(element, ui_cache_gps_latitude_deg_x10M);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_proc_menu_gps_latitude_ddm(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    // Draw the value on every GGA frame to avoid expensive string comparisons
+    static uint32_t ui_cache_gga_frames = 0;
+
+    // Draw value
+    uint32_t frames = gga_frames;
+    if ((command & UICommand_Init) || (frames != ui_cache_gga_frames)) {
+        ui_cache_gga_frames = frames;
+
+        char ns = gps_latitude_deg_x10M > 0 ? 'N' : 'S';
+        ui_draw_coord_ddm_right_aligned(element, gps_latitude_str, ns);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_proc_menu_gps_longitude_dd(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    static int32_t ui_cache_gps_longitude_deg_x10M = PPB_EMPTY_DEG_X10M_COORD;
+
+    // Draw label
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "Longitude:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    // Draw value
+    int32_t longitude = gps_longitude_deg_x10M;
+    if ((command & UICommand_Init) || (longitude != ui_cache_gps_longitude_deg_x10M)) {
+        ui_cache_gps_longitude_deg_x10M = longitude;
+        ui_draw_coord_dd_right_aligned(element, ui_cache_gps_longitude_deg_x10M);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_proc_menu_gps_longitude_ddm(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    // Draw the value on every GGA frame to avoid expensive string comparisons
+    static uint32_t ui_cache_gga_frames = 0;
+
+    // Draw value
+    uint32_t frames = gga_frames;
+    if ((command & UICommand_Init) || (frames != ui_cache_gga_frames)) {
+        ui_cache_gga_frames = frames;
+
+        char ew = gps_longitude_deg_x10M > 0 ? 'E' : 'W';
+        ui_draw_coord_ddm_right_aligned(element, gps_longitude_str, ew);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_proc_menu_gps_altitude(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    // Draw the value on every GGA frame to avoid expensive string comparisons
+    static uint32_t ui_cache_gga_frames = 0;
+
+    // Draw label
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "Altitude:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    // Draw value
+    uint32_t frames = gga_frames;
+    if ((command & UICommand_Init) || (frames != ui_cache_gga_frames)) {
+        ui_cache_gga_frames = frames;
+        ui_menu_draw_right_aligned(element, UI_MENU_STR_LEN - ARRAY_SIZE(gps_msl_altitude_str) + 1, gps_msl_altitude_str, UI_COLOR_MENU_LABEL);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_proc_menu_gps_locator(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    // Draw the value on every GGA frame to avoid expensive string comparisons
+    static uint32_t ui_cache_gga_frames = 0;
+
+    // Draw label
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "Locator:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    // Draw value
+    uint32_t frames = gga_frames;
+    if ((command & UICommand_Init) || (frames != ui_cache_gga_frames)) {
+        ui_cache_gga_frames = frames;
+        ui_menu_draw_right_aligned(element, UI_MENU_STR_LEN - ARRAY_SIZE(gps_locator) + 1, gps_locator, UI_COLOR_MENU_LABEL);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_proc_menu_gps_hdop(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    // Draw the value on every GGA frame to avoid expensive string comparisons
+    static uint32_t ui_cache_gga_frames = 0;
+
+    // Draw label
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "HDOP:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    // Draw value
+    uint32_t frames = gga_frames;
+    if ((command & UICommand_Init) || (frames != ui_cache_gga_frames)) {
+        ui_cache_gga_frames = frames;
+        ui_menu_draw_right_aligned(element, UI_MENU_STR_LEN - ARRAY_SIZE(gps_hdop_str) + 1, gps_hdop_str, UI_COLOR_MENU_LABEL);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_proc_menu_gps_geoid_sep(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    // Draw the value on every GGA frame to avoid expensive string comparisons
+    static uint32_t ui_cache_gga_frames = 0;
+
+    // Draw label
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "Geoid Sep.:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    // Draw value
+    uint32_t frames = gga_frames;
+    if ((command & UICommand_Init) || (frames != ui_cache_gga_frames)) {
+        ui_cache_gga_frames = frames;
+        ui_menu_draw_right_aligned(element, UI_MENU_STR_LEN - ARRAY_SIZE(gps_geoid_separation_str) + 1, gps_geoid_separation_str, UI_COLOR_MENU_LABEL);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
 static void ui_proc_menu_gps_module(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static uint8_t ui_edit_gps_model = 0;
+
     const uint8_t* model_to_draw = NULL;
 
     if (command & UICommand_Release) {
@@ -1384,10 +1651,11 @@ void ui_change_baudrate(uint32_t* baudrate, int32_t step)
     *baudrate = b;
 }
 
-static uint32_t ui_cache_gps_baudrate = 0;
-static uint32_t ui_edit_gps_baudrate = 0;
 static void ui_proc_menu_gps_baud_rate(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static uint32_t ui_cache_gps_baudrate = 0;
+    static uint32_t ui_edit_gps_baudrate = 0;
+
     uint32_t *baudrate_to_draw = NULL;
     bool is_captured = ui_is_captured(element);
 
@@ -1446,9 +1714,10 @@ static void ui_proc_menu_gps_baud_rate(const UIElement* element, UICommand comma
     ui_default_element_proc(element, command, encoder_step);
 }
 
-static uint32_t ui_cache_gga_frames = 0;
 static void ui_proc_menu_gps_gga_frames(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static uint32_t ui_cache_gga_frames = 0;
+
     // Draw label
     if (command & UICommand_Init) {
         ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "GGA Frames:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
@@ -1467,11 +1736,12 @@ static void ui_proc_menu_gps_gga_frames(const UIElement* element, UICommand comm
     ui_default_element_proc(element, command, encoder_step);
 }
 
-static uint32_t ui_cache_gps_invalid_frames     = 0;
-static uint32_t ui_cache_gps_fifo_overflow_gps  = 0;
-static uint32_t ui_cache_gps_fifo_overflow_comm = 0;
 static void ui_proc_menu_gps_errors(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static uint32_t ui_cache_gps_invalid_frames     = 0;
+    static uint32_t ui_cache_gps_fifo_overflow_gps  = 0;
+    static uint32_t ui_cache_gps_fifo_overflow_comm = 0;
+
     // Draw label
     if (command & UICommand_Init) {
         ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "GPS Err/GPS OVF/PC OVF", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
@@ -1527,9 +1797,10 @@ static void ui_proc_menu_ppb_to_page2(const UIElement* element, UICommand comman
     ui_proc_menu_page_right(element, command, encoder_step, &ui_ppb_screen_page2);
 }
 
-static int32_t ui_cache_menu_frequency_ppb_x100 = PPB_UNSET_VALUE;
 static void ui_proc_menu_ppb_mean(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static int32_t ui_cache_frequency_ppb_x100 = PPB_UNSET_VALUE;
+
     // Draw label
     if (command & UICommand_Init) {
         ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "Mean PPB:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
@@ -1537,8 +1808,8 @@ static void ui_proc_menu_ppb_mean(const UIElement* element, UICommand command, i
 
     // Draw value
     int32_t ppb = frequency_ppb_x100;
-    if ((command & UICommand_Init) || (ppb != ui_cache_menu_frequency_ppb_x100)) {
-        ui_cache_menu_frequency_ppb_x100 = ppb;
+    if ((command & UICommand_Init) || (ppb != ui_cache_frequency_ppb_x100)) {
+        ui_cache_frequency_ppb_x100 = ppb;
 
         char s[10] = { '\0' };
         ui_format_ppb_9char(ppb, s, ARRAY_SIZE(s));
@@ -1548,9 +1819,10 @@ static void ui_proc_menu_ppb_mean(const UIElement* element, UICommand command, i
     ui_default_element_proc(element, command, encoder_step);
 }
 
-static int32_t ui_cache_frequency_inst_ppb_x100 = PPB_UNSET_VALUE;
 static void ui_proc_menu_ppb_inst(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static int32_t ui_cache_frequency_inst_ppb_x100 = PPB_UNSET_VALUE;
+
     // Draw label
     if (command & UICommand_Init) {
         ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "Inst. PPB:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
@@ -1569,9 +1841,10 @@ static void ui_proc_menu_ppb_inst(const UIElement* element, UICommand command, i
     ui_default_element_proc(element, command, encoder_step);
 }
 
-static int32_t ui_cache_ppb_frequency = 0;
 static void ui_proc_menu_ppb_freq(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static int32_t ui_cache_ppb_frequency = 0;
+
     // Draw label
     if (command & UICommand_Init) {
         ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "Core Freq.:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
@@ -1594,9 +1867,10 @@ static void ui_proc_menu_ppb_freq(const UIElement* element, UICommand command, i
     ui_default_element_proc(element, command, encoder_step);
 }
 
-static int32_t ui_cache_ppb_millis = 0;
 static void ui_proc_menu_ppb_pps_err(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static int32_t ui_cache_ppb_millis = 0;
+
     // Draw label
     if (command & UICommand_Init) {
         ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "PPS Error:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
@@ -1615,11 +1889,12 @@ static void ui_proc_menu_ppb_pps_err(const UIElement* element, UICommand command
     ui_default_element_proc(element, command, encoder_step);
 }
 
-static uint16_t ui_cache_menu_pwm         = 0;
-static int32_t  ui_cache_menu_corr        = 0;
-static bool     ui_cache_menu_warmup_done = false;
 static void ui_proc_menu_ppb_pwm_corr(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static uint16_t ui_cache_pwm            = 0;
+    static int32_t  ui_cache_ppb_correction = 0;
+    static bool     ui_cache_warmup_done    = false;
+
     // Draw label
     if (command & UICommand_Init) {
         ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "PWM/Corr.:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
@@ -1629,10 +1904,10 @@ static void ui_proc_menu_ppb_pwm_corr(const UIElement* element, UICommand comman
     uint16_t pwm = TIM1->CCR2;
     int32_t  corr = ppb_correction;
     bool     warmup_done = frequency_adjustment_allowed();
-    if ((command & UICommand_Init) || (pwm != ui_cache_menu_pwm) || (corr != ui_cache_menu_corr) || (warmup_done != ui_cache_menu_warmup_done)) {
-        ui_cache_menu_pwm         = pwm;
-        ui_cache_menu_corr        = corr;
-        ui_cache_menu_warmup_done = warmup_done;
+    if ((command & UICommand_Init) || (pwm != ui_cache_pwm) || (corr != ui_cache_ppb_correction) || (warmup_done != ui_cache_warmup_done)) {
+        ui_cache_pwm            = pwm;
+        ui_cache_ppb_correction = corr;
+        ui_cache_warmup_done    = warmup_done;
 
         char s[13] = { '\0' };
         if (warmup_done) {
@@ -1647,9 +1922,10 @@ static void ui_proc_menu_ppb_pwm_corr(const UIElement* element, UICommand comman
     ui_default_element_proc(element, command, encoder_step);
 }
 
-static uint8_t ui_edit_ocxo_model = 0;
 static void ui_proc_menu_ppb_ocxo(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static uint8_t ui_edit_ocxo_model = 0;
+
     const uint8_t* model_to_draw = NULL;
 
     if (command & UICommand_Release) {
@@ -1698,10 +1974,11 @@ static void ui_proc_menu_ppb_ocxo(const UIElement* element, UICommand command, i
     ui_default_element_proc(element, command, encoder_step);
 }
 
-static uint32_t ui_cache_warmup_time_seconds = 0;
-static uint32_t ui_edit_warmup_time_seconds = 0;
 static void ui_proc_menu_ppb_warmup(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static uint32_t ui_cache_warmup_time_seconds = 0;
+    static uint32_t ui_edit_warmup_time_seconds = 0;
+
     uint32_t *value_to_draw = NULL;
     bool is_captured = ui_is_captured(element);
 
@@ -1756,9 +2033,10 @@ static void ui_proc_menu_ppb_warmup(const UIElement* element, UICommand command,
     ui_default_element_proc(element, command, encoder_step);
 }
 
-static uint32_t ui_edit_ppb_lock_threshold = 0;
 static void ui_proc_menu_ppb_ppb_thr(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static uint32_t ui_edit_ppb_lock_threshold = 0;
+
     const uint32_t* value_to_draw = NULL;
 
     if (command & UICommand_Release) {
@@ -1806,9 +2084,10 @@ static void ui_proc_menu_ppb_ppb_thr(const UIElement* element, UICommand command
     ui_default_element_proc(element, command, encoder_step);
 }
 
-static uint8_t ui_edit_correction_algorithm = 0;
 static void ui_proc_menu_ppb_alg(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static uint8_t ui_edit_correction_algorithm = 0;
+
     const uint8_t* value_to_draw = NULL;
 
     if (command & UICommand_Release) {
@@ -1857,10 +2136,11 @@ static void ui_proc_menu_ppb_alg(const UIElement* element, UICommand command, in
     ui_default_element_proc(element, command, encoder_step);
 }
 
-static uint32_t ui_cache_correction_factor = 0;
-static uint32_t ui_edit_correction_factor = 0;
 static void ui_proc_menu_ppb_corr_fact(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static uint32_t ui_cache_correction_factor = 0;
+    static uint32_t ui_edit_correction_factor = 0;
+
     uint32_t *value_to_draw = NULL;
     bool is_captured = ui_is_captured(element);
 

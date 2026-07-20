@@ -15,25 +15,23 @@
 #include <string.h>
 #include <math.h>
 
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+
 #define MAX_GPS_LINE        512
-#define GPS_LOCATOR_SIZE    8
 
 static char gps_line[MAX_GPS_LINE];
-PackedTime  gps_time             = { .raw = GPS_EMPTY_DATE_TIME };
-PackedDate  gps_date             = { .raw = GPS_EMPTY_DATE_TIME };
-char        gps_latitude[9]      = { '\0' };
-char        gps_longitude[9]     = { '\0' };
-char        gps_n_s[2]           = { '\0' };
-char        gps_e_w[2]           = { '\0' };
-double      gps_msl_altitude;
-double      gps_geoid_separation;
-double      gps_latitude_double  = 0;
-double      gps_longitude_double = 0;
-char        gps_locator[GPS_LOCATOR_SIZE + 1];
-
-char     gps_hdop[9] = { '\0' };
-uint8_t  num_sats    = 0;
-uint32_t gga_frames  = 0;
+PackedTime  gps_time                          = { .raw = GPS_EMPTY_DATE_TIME };
+PackedDate  gps_date                          = { .raw = GPS_EMPTY_DATE_TIME };
+char        gps_latitude_str[16]              = { '\0' };
+char        gps_longitude_str[16]             = { '\0' };
+char        gps_msl_altitude_str[10]          = { '\0' };
+char        gps_geoid_separation_str[10]      = { '\0' };
+int32_t     gps_latitude_deg_x10M             = PPB_EMPTY_DEG_X10M_COORD;
+int32_t     gps_longitude_deg_x10M            = PPB_EMPTY_DEG_X10M_COORD;
+char        gps_locator[GPS_LOCATOR_SIZE + 1] = { '\0' };
+char        gps_hdop_str[8]                   = { '\0' };
+uint8_t     num_sats                          = 0;
+uint32_t    gga_frames                        = 0;
 
 static size_t gps_line_len    = 0;
 int8_t        gps_time_offset = 0; // -14/+14
@@ -261,69 +259,143 @@ void gps_start_it()
     gps_start_comm_rx();
 }
 
-static double gps_parse_coordinate(char* nmea_string, char* coord_string, size_t size)
+// Parses NMEA coordinate string (DDMM.MMMMMMM) into int32_t scaled by 10^7.
+// Returns scaled coordinate value: (Degrees * 10^7), or 0 on syntax/bounds failure.
+static int32_t gps_parse_coordinate(const char* nmea_coord)
 {
-    double result = 0;
-    char* dot_substring = nmea_string != NULL ? strstr(nmea_string, ".") : NULL;
-    if(dot_substring != NULL)
-    {
-        uint8_t i = 0;
-        uint8_t j = 0;
-        bool lead = true;
-        while(nmea_string[i] != 0 && j < (size-1))
-        {
-            if(nmea_string[i] != '.' && (nmea_string[i] != '0'||!lead))
-            {
-                coord_string[j] = nmea_string[i];
-                j++;
-                lead = false;
-            }
-            i++;
-        }
-        coord_string[j] = 0;
-        // Parse value and convert to decimal
-        int dot_position = dot_substring - nmea_string;
-        int len = strlen(nmea_string);
-        if(dot_position >= 2 && dot_position <= 5 && len < 16)
-        {
-            char gps_buffer[16];
-            int buff_len = len-(dot_position-2);
-            strncpy(gps_buffer, nmea_string+(dot_position-2),buff_len);
-            gps_buffer[buff_len] = 0; // Terminate string
-            double mins = atof(gps_buffer);
-            buff_len = dot_position-2;
-            strncpy(gps_buffer, nmea_string, buff_len);
-            gps_buffer[buff_len] = 0; // Terminate string
-            int deg = atoi(gps_buffer);
-            result = deg + mins/60;
-        }
+    if (nmea_coord == NULL) {
+        return PPB_EMPTY_DEG_X10M_COORD;
     }
-    return result;
+
+    // Find the decimal point separating whole minutes and fractional minutes
+    const char* dot = strchr(nmea_coord, '.');
+    if (dot == NULL) {
+        return PPB_EMPTY_DEG_X10M_COORD;
+    }
+
+    // Minutes (MM) always occupy exactly two numeric characters immediately preceding the decimal point
+    const char* min_start = dot - 2;
+    if (min_start < nmea_coord) {
+        return PPB_EMPTY_DEG_X10M_COORD;
+    }
+
+    // Parse integer degrees (all characters in the string before the minutes part)
+    int32_t deg = 0;
+    for (const char* p = nmea_coord; p < min_start; ++p) {
+        if (*p < '0' || *p > '9') {
+            return PPB_EMPTY_DEG_X10M_COORD;
+        }
+
+        deg = deg * 10 + (*p - '0');
+    }
+
+    // Verify degrees do not exceed physical maximums to prevent signed 32-bit integer overflow
+    // Max latitude is 90 degrees; max longitude is 180 degrees
+    if (deg > 180) {
+        return PPB_EMPTY_DEG_X10M_COORD;
+    }
+
+    // Validate that both minutes (MM) characters are valid numeric digits
+    if (min_start[0] < '0' || min_start[0] > '9' || min_start[1] < '0' || min_start[1] > '9') {
+        return PPB_EMPTY_DEG_X10M_COORD;
+    }
+
+    // Parse integer minutes (MM) and scale to 10^7
+    int32_t min_int = (min_start[0] - '0') * 10 + (min_start[1] - '0');
+    if (min_int >= 60) {
+        return PPB_EMPTY_DEG_X10M_COORD;
+    }
+
+    int32_t total_minutes_scaled = min_int * 10000000;
+
+    // Parse fractional minutes up to 7 decimal places
+    int32_t     scale = 1000000;
+    const char* p     = dot + 1;
+    while (*p >= '0' && *p <= '9' && scale > 0) {
+        total_minutes_scaled += (*p - '0') * scale;
+        scale /= 10;
+        p++;
+    }
+
+    // Round up if the 8th fractional digit is >= 5
+    if (*p >= '5' && *p <= '9' && scale == 0) {
+        ++total_minutes_scaled;
+    }
+
+    int32_t deg_frac_scaled = (total_minutes_scaled + 30) / 60;
+    return (deg * 10000000) + deg_frac_scaled;
 }
 
-static char gps_letterize(int x) {
-    return (char) x + 65;
-}
-
-static void gps_compute_locator(double lat, double lon) {
-    double LON_F[]={20,2.0,0.083333,0.008333};
-    double LAT_F[]={10,1.0,0.0416665,0.004166};
-    int i;
-    lon += 180;
-    lat += 90;
-
-    for (i = 0; i < GPS_LOCATOR_SIZE/2; i++){
-        if (i % 2 == 1) {
-            gps_locator[i*2] = (char) (lon/LON_F[i] + '0');
-            gps_locator[i*2+1] = (char) (lat/LAT_F[i] + '0');
-        } else {
-            gps_locator[i*2] = gps_letterize((int) (lon/LON_F[i]));
-            gps_locator[i*2+1] = gps_letterize((int) (lat/LAT_F[i]));
-        }
-        lon = fmod(lon, LON_F[i]);
-        lat = fmod(lat, LAT_F[i]);
+static void gps_compute_locator(int32_t lat_x10M, int32_t lon_x10M)
+{
+    if (lat_x10M == PPB_EMPTY_DEG_X10M_COORD || lon_x10M == PPB_EMPTY_DEG_X10M_COORD) {
+        gps_locator[0] = '\0';
+        return;
     }
-    gps_locator[i*2]=0;
+
+    // Clamp coordinates to grid boundaries
+    if (lon_x10M > 1799999999)
+        lon_x10M = 1799999999;
+    if (lon_x10M < -1800000000)
+        lon_x10M = -1800000000;
+    if (lat_x10M > 899999999)
+        lat_x10M = 899999999;
+    if (lat_x10M < -900000000)
+        lat_x10M = -900000000;
+
+    // Shift coordinates to strictly positive domain
+    uint32_t lon_rem = (uint32_t)lon_x10M + 1800000000U;
+    uint32_t lat_rem = (uint32_t)lat_x10M + 900000000U;
+
+    int pos = 0;
+
+    // Process pairs
+    // Pair 1: Field (20 degrees lon, 10 degrees lat) -> Letters A-R
+    if (pos + 1 < GPS_LOCATOR_SIZE) {
+        gps_locator[pos++] = (char)('A' + (lon_rem / 200000000U));
+        gps_locator[pos++] = (char)('A' + (lat_rem / 100000000U));
+        lon_rem %= 200000000U;
+        lat_rem %= 100000000U;
+    }
+
+    // Pair 2: Square (2 degrees lon, 1 degree lat) -> Digits 0-9
+    if (pos + 1 < GPS_LOCATOR_SIZE) {
+        gps_locator[pos++] = (char)('0' + (lon_rem / 20000000U));
+        gps_locator[pos++] = (char)('0' + (lat_rem / 10000000U));
+        lon_rem %= 20000000U;
+        lat_rem %= 10000000U;
+    }
+
+    // Pair 3: Subsquare (5 min lon, 2.5 min lat) -> Letters a-x
+    if (pos + 1 < GPS_LOCATOR_SIZE) {
+        lon_rem *= 12U;
+        lat_rem *= 24U;
+        gps_locator[pos++] = (char)('a' + (lon_rem / 10000000U));
+        gps_locator[pos++] = (char)('a' + (lat_rem / 10000000U));
+        lon_rem %= 10000000U;
+        lat_rem %= 10000000U;
+    }
+
+    // Pair 4: Extended Square (0.5 min lon, 0.25 min lat) -> Digits 0-9
+    if (pos + 1 < GPS_LOCATOR_SIZE) {
+        lon_rem *= 10U;
+        lat_rem *= 10U;
+        gps_locator[pos++] = (char)('0' + (lon_rem / 10000000U));
+        gps_locator[pos++] = (char)('0' + (lat_rem / 10000000U));
+        lon_rem %= 10000000U;
+        lat_rem %= 10000000U;
+    }
+
+    // Pair 5: Sub-extended Square (Grid 24x24) -> Letters a-x
+    if (pos + 1 < GPS_LOCATOR_SIZE) {
+        lon_rem *= 24U;
+        lat_rem *= 24U;
+        gps_locator[pos++] = (char)('a' + (lon_rem / 10000000U));
+        gps_locator[pos++] = (char)('a' + (lat_rem / 10000000U));
+    }
+
+    // Null-terminate the string
+    gps_locator[pos] = '\0';
 }
 
 static bool change_time(int time_source, uint8_t *time_dest, int correction, int max_value)
@@ -338,6 +410,16 @@ static bool change_time(int time_source, uint8_t *time_dest, int correction, int
 
     *time_dest = (uint8_t)value;
     return overlap;
+}
+
+static void gps_safe_copy_string(char* dst, const char* src, size_t dst_char_count)
+{
+    if (src != NULL) {
+        strncpy(dst, src, dst_char_count);
+        dst[dst_char_count - 1] = '\0';
+    } else {
+        dst[0]   = '\0';
+    }
 }
 
 // Maybe use X-CUBE-GNSS here?
@@ -402,40 +484,41 @@ static void gps_parse(char* line)
             }
 
             pch = strsep(&line, ","); // Latitude
-            gps_latitude_double = gps_parse_coordinate(pch,gps_latitude,sizeof(gps_latitude));
+            gps_safe_copy_string(gps_latitude_str, pch, ARRAY_SIZE(gps_latitude_str));
+            gps_latitude_deg_x10M = gps_parse_coordinate(pch);
+
             pch = strsep(&line, ","); // N/S
-            if(pch!=NULL && strlen(pch)<sizeof(gps_n_s))
-            {
-                strcpy(gps_n_s,pch);
-                if(gps_n_s[0] == 'S')
-                    gps_latitude_double*=-1;
+            if (pch != NULL && gps_latitude_deg_x10M != PPB_EMPTY_DEG_X10M_COORD && pch[0] == 'S') {
+                gps_latitude_deg_x10M *= -1;
             }
+
             pch = strsep(&line, ","); // Longitude
-            gps_longitude_double = gps_parse_coordinate(pch,gps_longitude,sizeof(gps_longitude));
+            gps_safe_copy_string(gps_longitude_str, pch, ARRAY_SIZE(gps_longitude_str));
+            gps_longitude_deg_x10M = gps_parse_coordinate(pch);
+
             pch = strsep(&line, ","); // E/W
-            if(pch!=NULL && strlen(pch)<sizeof(gps_e_w))
-            {
-                strcpy(gps_e_w,pch);
-                if(gps_e_w[0] == 'W')
-                    gps_longitude_double*=-1;
+            if (pch != NULL && gps_longitude_deg_x10M != PPB_EMPTY_DEG_X10M_COORD && pch[0] == 'W') {
+                gps_longitude_deg_x10M *= -1;
             }
-            gps_compute_locator(gps_latitude_double,gps_longitude_double);
+
+            gps_compute_locator(gps_latitude_deg_x10M, gps_longitude_deg_x10M);
+
             strsep(&line, ","); // Fix
 
             pch = strsep(&line, ","); // Num sats used
             num_sats = pch != NULL ? atoi(pch) : 0;
 
             pch = strsep(&line, ","); // HDOP
-            if(pch!=NULL && strlen(pch)<sizeof(gps_hdop))
-            {
-                strcpy(gps_hdop,pch);
-            }
+            gps_safe_copy_string(gps_hdop_str, pch, ARRAY_SIZE(gps_hdop_str));
 
             pch = strsep(&line, ","); // MSL Elevation
-            gps_msl_altitude = pch != NULL ? atof(pch) : 0.0;
+            gps_safe_copy_string(gps_msl_altitude_str, pch, ARRAY_SIZE(gps_msl_altitude_str));
+
             strsep(&line, ","); // Unit
+
             pch = strsep(&line, ","); // Geoid Separation
-            gps_geoid_separation = pch != NULL ? atof(pch) : 0.0;
+            gps_safe_copy_string(gps_geoid_separation_str, pch, ARRAY_SIZE(gps_geoid_separation_str));
+
             // strsep(&line, ","); // Unit
 
             gga_frames++;
