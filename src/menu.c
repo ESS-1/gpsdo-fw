@@ -892,6 +892,7 @@ static void menu_draw()
                     break;
                 case SCREEN_PPS_SHIFT_MS:
                     LCD_Puts(1, 0, "Sft ms:");
+                    // TODO: fix wrong format
                     snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld.%04d", pps_millis / 10000, abs(pps_millis) % 10000);
                     LCD_Puts(0, 1, screen_buffer);
                     break;
