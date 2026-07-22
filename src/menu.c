@@ -246,33 +246,10 @@
 //    case SCREEN_PPS:
 //        // Screen with pps
 //        if(menu_level == 0)
-//        {
-//            snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "PPS:%3ld", pps_sync_count);
-//            LCD_Puts(1, 0, screen_buffer);
-//            snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", pps_error);
-//            LCD_Puts(0, 1, screen_buffer);
-//        }
 //        else
 //        {
 //            switch (current_menu_pps_screen)
 //            {
-//                default:
-//                case SCREEN_PPS_SHIFT:
-//                    LCD_Puts(1, 0, "Shift:");
-//                    // Check we have enough space for minus sign
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", (pps_error < -9999999) ? abs(pps_error) : pps_error);
-//                    LCD_Puts(0, 1, screen_buffer);
-//                    break;
-//                case SCREEN_PPS_SHIFT_MS:
-//                    LCD_Puts(1, 0, "Sft ms:");
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld.%04d", pps_millis / 10000, abs(pps_millis) % 10000);
-//                    LCD_Puts(0, 1, screen_buffer);
-//                    break;
-//                case SCREEN_PPS_SYNC_COUNT:
-//                    LCD_Puts(1, 0, "SynCnt:");
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", pps_sync_count);
-//                    LCD_Puts(0, 1, screen_buffer);
-//                    break;
 //                case SCREEN_PPS_SYNC_MODE:
 //                    LCD_Puts(1, 0, menu_level == 1 ? "Sync.:":"Sync.?");
 //                    LCD_Puts(0, 1, ee_storage.pps_sync_on ? "      ON" : "     OFF");
@@ -286,20 +263,6 @@
 //                    LCD_Puts(1, 0, menu_level == 1 ? "Thrsld:":"Thrsld?");
 //                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", ee_storage.pps_sync_threshold);
 //                    LCD_Puts(0, 1, screen_buffer);
-//                    break;
-//                case SCREEN_PPS_FORCE_SYNC:
-//                    if(menu_level == 1)
-//                    {
-//                        LCD_Puts(1, 0,  " Force ");
-//                        LCD_Puts(0, 1, "  sync ?");
-//                    }
-//                    else
-//                    {
-//                        LCD_Puts(1, 0,  " Forced");
-//                        LCD_Puts(0, 1, "  sync !");
-//                        sync_pps_out = true;
-//                        menu_level = 1;
-//                    }
 //                    break;
 //            }
 //        }

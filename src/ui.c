@@ -67,7 +67,7 @@ static const UIElement ui_main_screen_elements[] = {
     { 143, 1, 16, 16, UI_STYLE_FOCUSABLE, ui_proc_usb  },
     // Main part
     { 1,   19, 140, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_datetime        },
-    { 142, 20, 18,  9,  UI_STYLE_NONE,                                 ui_proc_pps             },
+    { 142, 20, 17,  9,  UI_STYLE_FOCUSABLE,                            ui_proc_pps             },
     { 1,   33, 17,  12, UI_STYLE_FOCUSABLE,                            ui_proc_status          },
 //  { 1,   46, 17,  7 } - empty space reserved for the warm-up countdown timer drawn by 'ui_proc_status'
     { 23,  32, 21,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out1_drv_str    },
@@ -307,6 +307,61 @@ static UIScreen ui_ppb_screen_page2 = {
     ui_ppb_screen_elements_page2,
     &(ui_ppb_screen_elements_page2[2]),
     ARRAY_SIZE(ui_ppb_screen_elements_page2),
+    false,
+};
+
+
+//------------------------------------------------------------------------------
+// PPS Menu Screen Layout
+//------------------------------------------------------------------------------
+// Header
+static void ui_proc_menu_pps_label(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_pps_to_page1(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_pps_to_page2(const UIElement* element, UICommand command, int32_t encoder_step);
+// Page 1
+static void ui_proc_menu_pps_shift_cyc(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_pps_shift_ms(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_pps_sync_cnt(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_pps_force_sync(const UIElement* element, UICommand command, int32_t encoder_step);
+// Page 2
+
+// Page 1
+static const UIElement ui_pps_screen_elements_page1[] = {
+    // Header
+    { 1,   1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main            },
+    { 27,  6, 28, 10, UI_STYLE_NONE,      ui_proc_menu_pps_label          },
+    { 116, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_page_left_inactive },
+    { 127, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_label_page_1of2    },
+    { 149, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_pps_to_page2       },
+    // Content
+    { 1,  20, 154, 11, UI_STYLE_NONE,      ui_proc_menu_pps_shift_cyc  },
+    { 1,  32, 154, 11, UI_STYLE_NONE,      ui_proc_menu_pps_shift_ms   },
+    { 1,  44, 154, 11, UI_STYLE_NONE,      ui_proc_menu_pps_sync_cnt   },
+    { 68, 64, 87,  15, UI_STYLE_FOCUSABLE, ui_proc_menu_pps_force_sync },
+};
+
+static UIScreen ui_pps_screen_page1 = {
+    ui_pps_screen_elements_page1,
+    NULL,
+    ARRAY_SIZE(ui_pps_screen_elements_page1),
+    false,
+};
+
+// Page 2
+static const UIElement ui_pps_screen_elements_page2[] = {
+    // Header
+    { 1,   1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main            },
+    { 27,  6, 28, 10, UI_STYLE_NONE,      ui_proc_menu_pps_label          },
+    { 116, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_pps_to_page1       },
+    { 127, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_label_page_2of2     },
+    { 149, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_page_right_inactive },
+    // Content
+};
+
+static UIScreen ui_pps_screen_page2 = {
+    ui_pps_screen_elements_page2,
+    &(ui_pps_screen_elements_page2[2]),
+    ARRAY_SIZE(ui_pps_screen_elements_page2),
     false,
 };
 
@@ -711,7 +766,7 @@ static void ui_proc_pps(const UIElement* element, UICommand command, int32_t enc
 
     // Draw spinner
     if (timer_is_elapsed(&ui_spinner_last_update, 125)) {
-        ST7735_DrawImage(element->x + 10, element->y + 1, 7, 7, icon_spinner_12st_7x7[ui_spinner_frame]);
+        ST7735_DrawImage(element->x + 9, element->y + 1, 7, 7, icon_spinner_12st_7x7[ui_spinner_frame]);
 
         if (++ui_spinner_frame > 11) {
             ui_spinner_frame = 0;
@@ -725,6 +780,10 @@ static void ui_proc_pps(const UIElement* element, UICommand command, int32_t enc
 
         uint16_t color = pps_active ? UI_COLOR_PPS_INDICATOR : UI_COLOR_BG;
         ST7735_FillRectangleFast(element->x + 1, element->y + 1, 7, 7, color);
+    }
+
+    if (command & UICommand_Click) {
+        ui_show_screen(&ui_pps_screen_page1);
     }
 
     ui_default_element_proc(element, command, encoder_step);
@@ -1858,9 +1917,9 @@ static void ui_proc_menu_ppb_freq(const UIElement* element, UICommand command, i
         if (freq == 0) {
             ST7735_WriteStringNoWrap(element->x + 19 * 7, element->y + 1, element->height - 1, "N/A", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
         } else {
-            char s[11] = { '\0' };
-            snprintf(s, ARRAY_SIZE(s), "%10" PRIi32, freq);
-            ST7735_WriteStringNoWrap(element->x + 12 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+            char s[12] = { '\0' };
+            snprintf(s, ARRAY_SIZE(s), "%11" PRIi32, freq);
+            ST7735_WriteStringNoWrap(element->x + 11 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
         }
     }
 
@@ -2190,6 +2249,111 @@ static void ui_proc_menu_ppb_corr_fact(const UIElement* element, UICommand comma
         char s[9] = { '\0' };
         snprintf(s, ARRAY_SIZE(s), "%8" PRIu32, *value_to_draw);
         ST7735_WriteStringNoWrap(element->x + 14 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+
+//------------------------------------------------------------------------------
+// PPS Menu Procedures
+//------------------------------------------------------------------------------
+static void ui_proc_menu_pps_label(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_proc_menu_label(element, command, encoder_step, "PPS");
+}
+
+static void ui_proc_menu_pps_to_page1(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_proc_menu_page_left(element, command, encoder_step, &ui_pps_screen_page1);
+}
+
+static void ui_proc_menu_pps_to_page2(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_proc_menu_page_right(element, command, encoder_step, &ui_pps_screen_page2);
+}
+
+static void ui_proc_menu_pps_shift_cyc(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    static int32_t ui_cache_pps_error = 0;
+
+    // Draw label
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "Shift:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    // Draw value
+    int32_t err = pps_error;
+    if ((command & UICommand_Init) || (err != ui_cache_pps_error)) {
+        ui_cache_pps_error = err;
+
+        char s[16] = { '\0' };
+        snprintf(s, ARRAY_SIZE(s), "%11" PRIi32 " cyc", err);
+        ST7735_WriteStringNoWrap(element->x + 7 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_proc_menu_pps_shift_ms(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    static int32_t ui_cache_pps_millis = 0;
+
+    // Draw value
+    int32_t err = pps_millis;
+    if ((command & UICommand_Init) || (err != ui_cache_pps_millis)) {
+        ui_cache_pps_millis = err;
+
+        uint32_t err_abs = (err < 0) ? -(uint32_t)err : (uint32_t)err;
+        char sign = err < 0 ? '-' : ' ';
+
+        char s[16] = { '\0' };
+        snprintf(s, ARRAY_SIZE(s), "%c%" PRIu32 ".%04" PRIu32 " ms", sign, err_abs / 10000, err_abs % 10000);
+        ui_menu_draw_right_aligned(element, 7, s, UI_COLOR_MENU_LABEL);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_proc_menu_pps_sync_cnt(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    static uint32_t ui_cache_pps_sync_count = 0;
+
+    // Draw label
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "Sync. Count:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    // Draw value
+    uint32_t count = pps_sync_count;
+    if ((command & UICommand_Init) || (count != ui_cache_pps_sync_count)) {
+        ui_cache_pps_sync_count = count;
+
+        char s[11] = { '\0' };
+        snprintf(s, ARRAY_SIZE(s), "%10" PRIu32, count);
+        ST7735_WriteStringNoWrap(element->x + 12 * 7, element->y + 1, element->height - 1, s, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_proc_menu_pps_force_sync(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    static bool ui_cache_sync_pps_out = false;
+
+    if ((command & UICommand_Init) || (sync_pps_out != ui_cache_sync_pps_out)) {
+        ui_cache_sync_pps_out = sync_pps_out;
+
+        // If 'sync_pps_out' is already true, display the inactive button
+        uint16_t color_text = ui_cache_sync_pps_out ? UI_COLOR_INACTIVE_TEXT : UI_COLOR_TEXT;
+        uint16_t color_bg   = ui_cache_sync_pps_out ? UI_COLOR_INACTIVE_BUTTON_BG : UI_COLOR_BUTTON_BG;
+
+        ST7735_FillRectangleFast(element->x, element->y, element->width, element->height, color_bg);
+        ST7735_WriteStringNoWrap(element->x + 5, element->y + 3, 10, "Force Sync.", Font_7x10, color_text, color_bg);
+    }
+
+    if (command & UICommand_Click) {
+        sync_pps_out = true;
     }
 
     ui_default_element_proc(element, command, encoder_step);
