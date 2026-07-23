@@ -324,6 +324,10 @@ static void ui_proc_menu_pps_shift_ms(const UIElement* element, UICommand comman
 static void ui_proc_menu_pps_sync_cnt(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_menu_pps_force_sync(const UIElement* element, UICommand command, int32_t encoder_step);
 // Page 2
+static void ui_proc_menu_pps_sync_on_ppb_lock(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_pps_auto_sync(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_pps_sync_delay(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_pps_sync_threshold(const UIElement* element, UICommand command, int32_t encoder_step);
 
 // Page 1
 static const UIElement ui_pps_screen_elements_page1[] = {
@@ -356,6 +360,10 @@ static const UIElement ui_pps_screen_elements_page2[] = {
     { 127, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_label_page_2of2     },
     { 149, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_page_right_inactive },
     // Content
+    { 1, 20, 154, 11, UI_STYLE_FOCUSABLE,                            ui_proc_menu_pps_sync_on_ppb_lock },
+    { 1, 32, 154, 11, UI_STYLE_FOCUSABLE,                            ui_proc_menu_pps_auto_sync        },
+    { 1, 44, 154, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_menu_pps_sync_delay       },
+    { 1, 56, 154, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_menu_pps_sync_threshold   },
 };
 
 static UIScreen ui_pps_screen_page2 = {
@@ -2357,4 +2365,58 @@ static void ui_proc_menu_pps_force_sync(const UIElement* element, UICommand comm
     }
 
     ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_proc_menu_pps_sync_on_ppb_lock(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    static uint_8t ui_cache_pps_sync_on_ppb_lock = 0;
+
+    // Draw label
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "Sync. on PPB Lock:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    // Draw check box
+    if ((command & UICommand_Init) || (ee_storage.pps_sync_on_ppb_lock != ui_cache_pps_sync_on_ppb_lock)) {
+        ui_cache_pps_sync_on_ppb_lock = ee_storage.pps_sync_on_ppb_lock;
+        ST7735_DrawImage(element->x + 143, element->y, 11, 11, ui_cache_pps_sync_on_ppb_lock ? icon_check_set_11x11 : icon_check_unset_11x11);
+    }
+
+    if (command & UICommand_Click) {
+        ee_storage.pps_sync_on_ppb_lock = !ee_storage.pps_sync_on_ppb_lock;
+        ee_is_changed          = true;
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_proc_menu_pps_auto_sync(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    static uint_8t ui_cache_pps_auto_sync = 0;
+
+    // Draw label
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "Auto Sync.:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    }
+
+    // Draw check box
+    if ((command & UICommand_Init) || (ee_storage.pps_auto_sync != ui_cache_pps_auto_sync)) {
+        ui_cache_pps_auto_sync = ee_storage.pps_auto_sync;
+        ST7735_DrawImage(element->x + 143, element->y, 11, 11, ui_cache_pps_auto_sync ? icon_check_set_11x11 : icon_check_unset_11x11);
+    }
+
+    if (command & UICommand_Click) {
+        ee_storage.pps_auto_sync = !ee_storage.pps_auto_sync;
+        ee_is_changed            = true;
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_proc_menu_pps_sync_delay(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+}
+
+static void ui_proc_menu_pps_sync_threshold(const UIElement* element, UICommand command, int32_t encoder_step)
+{
 }

@@ -2,7 +2,6 @@
 #include "trend8_t.h"
 
 //static bool         auto_save_pwm_done  = false;
-//static bool         auto_sync_pps_done  = false;
 //
 //#define TREND_SCREEN_SIZE   40
 //#define TREND_MAX_H_SCALE   64
@@ -236,10 +235,6 @@
 //                    LCD_Puts(1, 0, menu_level == 1 ? "PWM S.:":"PWM S.?");
 //                    LCD_Puts(0, 1, ee_settings.pwm_auto_save ? "      ON" : "     OFF");
 //                    break;
-//                case SCREEN_PPB_AUTO_SYNC_PPS:
-//                    LCD_Puts(1, 0, menu_level == 1 ? "PPS S.:":"PPS S.?");
-//                    LCD_Puts(0, 1, ee_settings.pps_ppm_auto_sync ? "      ON" : "     OFF");
-//                    break;
 //            }
 //        }
 //        break;
@@ -250,10 +245,6 @@
 //        {
 //            switch (current_menu_pps_screen)
 //            {
-//                case SCREEN_PPS_SYNC_MODE:
-//                    LCD_Puts(1, 0, menu_level == 1 ? "Sync.:":"Sync.?");
-//                    LCD_Puts(0, 1, ee_storage.pps_sync_on ? "      ON" : "     OFF");
-//                    break;
 //                case SCREEN_PPS_SYNC_DELAY:
 //                    LCD_Puts(1, 0, menu_level == 1 ? "Delay:":"Delay?");
 //                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", ee_storage.pps_sync_delay);
@@ -346,22 +337,12 @@
 //                    // Update mode
 //                    ee_settings.pwm_auto_save = !ee_settings.pwm_auto_save;
 //                    break;
-//                case SCREEN_PPB_AUTO_SYNC_PPS:
-//                    // Update mode
-//                    ee_settings.pps_ppm_auto_sync = !ee_settings.pps_ppm_auto_sync;
-//                    ee_is_changed = true;
-//                    break;
 //            }
 //        }
 //        else if(menu_level == 2 && current_menu_screen == SCREEN_PPS)
 //        {   // Sub-sub menu for PPS screen
 //            switch(current_menu_pps_screen)
 //            {
-//                case SCREEN_PPS_SYNC_MODE:
-//                    // Update mode
-//                    ee_storage.pps_sync_on = !ee_storage.pps_sync_on;
-//                    ee_is_changed = true;
-//                    break;
 //                case SCREEN_PPS_SYNC_DELAY:
 //                    // Update delay
 //                    ee_storage.pps_sync_delay += encoder_increment;
@@ -391,37 +372,12 @@
 //        if(frequency_is_stable(0))
 //        {   // Frequency is stabilized
 //            // Save PWM if requested
-//            bool did_pwm = false;
-//            bool did_pps = false;
 //            if(ee_settings.pwm_auto_save && !auto_save_pwm_done)
 //            {
 //                ee_storage.pwm = TIM1->CCR2;
 //                ee_is_changed = true;
 //                // Only auto-save once per session
 //                auto_save_pwm_done = true;
-//                did_pwm = true;
-//            }
-//            if(ee_settings.pps_ppm_auto_sync && !auto_sync_pps_done)
-//            {
-//                sync_pps_out = true;
-//                // Only auto-sync once per session
-//                auto_sync_pps_done = true;
-//                did_pps = true;
-//            }
-//            if(did_pps && did_pwm)
-//            {
-//                LCD_Puts(0, 0, "PPS&PWM ");
-//                LCD_Puts(0, 1, " DONE!  ");
-//            }
-//            else if(did_pps)
-//            {
-//                LCD_Puts(0, 0, "  PPS   ");
-//                LCD_Puts(0, 1, "SYNCED! ");
-//            }
-//            else if(did_pwm)
-//            {
-//                LCD_Puts(0, 0, "  PWM   ");
-//                LCD_Puts(0, 1, "  SET!  ");
 //            }
 //        }
 //    }

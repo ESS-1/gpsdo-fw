@@ -27,6 +27,8 @@ extern const uint16_t icon_page_left_10x15[];
 extern const uint16_t icon_page_left_inactive_10x15[];
 extern const uint16_t icon_page_right_10x15[];
 extern const uint16_t icon_page_right_inactive_10x15[];
+extern const uint16_t icon_check_set_11x11[];
+extern const uint16_t icon_check_unset_11x11[];
 
 extern const uint16_t icon_symbol_degree_7x10[];
 

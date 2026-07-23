@@ -21,6 +21,9 @@
 #define PPS_PULSE_WIDTH         100
 #define GPS_FRAME_WAIT_DELAY    10000
 
+static bool auto_sync_pps_done = false;
+
+
 void init_ext_clock()
 {
     // MX_GPIO_Init() sets a high level on OCXO_EN; wait for contact bounce to settle before proceeding
@@ -137,9 +140,9 @@ void gpsdo()
     }
     set_brightness(ee_storage.brightness);
 
-    if (ee_storage.pps_sync_on == 0xff) {
-        ee_storage.pps_sync_on = true;
-        ee_is_changed          = true;
+    if (ee_storage.pps_auto_sync == 0xff) {
+        ee_storage.pps_auto_sync = true;
+        ee_is_changed            = true;
     }
 
     if (ee_storage.pps_sync_delay == 0xffffffff) {
@@ -152,9 +155,9 @@ void gpsdo()
         ee_is_changed                 = true;
     }
 
-    if (ee_storage.pps_ppm_auto_sync == 0xff) {
-        ee_storage.pps_ppm_auto_sync = true;
-        ee_is_changed                = true;
+    if (ee_storage.pps_sync_on_ppb_lock == 0xff) {
+        ee_storage.pps_sync_on_ppb_lock = true;
+        ee_is_changed                   = true;
     }
 
     if (ee_storage.pwm_auto_save == 0xff) {
@@ -285,5 +288,12 @@ void gpsdo()
         gps_read();
         pll_update();
         ui_run();
+
+        // Check if we need resync PPS output
+        if(!auto_sync_pps_done && ee_settings.pps_sync_on_ppb_lock && frequency_stability == FREQ_STABILITY_STABLE)
+        {
+            sync_pps_out = true;
+            auto_sync_pps_done = true; // Only auto-sync one time per session
+        }
     }
 }

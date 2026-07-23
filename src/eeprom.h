@@ -11,10 +11,10 @@ typedef struct
     uint16_t pwm;
     uint8_t  brightness;
     /* Reading boolean from EEPROM results in unpredictable behavior so we use a char and cast it to a boolean */
-    uint8_t  pps_sync_on;
+    uint8_t  pps_auto_sync;
     uint32_t pps_sync_delay;
     uint32_t pps_sync_threshold;
-    uint8_t  pps_ppm_auto_sync;
+    uint8_t  pps_sync_on_ppb_lock;
     uint8_t  pwm_auto_save;
     uint8_t  trend_auto_h;
     uint8_t  trend_auto_v;
