@@ -2369,7 +2369,7 @@ static void ui_proc_menu_pps_force_sync(const UIElement* element, UICommand comm
 
 static void ui_proc_menu_pps_sync_on_ppb_lock(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-    static uint_8t ui_cache_pps_sync_on_ppb_lock = 0;
+    static uint8_t ui_cache_pps_sync_on_ppb_lock = 0;
 
     // Draw label
     if (command & UICommand_Init) {
@@ -2392,7 +2392,7 @@ static void ui_proc_menu_pps_sync_on_ppb_lock(const UIElement* element, UIComman
 
 static void ui_proc_menu_pps_auto_sync(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-    static uint_8t ui_cache_pps_auto_sync = 0;
+    static uint8_t ui_cache_pps_auto_sync = 0;
 
     // Draw label
     if (command & UICommand_Init) {

@@ -290,7 +290,7 @@ void gpsdo()
         ui_run();
 
         // Check if we need resync PPS output
-        if(!auto_sync_pps_done && ee_settings.pps_sync_on_ppb_lock && frequency_stability == FREQ_STABILITY_STABLE)
+        if (!auto_sync_pps_done && ee_storage.pps_sync_on_ppb_lock && frequency_stability == FREQ_STABILITY_STABLE)
         {
             sync_pps_out = true;
             auto_sync_pps_done = true; // Only auto-sync one time per session
