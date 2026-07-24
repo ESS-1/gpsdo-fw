@@ -238,26 +238,6 @@
 //            }
 //        }
 //        break;
-//    case SCREEN_PPS:
-//        // Screen with pps
-//        if(menu_level == 0)
-//        else
-//        {
-//            switch (current_menu_pps_screen)
-//            {
-//                case SCREEN_PPS_SYNC_DELAY:
-//                    LCD_Puts(1, 0, menu_level == 1 ? "Delay:":"Delay?");
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", ee_storage.pps_sync_delay);
-//                    LCD_Puts(0, 1, screen_buffer);
-//                    break;
-//                case SCREEN_PPS_SYNC_THRESHOLD:
-//                    LCD_Puts(1, 0, menu_level == 1 ? "Thrsld:":"Thrsld?");
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", ee_storage.pps_sync_threshold);
-//                    LCD_Puts(0, 1, screen_buffer);
-//                    break;
-//            }
-//        }
-//        break;
 //    }
 //}
 //
@@ -336,22 +316,6 @@
 //                case SCREEN_PPB_AUTO_SAVE_PWM:
 //                    // Update mode
 //                    ee_settings.pwm_auto_save = !ee_settings.pwm_auto_save;
-//                    break;
-//            }
-//        }
-//        else if(menu_level == 2 && current_menu_screen == SCREEN_PPS)
-//        {   // Sub-sub menu for PPS screen
-//            switch(current_menu_pps_screen)
-//            {
-//                case SCREEN_PPS_SYNC_DELAY:
-//                    // Update delay
-//                    ee_storage.pps_sync_delay += encoder_increment;
-//                    ee_is_changed = true;
-//                    break;
-//                case SCREEN_PPS_SYNC_THRESHOLD:
-//                    // Update threshold
-//                    ee_storage.pps_sync_threshold += encoder_increment;
-//                    ee_is_changed = true;
 //                    break;
 //            }
 //        }

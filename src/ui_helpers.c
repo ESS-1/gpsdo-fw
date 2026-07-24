@@ -155,3 +155,37 @@ int32_t ui_limit_i32(int32_t value, int32_t min, int32_t max)
     }
     return value;
 }
+
+// Calculates an adaptive step increment (1, 2, 5, 10, 20, 50, 100, etc.)
+// based on the magnitude of the current value and encoder direction.
+// The step dynamically scales using a 1-2-5 progression per decade.
+int32_t ui_get_adaptive_step(uint32_t value, int32_t encoder_step)
+{
+    int32_t sign = (encoder_step < 0) ? -1 : 1;
+
+    // Shift boundary evaluation by -1 when decrementing to ensure exact
+    // reverse symmetry at range transition points
+    uint32_t effective_value = (sign < 0 && value > 0) ? (value - 1) : value;
+
+    // Base step size for values below 10
+    if (effective_value < 10) {
+        return 1 * sign;
+    }
+
+    // Normalize value into the [10..99] decade range and calculate power of 10 scale
+    uint32_t norm_val = effective_value;
+    uint32_t scale    = 1;
+    while (norm_val >= 100) {
+        norm_val /= 10;
+        scale *= 10;
+    }
+
+    // Determine step size based on 1-2-5 decade progression
+    if (norm_val < 20) {
+        return 1 * sign * scale;
+    } else if (norm_val < 50) {
+        return 2 * sign * scale;
+    } else {
+        return 5 * sign * scale;
+    }
+}

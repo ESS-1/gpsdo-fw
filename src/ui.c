@@ -2415,8 +2415,120 @@ static void ui_proc_menu_pps_auto_sync(const UIElement* element, UICommand comma
 
 static void ui_proc_menu_pps_sync_delay(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static uint32_t ui_edit_pps_sync_delay = 0;
+    static uint8_t  ui_cache_pps_auto_sync = 0;
+
+    uint32_t *value_to_draw = NULL;
+    bool is_captured = ui_is_captured(element);
+
+    if (command & UICommand_Release) {
+        // Apply changes
+        if (ee_storage.pps_sync_delay != ui_edit_pps_sync_delay) {
+            ee_storage.pps_sync_delay = ui_edit_pps_sync_delay;
+            ee_is_changed = true;
+        }
+    }
+
+    if (command & UICommand_Init) {
+        // Draw label
+        ST7735_WriteStringNoWrap(element->x + 2 * 7, element->y + 1, element->height - 1, "Delay:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+
+        // Draw value
+        if (!is_captured) {
+            value_to_draw = &(ee_storage.pps_sync_delay);
+        } else {
+            value_to_draw = &ui_edit_pps_sync_delay;
+        }
+    }
+
+    if (!is_captured && (ee_storage.pps_auto_sync != ui_cache_pps_auto_sync)) {
+        value_to_draw = &(ee_storage.pps_sync_delay);
+    }
+
+    // Value edit
+    {
+        if (command & UICommand_Capture) {
+            ui_edit_pps_sync_delay = ee_storage.pps_sync_delay;
+        }
+
+        if ((command & UICommand_EncoderStep) && ee_storage.pps_auto_sync) {
+            // Modify setting
+            ui_change_setting_u32(&ui_edit_pps_sync_delay, ui_get_adaptive_step(ui_edit_pps_sync_delay, encoder_step), 0, 950000, false);
+
+            // Draw new value
+            value_to_draw = &ui_edit_pps_sync_delay;
+        }
+    }
+
+    // Draw value
+    if (value_to_draw) {
+        ui_cache_pps_auto_sync = ee_storage.pps_auto_sync;
+
+        uint16_t text_color = ui_cache_pps_auto_sync ? UI_COLOR_TEXT : UI_COLOR_INACTIVE_TEXT;
+        char s[9] = { '\0' };
+        snprintf(s, ARRAY_SIZE(s), "%6" PRIu32 " s", *value_to_draw);
+        ST7735_WriteStringNoWrap(element->x + 14 * 7, element->y + 1, element->height - 1, s, Font_7x10, text_color, UI_COLOR_BG);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
 }
 
 static void ui_proc_menu_pps_sync_threshold(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static uint32_t ui_edit_pps_sync_threshold = 0;
+    static uint8_t  ui_cache_pps_auto_sync     = 0;
+
+    uint32_t *value_to_draw = NULL;
+    bool is_captured = ui_is_captured(element);
+
+    if (command & UICommand_Release) {
+        // Apply changes
+        if (ee_storage.pps_sync_threshold != ui_edit_pps_sync_threshold) {
+            ee_storage.pps_sync_threshold = ui_edit_pps_sync_threshold;
+            ee_is_changed = true;
+        }
+    }
+
+    if (command & UICommand_Init) {
+        // Draw label
+        ST7735_WriteStringNoWrap(element->x + 2 * 7, element->y + 1, element->height - 1, "Thr.:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+
+        // Draw value
+        if (!is_captured) {
+            value_to_draw = &(ee_storage.pps_sync_threshold);
+        } else {
+            value_to_draw = &ui_edit_pps_sync_threshold;
+        }
+    }
+
+    if (!is_captured && (ee_storage.pps_auto_sync != ui_cache_pps_auto_sync)) {
+        value_to_draw = &(ee_storage.pps_sync_threshold);
+    }
+
+    // Value edit
+    {
+        if (command & UICommand_Capture) {
+            ui_edit_pps_sync_threshold = ee_storage.pps_sync_threshold;
+        }
+
+        if ((command & UICommand_EncoderStep) && ee_storage.pps_auto_sync) {
+            // Modify setting
+            ui_change_setting_u32(&ui_edit_pps_sync_threshold, ui_get_adaptive_step(ui_edit_pps_sync_threshold, encoder_step), 0, 950000000, false);
+
+            // Draw new value
+            value_to_draw = &ui_edit_pps_sync_threshold;
+        }
+    }
+
+    // Draw value
+    if (value_to_draw) {
+        ui_cache_pps_auto_sync = ee_storage.pps_auto_sync;
+
+        uint16_t text_color = ui_cache_pps_auto_sync ? UI_COLOR_TEXT : UI_COLOR_INACTIVE_TEXT;
+        char s[14] = { '\0' };
+        snprintf(s, ARRAY_SIZE(s), "%9" PRIu32 " cyc", *value_to_draw);
+        ST7735_WriteStringNoWrap(element->x + 9 * 7, element->y + 1, element->height - 1, s, Font_7x10, text_color, UI_COLOR_BG);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
 }

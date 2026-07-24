@@ -17,4 +17,6 @@ void ui_change_setting_u32(uint32_t* value, int32_t step, uint32_t min, uint32_t
 
 int32_t ui_limit_i32(int32_t value, int32_t min, int32_t max);
 
+int32_t ui_get_adaptive_step(uint32_t value, int32_t encoder_step);
+
 #endif
