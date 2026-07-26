@@ -161,41 +161,31 @@ static void ui_msgbox_proc_label(const UIElement* element, UICommand command, in
     ui_default_element_proc(element, command, encoder_step);
 }
 
-static void ui_msgbox_proc_ok(const UIElement* element, UICommand command, int32_t encoder_step)
+static void ui_msgbox_button_proc(const UIElement* element, UICommand command, int32_t encoder_step,
+    uint16_t text_offset_px, const char* text, UI_MsgBoxButton result)
 {
     if (command & UICommand_Init) {
         ST7735_FillRectangleFast(element->x, element->y, element->width, element->height, UI_COLOR_BUTTON_BG);
-        ST7735_WriteStringNoWrap(element->x + 8, element->y + 2, 18, "OK", Font_11x18, UI_COLOR_TEXT, UI_COLOR_BUTTON_BG);
+        ST7735_WriteStringNoWrap(element->x + text_offset_px, element->y + 2, 18, text, Font_11x18, UI_COLOR_TEXT, UI_COLOR_BUTTON_BG);
     }
     if (command & UICommand_Click) {
-        ui_msgbox_return_to_previous_screen(UI_MsgBoxButton_Ok);
+        ui_msgbox_return_to_previous_screen(result);
     }
 
     ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_msgbox_proc_ok(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_msgbox_button_proc(element, command, encoder_step, 8, "OK", UI_MsgBoxButton_Ok);
 }
 
 static void ui_msgbox_proc_yes(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-    if (command & UICommand_Init) {
-        ST7735_FillRectangleFast(element->x, element->y, element->width, element->height, UI_COLOR_BUTTON_BG);
-        ST7735_WriteStringNoWrap(element->x + 3, element->y + 2, 18, "Yes", Font_11x18, UI_COLOR_TEXT, UI_COLOR_BUTTON_BG);
-    }
-    if (command & UICommand_Click) {
-        ui_msgbox_return_to_previous_screen(UI_MsgBoxButton_Yes);
-    }
-
-    ui_default_element_proc(element, command, encoder_step);
+    ui_msgbox_button_proc(element, command, encoder_step, 3, "Yes", UI_MsgBoxButton_Yes);
 }
 
 static void ui_msgbox_proc_no(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-    if (command & UICommand_Init) {
-        ST7735_FillRectangleFast(element->x, element->y, element->width, element->height, UI_COLOR_BUTTON_BG);
-        ST7735_WriteStringNoWrap(element->x + 8, element->y + 2, 18, "No", Font_11x18, UI_COLOR_TEXT, UI_COLOR_BUTTON_BG);
-    }
-    if (command & UICommand_Click) {
-        ui_msgbox_return_to_previous_screen(UI_MsgBoxButton_No);
-    }
-
-    ui_default_element_proc(element, command, encoder_step);
+    ui_msgbox_button_proc(element, command, encoder_step, 8, "No", UI_MsgBoxButton_No);
 }

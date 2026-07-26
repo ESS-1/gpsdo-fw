@@ -41,8 +41,8 @@ typedef enum {
     CORRECTION_ALGO_MAX = CORRECTION_ALGO_ERIC_H_PLUS
 } correction_algo_type;
 
-const char* ocxo_model_type_to_string(ocxo_model_type model);
-const char* correction_algo_type_to_string(correction_algo_type model);
+const char* ocxo_model_type_to_string(uint8_t model);
+const char* correction_algo_type_to_string(uint8_t model);
 
 void set_brightness(uint8_t brightness);
 

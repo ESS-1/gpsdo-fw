@@ -96,7 +96,7 @@ static bool fifo_read(volatile fifo_buffer_t* fifo, uint8_t* c)
     return true;
 }
 
-const char* gps_model_type_to_string(gps_model_type model)
+const char* gps_model_type_to_string(uint8_t model)
 {
     switch (model)
     {

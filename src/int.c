@@ -274,7 +274,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
     }
 }
 
-const char* ocxo_model_type_to_string(ocxo_model_type model)
+const char* ocxo_model_type_to_string(uint8_t model)
 {
     switch(model)
     {
@@ -290,7 +290,7 @@ const char* ocxo_model_type_to_string(ocxo_model_type model)
     }
 }
 
-const char* correction_algo_type_to_string(correction_algo_type model)
+const char* correction_algo_type_to_string(uint8_t model)
 {
     switch (model)
     {

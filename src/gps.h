@@ -68,7 +68,7 @@ extern uint32_t gps_invalid_frames;
 extern uint32_t gps_fifo_overflow_gps;
 extern uint32_t gps_fifo_overflow_comm;
 
-const char* gps_model_type_to_string(gps_model_type model);
+const char* gps_model_type_to_string(uint8_t model);
 
 void gps_setbaudrate(uint32_t baudrate);
 void gps_reset_uart();
