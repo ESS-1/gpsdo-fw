@@ -126,6 +126,7 @@ static void ui_proc_menu_main_version(const UIElement* element, UICommand comman
 // Page 2
 static void ui_proc_menu_main_mcu_flash(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_menu_main_eeprom_writes(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_main_all_settings(const UIElement* element, UICommand command, int32_t encoder_step);
 
 // Page 1
 static const UIElement ui_menu_screen_elements_page1[] = {
@@ -153,14 +154,15 @@ static UIScreen ui_menu_screen_page1 = {
 // Page 2
 static const UIElement ui_menu_screen_elements_page2[] = {
     // Header
-    { 1,   1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main             },
-    { 27,  6, 28, 10, UI_STYLE_NONE,      ui_proc_menu_main_label          },
-    { 116, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_main_to_page1       },
-    { 127, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_label_page_2of2     },
-    { 149, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_page_right_inactive },
+    { 1,   1, 15, 16, UI_STYLE_FOCUSABLE,  ui_proc_back_to_main             },
+    { 27,  6, 28, 10, UI_STYLE_NONE,       ui_proc_menu_main_label          },
+    { 116, 2, 10, 15, UI_STYLE_FOCUSABLE,  ui_proc_menu_main_to_page1       },
+    { 127, 6, 21, 10, UI_STYLE_NONE,       ui_proc_menu_label_page_2of2     },
+    { 149, 2, 10, 15, UI_STYLE_FOCUSABLE,  ui_proc_menu_page_right_inactive },
     // Content
-    { 1,  20, 154, 11, UI_STYLE_NONE, ui_proc_menu_main_mcu_flash     },
-    { 1,  32, 154, 11, UI_STYLE_NONE, ui_proc_menu_main_eeprom_writes },
+    { 1,  20, 154, 11, UI_STYLE_NONE,      ui_proc_menu_main_mcu_flash      },
+    { 1,  32, 154, 11, UI_STYLE_NONE,      ui_proc_menu_main_eeprom_writes  },
+    { 60, 64, 95,  15, UI_STYLE_FOCUSABLE, ui_proc_menu_main_all_settings   },
 };
 
 static UIScreen ui_menu_screen_page2 = {
@@ -195,7 +197,6 @@ static void ui_proc_menu_gps_module(const UIElement* element, UICommand command,
 static void ui_proc_menu_gps_baud_rate(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_menu_gps_gga_frames(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_menu_gps_errors(const UIElement* element, UICommand command, int32_t encoder_step);
-
 
 // Page 1
 static const UIElement ui_gps_screen_elements_page1[] = {
@@ -361,7 +362,7 @@ static const UIElement ui_pps_screen_elements_page1[] = {
     { 1,  20, 154, 11, UI_STYLE_NONE,      ui_proc_menu_pps_shift_cyc  },
     { 1,  32, 154, 11, UI_STYLE_NONE,      ui_proc_menu_pps_shift_ms   },
     { 1,  44, 154, 11, UI_STYLE_NONE,      ui_proc_menu_pps_sync_cnt   },
-    { 68, 64, 87,  15, UI_STYLE_FOCUSABLE, ui_proc_menu_pps_force_sync },
+    { 60, 64, 95,  15, UI_STYLE_FOCUSABLE, ui_proc_menu_pps_force_sync },
 };
 
 static UIScreen ui_pps_screen_page1 = {
@@ -390,6 +391,89 @@ static UIScreen ui_pps_screen_page2 = {
     ui_pps_screen_elements_page2,
     &(ui_pps_screen_elements_page2[2]),
     ARRAY_SIZE(ui_pps_screen_elements_page2),
+    false,
+};
+
+
+//------------------------------------------------------------------------------
+// All Settings Menu Layout
+//------------------------------------------------------------------------------
+// Header
+static void ui_proc_menu_all_settings_label(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_all_settings_to_page1(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_all_settings_to_page2_right(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_all_settings_to_page2_left(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_all_settings_to_page3(const UIElement* element, UICommand command, int32_t encoder_step);
+
+// Page 1
+static const UIElement ui_all_settings_screen_elements_page1[] = {
+    // Header
+    { 1,   1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main                     },
+    { 27,  6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_all_settings_label          },
+    { 116, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_page_left_inactive          },
+    { 127, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_label_page_1of3             },
+    { 149, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_all_settings_to_page2_right },
+    // Content
+    { 1,  20, 154, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_menu_main_brightness      },
+    { 1,  32, 154, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_menu_gps_module           },
+    { 1,  44, 154, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_menu_gps_baud_rate        },
+    { 1,  56, 154, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_datetime                  },
+    { 1,  68, 154, 11, UI_STYLE_FOCUSABLE,                            ui_proc_pwm                       },
+};
+
+static UIScreen ui_all_settings_screen_page1 = {
+    ui_all_settings_screen_elements_page1,
+    NULL,
+    ARRAY_SIZE(ui_all_settings_screen_elements_page1),
+    false,
+};
+
+// Page 2
+static const UIElement ui_all_settings_screen_elements_page2[] = {
+    // Header
+    { 1,   1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main               },
+    { 27,  6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_all_settings_label    },
+    { 116, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_all_settings_to_page1 },
+    { 127, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_label_page_2of3       },
+    { 149, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_all_settings_to_page3 },
+    // Content
+    { 1,  20, 154, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_menu_ppb_ocxo             },
+    { 1,  32, 154, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_menu_ppb_warmup           },
+    { 1,  44, 154, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_menu_ppb_ppb_thr          },
+    { 1,  56, 154, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_menu_ppb_alg              },
+    { 1,  68, 154, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_menu_ppb_corr_fact        },
+};
+
+static UIScreen ui_all_settings_screen_page2 = {
+    ui_all_settings_screen_elements_page2,
+    &(ui_all_settings_screen_elements_page2[4]),
+    ARRAY_SIZE(ui_all_settings_screen_elements_page2),
+    false,
+};
+
+// Page 3
+static const UIElement ui_all_settings_screen_elements_page3[] = {
+    // Header
+    { 1,   1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main                    },
+    { 27,  6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_all_settings_label         },
+    { 116, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_all_settings_to_page2_left },
+    { 127, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_label_page_3of3            },
+    { 149, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_page_right_inactive        },
+    // Content
+    { 1,  20, 23,  11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out1_drv_str              },
+    { 25, 20, 30,  11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out1_freq                 },
+    { 73, 20, 23,  11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out2_drv_str              },
+    { 97, 20, 58,  11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out2_freq                 },
+    { 1,  32, 154, 11, UI_STYLE_FOCUSABLE,                            ui_proc_menu_pps_sync_on_ppb_lock },
+    { 1,  44, 154, 11, UI_STYLE_FOCUSABLE,                            ui_proc_menu_pps_auto_sync        },
+    { 1,  56, 154, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_menu_pps_sync_delay       },
+    { 1,  68, 154, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_menu_pps_sync_threshold   },
+};
+
+static UIScreen ui_all_settings_screen_page3 = {
+    ui_all_settings_screen_elements_page3,
+    &(ui_all_settings_screen_elements_page3[2]),
+    ARRAY_SIZE(ui_all_settings_screen_elements_page3),
     false,
 };
 
@@ -1550,6 +1634,20 @@ static void ui_proc_menu_main_eeprom_writes(const UIElement* element, UICommand 
     ui_proc_menu_readonly_u32(element, command, encoder_step, "EEPROM Writes:", &ui_cache_total_writes, ee_storage.total_writes, 14, "%8" PRIu32);
 }
 
+static void ui_proc_menu_main_all_settings(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    if (command & UICommand_Init) {
+        ST7735_FillRectangleFast(element->x, element->y, element->width, element->height, UI_COLOR_BUTTON_BG);
+        ST7735_WriteStringNoWrap(element->x + 5, element->y + 3, 10, "All Settings", Font_7x10, UI_COLOR_TEXT, UI_COLOR_BUTTON_BG);
+    }
+
+    if (command & UICommand_Click) {
+        ui_show_screen(&ui_all_settings_screen_page1);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
 
 //------------------------------------------------------------------------------
 // GPS Menu Procedures
@@ -2099,7 +2197,7 @@ static void ui_proc_menu_pps_force_sync(const UIElement* element, UICommand comm
         uint16_t color_bg   = ui_cache_sync_pps_out ? UI_COLOR_INACTIVE_BUTTON_BG : UI_COLOR_BUTTON_BG;
 
         ST7735_FillRectangleFast(element->x, element->y, element->width, element->height, color_bg);
-        ST7735_WriteStringNoWrap(element->x + 5, element->y + 3, 10, "Force Sync.", Font_7x10, color_text, color_bg);
+        ST7735_WriteStringNoWrap(element->x + 9, element->y + 3, 10, "Force Sync.", Font_7x10, color_text, color_bg);
     }
 
     if (command & UICommand_Click) {
@@ -2193,4 +2291,33 @@ static void ui_proc_menu_pps_sync_threshold(const UIElement* element, UICommand 
     static uint8_t  ui_cache_pps_auto_sync     = 0;
     ui_proc_menu_auto_sync_param_edit(element, command, encoder_step, "Thr.:",
         &ui_cache_pps_auto_sync, &ui_edit_pps_sync_threshold, &(ee_storage.pps_sync_threshold), 950000000, 9, "%9" PRIu32 " cyc");
+}
+
+
+//------------------------------------------------------------------------------
+// All Settings Menu Layout
+//------------------------------------------------------------------------------
+static void ui_proc_menu_all_settings_label(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_proc_menu_label(element, command, encoder_step, "Settings");
+}
+
+static void ui_proc_menu_all_settings_to_page1(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_proc_menu_page_left(element, command, encoder_step, &ui_all_settings_screen_page1);
+}
+
+static void ui_proc_menu_all_settings_to_page2_right(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_proc_menu_page_right(element, command, encoder_step, &ui_all_settings_screen_page2);
+}
+
+static void ui_proc_menu_all_settings_to_page2_left(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_proc_menu_page_left(element, command, encoder_step, &ui_all_settings_screen_page2);
+}
+
+static void ui_proc_menu_all_settings_to_page3(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_proc_menu_page_right(element, command, encoder_step, &ui_all_settings_screen_page3);
 }
