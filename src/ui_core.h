@@ -17,6 +17,7 @@
 #define UI_COLOR_INACTIVE_TEXT      (ST7735_COLOR565(130, 130, 130))
 #define UI_COLOR_MENU_LABEL         (ST7735_COLOR565(170, 170, 170))
 #define UI_COLOR_ERROR              (ST7735_RED)
+#define UI_COLOR_MAP_MARKER         (ST7735_COLOR565(255, 0, 255))
 
 typedef enum {
     UICommand_None           = 0x00000000,
@@ -34,6 +35,7 @@ typedef enum {
 #define UI_STYLE_NONE            0x0000U
 #define UI_STYLE_FOCUSABLE       0x0001U
 #define UI_STYLE_INPUT_CAPTURING 0x0002U
+#define UI_STYLE_NOFRAME         0x0004U
 
 
 struct UIElement;

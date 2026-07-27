@@ -11,7 +11,8 @@ static UIScreen* ui_screen_to_show = NULL;
 void ui_default_element_proc(const UIElement* element, UICommand command, int32_t encoder_step)
 {
     // Draw/clear frame
-    if (command & (UICommand_Focus | UICommand_LostFocus | UICommand_RestoreFocus | UICommand_Capture | UICommand_Release | UICommand_RestoreCapture))
+    if ((command & (UICommand_Focus | UICommand_LostFocus | UICommand_RestoreFocus | UICommand_Capture | UICommand_Release | UICommand_RestoreCapture))
+        && ((element->styles & UI_STYLE_NOFRAME) == 0))
     {
         uint16_t frame_color;
 

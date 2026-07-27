@@ -1,0 +1,11 @@
+File: world_map--160x80.png
+Original Creator: NASA
+License: Public Domain (PD-USGov-NASA)
+
+This software uses a map image derived from a work originally created by NASA.
+As a work of the United States federal government, the original image is in the public domain.
+The image has been resized, color-adjusted, and modified from its original version to fit
+the specific display requirements of this project.
+
+Original source: 
+https://eoimages.gsfc.nasa.gov/images/imagerecords/57000/57752/land_shallow_topo_21600.tif

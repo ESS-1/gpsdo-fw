@@ -174,6 +174,23 @@ static UIScreen ui_menu_screen_page2 = {
 
 
 //------------------------------------------------------------------------------
+// World Map Screen Layout
+//------------------------------------------------------------------------------
+static void ui_proc_world_map(const UIElement* element, UICommand command, int32_t encoder_step);
+
+static const UIElement ui_world_map_screen_elements[] = {
+    { 0, 0, 160, 80, UI_STYLE_FOCUSABLE | UI_STYLE_NOFRAME, ui_proc_world_map },
+};
+
+UIScreen ui_world_map_screen = {
+    ui_world_map_screen_elements,
+    NULL,
+    ARRAY_SIZE(ui_world_map_screen_elements),
+    false,
+};
+
+
+//------------------------------------------------------------------------------
 // GPS Menu Screen Layout
 //------------------------------------------------------------------------------
 // Header
@@ -192,6 +209,7 @@ static void ui_proc_menu_gps_altitude(const UIElement* element, UICommand comman
 static void ui_proc_menu_gps_locator(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_menu_gps_hdop(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_menu_gps_geoid_sep(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_gps_map(const UIElement* element, UICommand command, int32_t encoder_step);
 // Page 3
 static void ui_proc_menu_gps_module(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_menu_gps_baud_rate(const UIElement* element, UICommand command, int32_t encoder_step);
@@ -230,9 +248,10 @@ static const UIElement ui_gps_screen_elements_page2[] = {
     { 127, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_label_page_2of3 },
     { 149, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_gps_to_page3    },
     // Content
-    { 1, 20, 154, 11, UI_STYLE_NONE, ui_proc_menu_gps_locator   },
-    { 1, 44, 154, 11, UI_STYLE_NONE, ui_proc_menu_gps_hdop      },
-    { 1, 56, 154, 11, UI_STYLE_NONE, ui_proc_menu_gps_geoid_sep },
+    { 1,  20, 154, 11, UI_STYLE_NONE,      ui_proc_menu_gps_locator   },
+    { 1,  32, 154, 11, UI_STYLE_NONE,      ui_proc_menu_gps_hdop      },
+    { 1,  44, 154, 11, UI_STYLE_NONE,      ui_proc_menu_gps_geoid_sep },
+    { 60, 64, 95,  15, UI_STYLE_FOCUSABLE, ui_proc_menu_gps_map       },
 };
 
 static UIScreen ui_gps_screen_page2 = {
@@ -1650,6 +1669,89 @@ static void ui_proc_menu_main_all_settings(const UIElement* element, UICommand c
 
 
 //------------------------------------------------------------------------------
+// World Map
+//------------------------------------------------------------------------------
+#define UI_MAP_MARKER_BEAM_PX 3
+
+static void ui_world_map_draw_marker(uint16_t base_x, uint16_t base_y, int16_t x, int16_t y, bool erase)
+{
+    if (x < 0) {
+        x = 0;
+    } else if (x >= image_world_map_width) {
+        x = image_world_map_width - 1;
+    }
+    if (y < 0) {
+        y = 0;
+    } else if (y >= image_world_map_height) {
+        y = image_world_map_height - 1;
+    }
+
+    int16_t start_y = (y >= UI_MAP_MARKER_BEAM_PX) ? y - UI_MAP_MARKER_BEAM_PX : 0;
+    int16_t end_y   = (y < image_world_map_height - UI_MAP_MARKER_BEAM_PX) ? y + UI_MAP_MARKER_BEAM_PX : image_world_map_height - 1;
+
+    int16_t start_x = (x >= UI_MAP_MARKER_BEAM_PX)                         ? x - UI_MAP_MARKER_BEAM_PX : 0;
+    int16_t end_x   = (x < image_world_map_width - UI_MAP_MARKER_BEAM_PX)  ? x + UI_MAP_MARKER_BEAM_PX : image_world_map_width - 1;
+    int16_t width   = end_x - start_x + 1;
+
+    for (int16_t cy = start_y; cy <= end_y; ++cy) {
+        if (cy == y) {
+            if (erase) {
+                // Erase the original image fragment
+                size_t left_px_idx = (size_t)cy * image_world_map_width + start_x;
+                ST7735_DrawImage(base_x + start_x, base_y + cy, width, 1, image_world_map_160x80 + left_px_idx);
+            } else {
+                // Draw the horizontal marker line
+                ST7735_FillRectangleFast(base_x + start_x, base_y + cy, width, 1, UI_COLOR_MAP_MARKER);
+            }
+        } else {
+            // Draw/erase one pixel of the vertical marker line
+            int16_t color = erase ? __REV16(image_world_map_160x80[(size_t)cy * image_world_map_width + x]) : UI_COLOR_MAP_MARKER;
+            ST7735_DrawPixel(base_x + x, base_y + cy, color);
+        }
+    }
+}
+
+#define DIV_4096(x) ((x + (1 << 11)) >> 12)
+
+static void ui_proc_world_map(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    static int16_t ui_cache_pos_x = INT16_MAX;
+    static int16_t ui_cache_pos_y = INT16_MAX;
+
+    if (command & UICommand_Init) {
+        ST7735_DrawImage(element->x, element->y, image_world_map_width, image_world_map_height, image_world_map_160x80);
+    }
+
+    int16_t pos_x = (gps_longitude_deg_x10M == PPB_EMPTY_DEG_X10M_COORD)
+        ? INT16_MAX
+        : (int16_t)(DIV_4096((uint32_t)((int64_t)gps_longitude_deg_x10M + 1800'000'000LL)) * image_world_map_width / DIV_4096(3600'000'000u));
+    int16_t pos_y = (gps_latitude_deg_x10M == PPB_EMPTY_DEG_X10M_COORD)
+        ? INT16_MAX
+        : (int16_t)(DIV_4096((uint32_t)(900'000'000 - gps_latitude_deg_x10M)) * image_world_map_height / DIV_4096(1800'000'000u));
+
+    if ((command & UICommand_Init) || (pos_x != ui_cache_pos_x) || (pos_y != ui_cache_pos_y)) {
+        // Erase old mark
+        if (ui_cache_pos_x != INT16_MAX && ui_cache_pos_y != INT16_MAX) {
+            ui_world_map_draw_marker(element->x, element->y, ui_cache_pos_x, ui_cache_pos_y, true);
+        }
+        // Draw new mark
+        if (pos_x != INT16_MAX && pos_y != INT16_MAX) {
+            ui_world_map_draw_marker(element->x, element->y, pos_x, pos_y, false);
+        }
+
+        ui_cache_pos_x = pos_x;
+        ui_cache_pos_y = pos_y;
+    }
+
+    if (command & UICommand_Click) {
+        ui_show_screen(&ui_gps_screen_page2);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
+
+//------------------------------------------------------------------------------
 // GPS Menu Procedures
 //------------------------------------------------------------------------------
 static void ui_proc_menu_gps_label(const UIElement* element, UICommand command, int32_t encoder_step)
@@ -1704,28 +1806,34 @@ static void ui_draw_coord_dd_right_aligned(const UIElement* element, int32_t coo
 static void ui_draw_coord_ddm_right_aligned(const UIElement* element, const char* nmea_coord, char coord_ns_ew)
 {
     char      min_str[20] = { 0 };
-    char      deg_str[4]  = { '\0' };
+    char      deg_buf[4]  = { '\0' };
+    char*     deg_str     = deg_buf;
     size_t    min_len     = 0;
     ptrdiff_t deg_len     = 0;
 
     // Find the decimal point separating whole minutes and fractional minutes
     const char* dot = strchr(nmea_coord, '.');
-    if (dot != NULL) {
+    if (dot != NULL && (dot - nmea_coord >= 2)) {
         // Minutes always occupy exactly two numeric characters immediately preceding the decimal point
         const char* min_start = dot - 2;
 
-        if (min_start >= nmea_coord) {
-            // Format minutes and 'N/S'/'E/W' string
-            snprintf(min_str, ARRAY_SIZE(min_str), " %s' %c", min_start, coord_ns_ew);
-            min_len = strlen(min_str);
+        // Format minutes and 'N/S'/'E/W' string
+        snprintf(min_str, ARRAY_SIZE(min_str), " %s' %c", min_start, coord_ns_ew);
+        min_len = strlen(min_str);
 
-            // Format degrees
-            deg_len = min_start - nmea_coord;
-            if (deg_len < (ptrdiff_t)ARRAY_SIZE(deg_str)) {
-                strncpy(deg_str, nmea_coord, deg_len);
-            } else {
-                deg_len = 0;
+        // Format degrees
+        deg_len = min_start - nmea_coord;
+        if (deg_len < (ptrdiff_t)ARRAY_SIZE(deg_buf)) {
+            strncpy(deg_str, nmea_coord, deg_len);
+            deg_str[deg_len] = '\0';
+
+            // Remove leading zeros
+            while ((*deg_str == '0') && (deg_len > 1)) {
+                ++deg_str;
+                --deg_len;
             }
+        } else {
+            deg_len = 0;
         }
     }
 
@@ -1834,6 +1942,20 @@ static void ui_proc_menu_gps_geoid_sep(const UIElement* element, UICommand comma
 {
     static uint32_t ui_cache_gga_frames = 0;
     ui_proc_menu_string_parameter(element, command, encoder_step, "Geoid Sep.:", &ui_cache_gga_frames, gps_geoid_separation_str, ARRAY_SIZE(gps_geoid_separation_str));
+}
+
+static void ui_proc_menu_gps_map(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    if (command & UICommand_Init) {
+        ST7735_FillRectangleFast(element->x, element->y, element->width, element->height, UI_COLOR_BUTTON_BG);
+        ST7735_WriteStringNoWrap(element->x + 37, element->y + 3, 10, "Map", Font_7x10, UI_COLOR_TEXT, UI_COLOR_BUTTON_BG);
+    }
+
+    if (command & UICommand_Click) {
+        ui_show_screen(&ui_world_map_screen);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
 }
 
 static void ui_apply_gps_module_model(uint8_t model)
