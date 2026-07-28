@@ -31,6 +31,7 @@ extern const uint16_t icon_check_set_11x11[];
 extern const uint16_t icon_check_unset_11x11[];
 
 extern const uint16_t icon_symbol_degree_7x10[];
+extern const uint16_t icon_symbol_plus_minus_7x10[];
 
 extern const uint16_t icon_digits_0_9_5x7[10][35];
 extern const uint16_t icon_spinner_12st_7x7[12][49];

@@ -30,6 +30,7 @@ volatile uint32_t        pps_sync_count      = 0;
 volatile bool            sync_pps_out        = false;
 volatile bool            update_trend        = false;
 volatile bool            gps_lock_status     = false;
+bool                     suppress_adjustment = false;
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 {
@@ -74,6 +75,11 @@ static int32_t compute_square_adjustment(int32_t error, uint32_t factor, uint32_
 
 static void apply_adjustment(int32_t adjustment)
 {
+    if (suppress_adjustment)
+    {
+        return;
+    }
+
     if ((TIM1->CCR2 + adjustment) > 0xFFFF)
     {
         TIM1->CCR2 = 0xFFFF;

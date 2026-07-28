@@ -18,6 +18,7 @@
 #define UI_COLOR_MENU_LABEL         (ST7735_COLOR565(170, 170, 170))
 #define UI_COLOR_ERROR              (ST7735_RED)
 #define UI_COLOR_MAP_MARKER         (ST7735_COLOR565(255, 0, 255))
+#define UI_COLOR_LINK               (ST7735_WHITE)
 
 typedef enum {
     UICommand_None           = 0x00000000,

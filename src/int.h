@@ -20,6 +20,7 @@ extern volatile uint32_t pps_sync_count;
 extern volatile bool     sync_pps_out;
 extern volatile bool     update_trend;
 extern volatile bool     gps_lock_status;
+extern bool              suppress_adjustment;
 
 // For correction algorithms
 // OCXO models
