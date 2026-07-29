@@ -22,6 +22,9 @@
 
 #define UI_MENU_STR_LEN (22u)
 
+static bool ui_show_performance_timer = false;
+
+
 static void ui_menu_draw_right_aligned(const UIElement* element, int offset_chars, const char* str, uint16_t text_color);
 static void ui_proc_icon_navigation_btn(const UIElement* element, UICommand command, int32_t encoder_step,
     uint16_t icon_width, uint16_t icon_height, const uint16_t* icon, UIScreen* target_screen);
@@ -62,6 +65,7 @@ static void ui_proc_menu_link(const UIElement* element, UICommand command, int32
 //------------------------------------------------------------------------------
 // Main UI Screen Layout
 //------------------------------------------------------------------------------
+static void ui_proc_performance_timer(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_menu(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_save(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_gps(const UIElement* element, UICommand command, int32_t encoder_step);
@@ -81,6 +85,8 @@ static void ui_proc_trend_v(const UIElement* element, UICommand command, int32_t
 static void ui_proc_trend_graph(const UIElement* element, UICommand command, int32_t encoder_step);
 
 static const UIElement ui_main_screen_elements[] = {
+    // Performance timer (if enabled, it draws the timer over the first 2 controls in the top line)
+    { 1, 1, 35, 10, UI_STYLE_NONE, ui_proc_performance_timer },
     // Top line
     { 1,   1, 14, 16, UI_STYLE_FOCUSABLE, ui_proc_menu },
     { 16,  1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_save },
@@ -518,8 +524,8 @@ static const UIElement ui_debug_screen_elements[] = {
     { 1,   1,  15,  16, UI_STYLE_FOCUSABLE,                            ui_proc_back_to_main        },
     { 27,  6,  35,  10, UI_STYLE_NONE,                                 ui_proc_menu_debug_label    },
     // Content
-    { 1,   20, 154, 11, UI_STYLE_NONE,                                 ui_proc_debug_perf_timer    },
-    { 1,   32, 154, 11, UI_STYLE_NONE,                                 ui_proc_debug_manual_pwm    },
+    { 1,   20, 154, 11, UI_STYLE_FOCUSABLE,                            ui_proc_debug_perf_timer    },
+    { 1,   32, 154, 11, UI_STYLE_FOCUSABLE,                            ui_proc_debug_manual_pwm    },
     { 1,   45, 63,  10, UI_STYLE_FOCUSABLE,                            ui_proc_pwm                 },
     { 71,  45, 14,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_debug_pwm_edt_1     },
     { 92,  45, 21,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_debug_pwm_edt_50    },
@@ -873,6 +879,48 @@ static void ui_proc_menu_link(const UIElement* element, UICommand command, int32
     }
 
     ui_default_element_proc(element, command, encoder_step);
+}
+
+
+//------------------------------------------------------------------------------
+// Performance timer
+//------------------------------------------------------------------------------
+#define UI_PERF_TIMER_MEASUREMENT_WINDOW 1000
+
+static void ui_draw_performance_timer(const UIElement* element, uint32_t time_spent)
+{
+    if (time_spent > 99999) {
+        time_spent = 99999;
+    }
+
+    char s[6] = { '\0' };
+    snprintf(s, ARRAY_SIZE(s), "%5" PRIu32, time_spent);
+    ST7735_WriteStringNoWrap(element->x, element->y, element->height, s, Font_7x10, ST7735_GREEN, UI_COLOR_BG);
+}
+
+static void ui_proc_performance_timer(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    static uint32_t start_tick = 0;
+    static uint32_t iteration  = UINT32_MAX;
+
+    if (!ui_show_performance_timer) {
+        iteration = UINT32_MAX;
+        return;
+    }
+
+    if (command & UICommand_Init) {
+        iteration = UINT32_MAX;
+    }
+
+    if (iteration >= UI_PERF_TIMER_MEASUREMENT_WINDOW) {
+        if (iteration != UINT32_MAX) {
+            ui_draw_performance_timer(element, HAL_GetTick() - start_tick);
+        }
+
+        iteration = 0;
+        start_tick = HAL_GetTick();
+    }
+    ++iteration;
 }
 
 
@@ -2509,6 +2557,7 @@ static void ui_proc_menu_debug_label(const UIElement* element, UICommand command
 
 static void ui_proc_debug_perf_timer(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    ui_proc_checkbox_local(element, command, encoder_step, "Performance Timer", &ui_show_performance_timer);
 }
 
 static void ui_proc_debug_manual_pwm(const UIElement* element, UICommand command, int32_t encoder_step)
@@ -2516,15 +2565,13 @@ static void ui_proc_debug_manual_pwm(const UIElement* element, UICommand command
     ui_proc_checkbox_local(element, command, encoder_step, "Manual PWM Control", &suppress_adjustment);
 }
 
-static void ui_proc_debug_pwm_edt(const UIElement* element, UICommand command, int32_t encoder_step, uint16_t edit_step)
+static void ui_proc_debug_pwm_edt(const UIElement* element, UICommand command, int32_t encoder_step, const char* label, uint16_t edit_step)
 {
     if (command & UICommand_Init) {
-        // Draw +/-
+        // Draw +/- sign
         ST7735_DrawImage(element->x, element->y, 7, 10, icon_symbol_plus_minus_7x10);
-        // Draw step value
-        char s[6] = { '\0' };
-        snprintf(s, ARRAY_SIZE(s), "%" PRIu16, edit_step);
-        ST7735_WriteStringNoWrap(element->x + 7, element->y, element->height, s, Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
+        // Draw label
+        ST7735_WriteStringNoWrap(element->x + 7, element->y + 1, element->height - 1, label, Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
     }
 
     // Adjust PWM
@@ -2548,15 +2595,15 @@ static void ui_proc_debug_pwm_edt(const UIElement* element, UICommand command, i
 
 static void ui_proc_debug_pwm_edt_1(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-    ui_proc_debug_pwm_edt(element, command, encoder_step, 1);
+    ui_proc_debug_pwm_edt(element, command, encoder_step, "1", 1);
 }
 
 static void ui_proc_debug_pwm_edt_50(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-    ui_proc_debug_pwm_edt(element, command, encoder_step, 50);
+    ui_proc_debug_pwm_edt(element, command, encoder_step, "50", 50);
 }
 
 static void ui_proc_debug_pwm_edt_1000(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-    ui_proc_debug_pwm_edt(element, command, encoder_step, 1000);
+    ui_proc_debug_pwm_edt(element, command, encoder_step, "1000", 1000);
 }
