@@ -22,8 +22,6 @@
 
 #define UI_MENU_STR_LEN (22u)
 
-static bool ui_show_performance_timer = false;
-
 
 static void ui_menu_draw_right_aligned(const UIElement* element, int offset_chars, const char* str, uint16_t text_color);
 static void ui_proc_icon_navigation_btn(const UIElement* element, UICommand command, int32_t encoder_step,
@@ -65,7 +63,6 @@ static void ui_proc_menu_link(const UIElement* element, UICommand command, int32
 //------------------------------------------------------------------------------
 // Main UI Screen Layout
 //------------------------------------------------------------------------------
-static void ui_proc_performance_timer(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_menu(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_save(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_gps(const UIElement* element, UICommand command, int32_t encoder_step);
@@ -85,8 +82,6 @@ static void ui_proc_trend_v(const UIElement* element, UICommand command, int32_t
 static void ui_proc_trend_graph(const UIElement* element, UICommand command, int32_t encoder_step);
 
 static const UIElement ui_main_screen_elements[] = {
-    // Performance timer (if enabled, it draws the timer over the first 2 controls in the top line)
-    { 1, 1, 35, 10, UI_STYLE_NONE, ui_proc_performance_timer },
     // Top line
     { 1,   1, 14, 16, UI_STYLE_FOCUSABLE, ui_proc_menu },
     { 16,  1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_save },
@@ -135,6 +130,7 @@ static void ui_proc_menu_main_version(const UIElement* element, UICommand comman
 static void ui_proc_menu_main_mcu_flash(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_menu_main_eeprom_writes(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_menu_main_all_settings(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_menu_main_restore_defaults(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_menu_main_debug(const UIElement* element, UICommand command, int32_t encoder_step);
 
 // Page 1
@@ -169,10 +165,11 @@ static const UIElement ui_menu_screen_elements_page2[] = {
     { 127, 6, 21, 10, UI_STYLE_NONE,       ui_proc_menu_label_page_2of2     },
     { 149, 2, 10, 15, UI_STYLE_FOCUSABLE,  ui_proc_menu_page_right_inactive },
     // Content
-    { 1,  20, 154, 11, UI_STYLE_NONE,      ui_proc_menu_main_mcu_flash      },
-    { 1,  32, 154, 11, UI_STYLE_NONE,      ui_proc_menu_main_eeprom_writes  },
-    { 1,  56, 154, 11, UI_STYLE_FOCUSABLE, ui_proc_menu_main_all_settings   },
-    { 1,  68, 154, 11, UI_STYLE_FOCUSABLE, ui_proc_menu_main_debug          },
+    { 1, 20, 154, 11, UI_STYLE_NONE,      ui_proc_menu_main_mcu_flash        },
+    { 1, 32, 154, 11, UI_STYLE_NONE,      ui_proc_menu_main_eeprom_writes    },
+    { 1, 44, 154, 11, UI_STYLE_FOCUSABLE, ui_proc_menu_main_all_settings     },
+    { 1, 56, 154, 11, UI_STYLE_FOCUSABLE, ui_proc_menu_main_restore_defaults },
+    { 1, 68, 154, 11, UI_STYLE_FOCUSABLE, ui_proc_menu_main_debug            },
 };
 
 static UIScreen ui_menu_screen_page2 = {
@@ -883,48 +880,6 @@ static void ui_proc_menu_link(const UIElement* element, UICommand command, int32
 
 
 //------------------------------------------------------------------------------
-// Performance timer
-//------------------------------------------------------------------------------
-#define UI_PERF_TIMER_MEASUREMENT_WINDOW 1000
-
-static void ui_draw_performance_timer(const UIElement* element, uint32_t time_spent)
-{
-    if (time_spent > 99999) {
-        time_spent = 99999;
-    }
-
-    char s[6] = { '\0' };
-    snprintf(s, ARRAY_SIZE(s), "%5" PRIu32, time_spent);
-    ST7735_WriteStringNoWrap(element->x, element->y, element->height, s, Font_7x10, ST7735_GREEN, UI_COLOR_BG);
-}
-
-static void ui_proc_performance_timer(const UIElement* element, UICommand command, int32_t encoder_step)
-{
-    static uint32_t start_tick = 0;
-    static uint32_t iteration  = UINT32_MAX;
-
-    if (!ui_show_performance_timer) {
-        iteration = UINT32_MAX;
-        return;
-    }
-
-    if (command & UICommand_Init) {
-        iteration = UINT32_MAX;
-    }
-
-    if (iteration >= UI_PERF_TIMER_MEASUREMENT_WINDOW) {
-        if (iteration != UINT32_MAX) {
-            ui_draw_performance_timer(element, HAL_GetTick() - start_tick);
-        }
-
-        iteration = 0;
-        start_tick = HAL_GetTick();
-    }
-    ++iteration;
-}
-
-
-//------------------------------------------------------------------------------
 // Main Menu
 //------------------------------------------------------------------------------
 static void ui_proc_menu(const UIElement* element, UICommand command, int32_t encoder_step)
@@ -936,7 +891,7 @@ static void ui_proc_menu(const UIElement* element, UICommand command, int32_t en
 //------------------------------------------------------------------------------
 // Save
 //------------------------------------------------------------------------------
-static void ui_proc_save_handler(UI_MsgBoxButton result)
+static void ui_save_settings_handler(UI_MsgBoxButton result)
 {
     if (result == UI_MsgBoxButton_Yes) {
         // Save configuration
@@ -967,7 +922,7 @@ static void ui_proc_save(const UIElement* element, UICommand command, int32_t en
             "configuration to",
             "EEPROM?",
             NULL };
-        ui_msgbox(msg, UI_MsgBoxType_YesNo, UI_MsgBoxButton_No, ui_proc_save_handler);
+        ui_msgbox(msg, UI_MsgBoxType_YesNo, UI_MsgBoxButton_No, ui_save_settings_handler);
     }
 
     ui_default_element_proc(element, command, encoder_step);
@@ -1775,6 +1730,40 @@ static void ui_proc_menu_main_all_settings(const UIElement* element, UICommand c
     ui_proc_menu_link(element, command, encoder_step, "> All Settings...", &ui_all_settings_screen_page1);
 }
 
+extern void load_settings(bool restore_defaults);
+static void ui_restore_defaults_handler(UI_MsgBoxButton result)
+{
+    if (result == UI_MsgBoxButton_Yes) {
+        // Restore defaults
+        load_settings(true);
+
+        static const char* const msg[] = {
+            "Settings restored.",
+            "Save in main menu",
+            "to keep changes.",
+            NULL };
+        ui_msgbox(msg, UI_MsgBoxType_Ok, UI_MsgBoxButton_Ok, NULL);
+    }
+}
+
+static void ui_proc_menu_main_restore_defaults(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "> Restore Defaults", Font_7x10, UI_COLOR_LINK, UI_COLOR_BG);
+    }
+
+    if (command & UICommand_Click) {
+        static const char* const msg[] = {
+            "Reset device",
+            "settings to",
+            "defaults?",
+            NULL };
+        ui_msgbox(msg, UI_MsgBoxType_YesNo, UI_MsgBoxButton_No, ui_restore_defaults_handler);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
 static void ui_proc_menu_main_debug(const UIElement* element, UICommand command, int32_t encoder_step)
 {
     ui_proc_menu_link(element, command, encoder_step, "> Debug...", &ui_debug_screen);
@@ -2059,7 +2048,7 @@ static void ui_proc_menu_gps_geoid_sep(const UIElement* element, UICommand comma
 
 static void ui_proc_menu_gps_map(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-    ui_proc_menu_link(element, command, encoder_step, "> World Map...", &ui_world_map_screen);
+    ui_proc_menu_link(element, command, encoder_step, "> World Map", &ui_world_map_screen);
 }
 
 static void ui_apply_gps_module_model(uint8_t model)

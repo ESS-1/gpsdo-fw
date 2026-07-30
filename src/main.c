@@ -95,6 +95,157 @@ void enable_usb()
     HAL_GPIO_Init(USB_DP_PULLUP_GPIO_Port, &gpio_init);
 }
 
+void load_settings(bool restore_defaults)
+{
+    // Do NOT reset 'total_writes' on 'restore_defaults == true'
+    if (ee_storage.total_writes == 0xffffffff) {
+        ee_storage.total_writes = 0;
+        ee_is_changed         = true;
+    }
+
+    // Read OCXO model first since we'll use it to choose PWM starting point
+    if (restore_defaults || ee_storage.ocxo_model == 0xff) {
+        ee_storage.ocxo_model = OCXO_MODEL_UNKNOWN;
+        ee_is_changed         = true;
+    }
+
+    if (restore_defaults || ee_storage.pwm == 0xffff) {
+        // Pwm not initialized choose starting point based on OCXO model
+        switch(ee_storage.ocxo_model)
+        {
+            case OCXO_MODEL_OX256B:
+                ee_storage.pwm = 44500; // about 2.5V - several of the OX256B units I have show zero error at this control voltage
+                break;
+            case OCXO_MODEL_ISOTEMP:
+            case OCXO_MODEL_UNKNOWN:
+            default:
+                ee_storage.pwm = 35600; // about 2V - typical center value of OCXO control voltage
+                break;
+        }
+        ee_is_changed         = true;
+    }
+
+    if (restore_defaults || ee_storage.brightness == 0xff) {
+        ee_storage.brightness = 50;
+        ee_is_changed         = true;
+    }
+
+    if (restore_defaults || ee_storage.pps_auto_sync == 0xff) {
+        ee_storage.pps_auto_sync = true;
+        ee_is_changed            = true;
+    }
+
+    if (restore_defaults || ee_storage.pps_sync_delay == 0xffffffff) {
+        ee_storage.pps_sync_delay = 10;
+        ee_is_changed             = true;
+    }
+
+    if (restore_defaults || ee_storage.pps_sync_threshold == 0xffffffff) {
+        ee_storage.pps_sync_threshold = 30000;
+        ee_is_changed                 = true;
+    }
+
+    if (restore_defaults || ee_storage.pps_sync_on_ppb_lock == 0xff) {
+        ee_storage.pps_sync_on_ppb_lock = true;
+        ee_is_changed                   = true;
+    }
+
+    if (restore_defaults || ee_storage.trend_auto_h == 0xff) {
+        ee_storage.trend_auto_h = true;
+        ee_is_changed           = true;
+    }
+
+    if (restore_defaults || ee_storage.trend_auto_v == 0xff) {
+        ee_storage.trend_auto_v = true;
+        ee_is_changed           = true;
+    }
+
+    if (restore_defaults || ee_storage.trend_h_scale == 0xffffffff) {
+        ee_storage.trend_h_scale = 1;
+        ee_is_changed            = true;
+    }
+
+    if (restore_defaults || ee_storage.trend_v_scale == 0xffffffff) {
+        ee_storage.trend_v_scale = 70;
+        ee_is_changed            = true;
+    }
+
+    // Check for custom gps baudrate
+    if (restore_defaults || ee_storage.gps_baudrate == 0xffffffff) {
+        ee_storage.gps_baudrate = GPS_DEFAULT_BAUDRATE;
+        ee_is_changed           = true;
+    }
+
+    if (restore_defaults || ee_storage.gps_time_offset == 0xffffffff) {
+        ee_storage.gps_time_offset = -GPS_MIN_TIME_OFFSET;
+        ee_is_changed              = true;
+    }
+
+    if (restore_defaults || ee_storage.gps_model == 0xff) {
+        ee_storage.gps_model = GPS_MODEL_UNKNOWN;
+        ee_is_changed        = true;
+    }
+
+    // PPB lock threshold (*100)
+    if (restore_defaults || ee_storage.ppb_lock_threshold == 0xffffffff) {
+        ee_storage.ppb_lock_threshold = DEFAULT_PPB_LOCK_THRESHOLD;
+        ee_is_changed                 = true;
+    }
+
+    // Correction algorithm
+    if (restore_defaults || ee_storage.correction_algorithm == 0xff) {
+        ee_storage.correction_algorithm = CORRECTION_ALGO_ERIC_H_PLUS;
+        ee_is_changed                   = true;
+    }
+
+    // Correction factor
+    if (restore_defaults || ee_storage.correction_factor == 0xffffffff) {
+        ee_storage.correction_factor = get_default_correction_factor(ee_storage.correction_algorithm);
+        ee_is_changed                = true;
+    }
+
+    // Warmup time
+    if (restore_defaults || ee_storage.warmup_time_seconds == 0xffffffff) {
+        ee_storage.warmup_time_seconds = get_default_warmup_time(ee_storage.ocxo_model);
+        ee_is_changed                  = true;
+    }
+
+    // PLL output 1 preset
+    if (restore_defaults || ee_storage.pll_out1_preset >= pll_out1_preset_count) {
+        ee_storage.pll_out1_preset = 0;
+        ee_is_changed              = true;
+    }
+
+    // PLL output 2 preset
+    if (restore_defaults || ee_storage.pll_out2_preset >= pll_out2_preset_count) {
+        ee_storage.pll_out2_preset = 0;
+        ee_is_changed              = true;
+    }
+
+    // PLL output 1 drive strength
+    if (restore_defaults || ee_storage.pll_out1_drive_strength > SI5351_DRIVE_STRENGTH_8MA) {
+        ee_storage.pll_out1_drive_strength = SI5351_DRIVE_STRENGTH_2MA;
+        ee_is_changed                      = true;
+    }
+
+    // PLL output 2 drive strength
+    if (restore_defaults || ee_storage.pll_out2_drive_strength > SI5351_DRIVE_STRENGTH_8MA) {
+        ee_storage.pll_out2_drive_strength = SI5351_DRIVE_STRENGTH_2MA;
+        ee_is_changed                      = true;
+    }
+
+
+    // Apply settings
+    TIM1->CCR2 = ee_storage.pwm;
+    set_brightness(ee_storage.brightness);
+    gps_time_offset = ee_storage.gps_time_offset+GPS_MIN_TIME_OFFSET;
+
+    pll_configure_output(1, &(pll_out1_presets[ee_storage.pll_out1_preset]), ee_storage.pll_out1_drive_strength);
+    pll_configure_output(2, &(pll_out2_presets[ee_storage.pll_out2_preset]), ee_storage.pll_out2_drive_strength);
+
+    gps_setbaudrate(ee_storage.gps_baudrate);
+}
+
 void gpsdo()
 {
     HAL_TIM_Base_Start_IT(&htim2);
@@ -102,162 +253,10 @@ void gpsdo()
     EE_Init(&ee_storage, sizeof(ee_storage_t));
     EE_Read();
 
-    // Read OCXO model first since we'll use it to choose PWM starting point
-    if (ee_storage.ocxo_model == 0xff) {
-        ee_storage.ocxo_model = OCXO_MODEL_UNKNOWN;
-        ee_is_changed         = true;
-    }
-
-    uint16_t startingPwm;
-    if (ee_storage.pwm == 0xffff) {
-        // Pwm not initialized choose starting point based on OCXO model
-        switch(ee_storage.ocxo_model)
-        {
-            case OCXO_MODEL_OX256B:
-                startingPwm = 44500; // about 2.5V - several of the OX256B units I have show zero error at this control voltage
-                break;
-            case OCXO_MODEL_ISOTEMP:
-            case OCXO_MODEL_UNKNOWN:
-            default:
-                startingPwm = 35600; // about 2V - typical center value of OCXO control voltage
-                break;
-        }
-    }
-    else {
-        // Use value stored in eeprom as a starting point
-        startingPwm = ee_storage.pwm;
-    }
-    TIM1->CCR2 = startingPwm;
-
-    if (ee_storage.total_writes == 0xffffffff) {
-        ee_storage.total_writes = 0;
-        ee_is_changed         = true;
-    }
-
-    if (ee_storage.brightness == 0xff) {
-        ee_storage.brightness = 50;
-        ee_is_changed         = true;
-    }
-    set_brightness(ee_storage.brightness);
-
-    if (ee_storage.pps_auto_sync == 0xff) {
-        ee_storage.pps_auto_sync = true;
-        ee_is_changed            = true;
-    }
-
-    if (ee_storage.pps_sync_delay == 0xffffffff) {
-        ee_storage.pps_sync_delay = 10;
-        ee_is_changed             = true;
-    }
-
-    if (ee_storage.pps_sync_threshold == 0xffffffff) {
-        ee_storage.pps_sync_threshold = 30000;
-        ee_is_changed                 = true;
-    }
-
-    if (ee_storage.pps_sync_on_ppb_lock == 0xff) {
-        ee_storage.pps_sync_on_ppb_lock = true;
-        ee_is_changed                   = true;
-    }
-
-    if (ee_storage.pwm_auto_save == 0xff) {
-        ee_storage.pwm_auto_save = true;
-        ee_is_changed            = true;
-    }
-
-    if (ee_storage.trend_auto_v == 0xff) {
-        ee_storage.trend_auto_v = true;
-        ee_is_changed           = true;
-    }
-
-    if (ee_storage.trend_auto_h == 0xff) {
-        ee_storage.trend_auto_h = true;
-        ee_is_changed           = true;
-    }
-
-    if (ee_storage.trend_v_scale == 0xffffffff) {
-        ee_storage.trend_v_scale = 70;
-        ee_is_changed            = true;
-    }
-
-    if (ee_storage.trend_h_scale == 0xffffffff) {
-        ee_storage.trend_h_scale = 1;
-        ee_is_changed            = true;
-    }
-
-    // Check for custom gps baudrate
-    if (ee_storage.gps_baudrate == 0xffffffff) {
-        ee_storage.gps_baudrate = GPS_DEFAULT_BAUDRATE;
-        ee_is_changed           = true;
-    }
-
-    if (ee_storage.gps_time_offset == 0xffffffff) {
-        ee_storage.gps_time_offset = -GPS_MIN_TIME_OFFSET;
-        ee_is_changed              = true;
-    }
-    gps_time_offset = ee_storage.gps_time_offset+GPS_MIN_TIME_OFFSET;
-
-    if (ee_storage.gps_model == 0xff) {
-        ee_storage.gps_model = GPS_MODEL_UNKNOWN;
-        ee_is_changed        = true;
-    }
-
-    // PPB lock threshold (*100)
-    if (ee_storage.ppb_lock_threshold == 0xffffffff) {
-        ee_storage.ppb_lock_threshold = DEFAULT_PPB_LOCK_THRESHOLD;
-        ee_is_changed                 = true;
-    }
-
-    // Correction algorithm
-    if (ee_storage.correction_algorithm == 0xff) {
-        ee_storage.correction_algorithm = CORRECTION_ALGO_ERIC_H_PLUS;
-        ee_is_changed                   = true;
-    }
-
-    // Correction factor
-    if (ee_storage.correction_factor == 0xffffffff) {
-        ee_storage.correction_factor = get_default_correction_factor(ee_storage.correction_algorithm);
-        ee_is_changed                = true;
-    }
-
-    // Warmup time
-    if (ee_storage.warmup_time_seconds == 0xffffffff) {
-        ee_storage.warmup_time_seconds = get_default_warmup_time(ee_storage.ocxo_model);
-        ee_is_changed                  = true;
-    }
-
-    // PLL output 1 preset
-    if (ee_storage.pll_out1_preset >= pll_out1_preset_count) {
-        ee_storage.pll_out1_preset = 0;
-        ee_is_changed              = true;
-    }
-
-    // PLL output 2 preset
-    if (ee_storage.pll_out2_preset >= pll_out2_preset_count) {
-        ee_storage.pll_out2_preset = 0;
-        ee_is_changed              = true;
-    }
-
-    // PLL output 1 drive strength
-    if (ee_storage.pll_out1_drive_strength > SI5351_DRIVE_STRENGTH_8MA) {
-        ee_storage.pll_out1_drive_strength = 0;
-        ee_is_changed                      = true;
-    }
-
-    // PLL output 2 drive strength
-    if (ee_storage.pll_out2_drive_strength > SI5351_DRIVE_STRENGTH_8MA) {
-        ee_storage.pll_out2_drive_strength = 0;
-        ee_is_changed                      = true;
-    }
-
-    // Configure outputs
-    pll_configure_output(1, &(pll_out1_presets[ee_storage.pll_out1_preset]), ee_storage.pll_out1_drive_strength);
-    pll_configure_output(2, &(pll_out2_presets[ee_storage.pll_out2_preset]), ee_storage.pll_out2_drive_strength);
-
     enable_usb();
     gps_start_it();
 
-    gps_setbaudrate(ee_storage.gps_baudrate);
+    load_settings(false);
 
 //todo    init_trend_values();
     ui_show_screen(&ui_main_screen);

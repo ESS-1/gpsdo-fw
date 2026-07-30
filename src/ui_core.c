@@ -5,8 +5,47 @@
 #include "st7735.h"
 #include "st7735_config.h"
 
+#include <stdio.h>
+#include <inttypes.h>
+
+bool ui_show_performance_timer = false;
+
 static UIScreen* ui_current_screen = NULL;
 static UIScreen* ui_screen_to_show = NULL;
+
+#define UI_PERF_TIMER_MEASUREMENT_WINDOW 1000
+
+static void ui_draw_performance_timer(uint32_t time_spent)
+{
+    if (time_spent > 99999) {
+        time_spent = 99999;
+    }
+
+    char s[6] = { '\0' };
+    snprintf(s, sizeof(s) / sizeof(s[0]), "%5" PRIu32, time_spent);
+    ST7735_WriteStringNoWrap(0, 0, 10, s, Font_7x10, ST7735_GREEN, UI_COLOR_BG);
+}
+
+static void ui_process_performance_timer(bool init)
+{
+    static uint32_t start_tick = 0;
+    static uint32_t iteration  = UINT32_MAX;
+
+    if (!ui_show_performance_timer || init) {
+        iteration = UINT32_MAX;
+        return;
+    }
+
+    if (iteration >= UI_PERF_TIMER_MEASUREMENT_WINDOW) {
+        if (iteration != UINT32_MAX) {
+            ui_draw_performance_timer(HAL_GetTick() - start_tick);
+        }
+
+        iteration = 0;
+        start_tick = HAL_GetTick();
+    }
+    ++iteration;
+}
 
 void ui_default_element_proc(const UIElement* element, UICommand command, int32_t encoder_step)
 {
@@ -72,6 +111,9 @@ static void ui_force_set_screen(UIScreen* screen)
 
         element->proc(element, command, 0);
     }
+
+    // Init/reset performance timer
+    ui_process_performance_timer(true);
 }
 
 void ui_show_screen(UIScreen* screen)
@@ -173,4 +215,7 @@ void ui_run()
         const UIElement* element = &(ui_current_screen->elements[i]);
         element->proc(element, UICommand_None, 0);
     }
+
+    // Show performance timer
+    ui_process_performance_timer(false);
 }

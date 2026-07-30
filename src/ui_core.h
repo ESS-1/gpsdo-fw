@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+extern bool ui_show_performance_timer;
+
+
 #define UI_COLOR_BG                 (ST7735_BLACK)
 #define UI_COLOR_BUTTON_BG          (ST7735_COLOR565(120, 120, 120))
 #define UI_COLOR_INACTIVE_BUTTON_BG (ST7735_COLOR565(160, 160, 160))

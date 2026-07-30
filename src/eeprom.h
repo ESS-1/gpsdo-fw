@@ -15,11 +15,10 @@ typedef struct
     uint32_t pps_sync_delay;
     uint32_t pps_sync_threshold;
     uint8_t  pps_sync_on_ppb_lock;
-    uint8_t  pwm_auto_save;
     uint8_t  trend_auto_h;
     uint8_t  trend_auto_v;
-    uint32_t trend_v_scale;
     uint32_t trend_h_scale;
+    uint32_t trend_v_scale;
     uint32_t gps_baudrate;
     uint32_t gps_time_offset;
     uint8_t  gps_model;

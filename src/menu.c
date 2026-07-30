@@ -1,8 +1,6 @@
 
 #include "trend8_t.h"
 
-//static bool         auto_save_pwm_done  = false;
-//
 //#define TREND_SCREEN_SIZE   40
 //#define TREND_MAX_H_SCALE   64
 //#define TREND_MAX_SIZE      (112*TREND_MAX_H_SCALE + TREND_SCREEN_SIZE) // Max trend duration: 2:00:08
@@ -224,20 +222,6 @@
 //            }
 //        }
 //        break;
-//    case SCREEN_PPB:
-//        // Screen with ppb
-//        if(menu_level == 0)
-//        else
-//        {
-//            switch (current_menu_ppb_screen)
-//            {
-//                case SCREEN_PPB_AUTO_SAVE_PWM:
-//                    LCD_Puts(1, 0, menu_level == 1 ? "PWM S.:":"PWM S.?");
-//                    LCD_Puts(0, 1, ee_settings.pwm_auto_save ? "      ON" : "     OFF");
-//                    break;
-//            }
-//        }
-//        break;
 //    }
 //}
 //
@@ -309,16 +293,6 @@
 //                    break;
 //            }
 //        }
-//        else if(menu_level == 2 && current_menu_screen == SCREEN_PPB)
-//        {   // Sub-sub menu for PPB screen
-//            switch(current_menu_ppb_screen)
-//            {
-//                case SCREEN_PPB_AUTO_SAVE_PWM:
-//                    // Update mode
-//                    ee_settings.pwm_auto_save = !ee_settings.pwm_auto_save;
-//                    break;
-//            }
-//        }
 //    }
 //
 //    if (refresh_screen) {
@@ -331,18 +305,5 @@
 //        }
 //
 //        menu_draw();
-//
-//        // Check if we need resync or PWM save
-//        if(frequency_is_stable(0))
-//        {   // Frequency is stabilized
-//            // Save PWM if requested
-//            if(ee_settings.pwm_auto_save && !auto_save_pwm_done)
-//            {
-//                ee_storage.pwm = TIM1->CCR2;
-//                ee_is_changed = true;
-//                // Only auto-save once per session
-//                auto_save_pwm_done = true;
-//            }
-//        }
 //    }
 //}
