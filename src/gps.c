@@ -46,6 +46,11 @@ uint32_t gps_fifo_overflow_comm  = 0;
 
 static uint32_t gps_last_pgdos_generated_sec = 0;
 
+// Indicates whether this is the first GPS UART RX after an MCU or UART reset.
+// When 'true', errors are cleared because the GPS module sends data before
+// UART initialization, which causes frame or noise errors.
+static volatile bool gps_first_gps_uart_rx = false;
+
 #define FIFO_BUFFER_SIZE 1024
 
 #if FIFO_BUFFER_SIZE != APP_TX_DATA_SIZE
@@ -143,7 +148,7 @@ static void gps_sendcommand(const char* cmd, size_t len)
 {
     while (huart3.gState != HAL_UART_STATE_READY);
     HAL_UART_Transmit_DMA(&huart3, (const uint8_t*)cmd, len);
-    // wait for transfer completed
+    // Wait for transfer completed
     while (huart3.gState != HAL_UART_STATE_READY);
 }
 
@@ -197,27 +202,30 @@ static void gps_reconfigure_uart(UART_HandleTypeDef *huart, uint32_t baudrate)
 {
     // Wait for HAL to finish transmission
     while (huart->gState != HAL_UART_STATE_READY);
+
     // Wait for the hardware transmitter to physically send the last bit
     while (__HAL_UART_GET_FLAG(huart, UART_FLAG_TC) == RESET);
 
+    // De-initialize UART
     HAL_UART_DeInit(huart);
 
-    huart->Init.BaudRate = baudrate;
-    huart->Init.WordLength = UART_WORDLENGTH_8B;
-    huart->Init.StopBits = UART_STOPBITS_1;
-    huart->Init.Parity = UART_PARITY_NONE;
-    huart->Init.Mode = UART_MODE_TX_RX;
-    huart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    // Configure new baud rate
+    huart->Init.BaudRate     = baudrate;
+    huart->Init.WordLength   = UART_WORDLENGTH_8B;
+    huart->Init.StopBits     = UART_STOPBITS_1;
+    huart->Init.Parity       = UART_PARITY_NONE;
+    huart->Init.Mode         = UART_MODE_TX_RX;
+    huart->Init.HwFlowCtl    = UART_HWCONTROL_NONE;
     huart->Init.OverSampling = UART_OVERSAMPLING_16;
-    if (HAL_UART_Init(huart) != HAL_OK)
-    {
-      Error_Handler();
+    if (HAL_UART_Init(huart) != HAL_OK) {
+        Error_Handler();
     }
 }
 
 static void gps_reconfigure_gps_uart(uint32_t baudrate)
 {
     gps_reconfigure_uart(&huart3, baudrate);
+    gps_first_gps_uart_rx = true;
     gps_start_gps_rx();
 }
 
@@ -240,6 +248,18 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
                 ++gps_fifo_overflow_gps;
             }
         }
+        gps_first_gps_uart_rx = false;
+        gps_start_gps_rx();
+    }
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef* huart)
+{
+    if (huart == &huart3 && gps_first_gps_uart_rx) {
+        // This is the first GPS UART RX after an MCU or UART reset.
+        // Error likely occurred because the GPS module sent data before UART initialization.
+        // This is an expected situation, so we only need to restart the RX.
+        HAL_UART_DMAStop(huart);
         gps_start_gps_rx();
     }
 }
@@ -255,6 +275,7 @@ static void gps_cdc_rx_callback(const uint8_t* buf, uint32_t len)
 
 void gps_start_it()
 {
+    gps_first_gps_uart_rx = true;
     gps_start_gps_rx();
     gps_start_comm_rx();
 }
@@ -731,7 +752,7 @@ static void gps_run_pgdos(uint8_t* buf, size_t* buf_offset, size_t buf_size)
 static uint8_t send_buf[SEND_BUFFER_SIZE];
 static uint8_t comm_send_buf[SEND_BUFFER_SIZE];
 
-void gps_read()
+void gps_run()
 {
     size_t send_size = 0;
     uint8_t c;

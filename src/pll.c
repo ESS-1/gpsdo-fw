@@ -104,7 +104,7 @@ void pll_configure_output(uint8_t output, const OutFreqConfig* config, uint8_t d
     }
 }
 
-void pll_update()
+void pll_run()
 {
     // Update every 0.5 seconds
     if (!timer_is_elapsed(&pll_status_last_update, 500)) {

@@ -284,8 +284,8 @@ void gpsdo()
             last_frame_receive_time = now;
         }
         
-        gps_read();
-        pll_update();
+        gps_run();
+        pll_run();
         ui_run();
 
         // Check if we need resync PPS output

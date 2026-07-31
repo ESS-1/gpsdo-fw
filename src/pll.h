@@ -19,6 +19,6 @@ bool pll_wait_primary_lock();
 void pll_enable_primary_output();
 void pll_configure_output(uint8_t output, const OutFreqConfig* config, uint8_t drive_strength);
 
-void pll_update();
+void pll_run();
 
 #endif

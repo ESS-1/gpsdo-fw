@@ -74,6 +74,6 @@ void gps_setbaudrate(uint32_t baudrate);
 void gps_reset_uart();
 
 void gps_start_it();
-void gps_read();
+void gps_run();
 
 #endif
