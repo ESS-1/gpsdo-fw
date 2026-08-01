@@ -40,7 +40,6 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     src/frequency.c
     src/gps.c
     src/int.c
-    src/menu.c
     src/bootlog.c
     src/cdcio.c
     src/pll.c

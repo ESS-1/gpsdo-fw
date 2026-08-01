@@ -11,6 +11,7 @@
 #include "pll.h"
 #include "pll_presets.h"
 #include "timer.h"
+#include "trend8_t.h"
 
 #include "icons.h"
 #include "fonts.h"
@@ -77,9 +78,9 @@ static void ui_proc_out2_drv_str(const UIElement* element, UICommand command, in
 static void ui_proc_out2_freq(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_pwm(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_trend_h(const UIElement* element, UICommand command, int32_t encoder_step);
-static void ui_proc_trend_separator(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_trend_v(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_trend_graph(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_trend_timeline(const UIElement* element, UICommand command, int32_t encoder_step);
 
 static const UIElement ui_main_screen_elements[] = {
     // Top line
@@ -93,16 +94,16 @@ static const UIElement ui_main_screen_elements[] = {
     { 142, 20, 17,  9,  UI_STYLE_FOCUSABLE,                            ui_proc_pps             },
     { 1,   33, 17,  12, UI_STYLE_FOCUSABLE,                            ui_proc_status          },
 //  { 1,   46, 17,  7 } - empty space reserved for the warm-up countdown timer drawn by 'ui_proc_status'
-    { 23,  32, 21,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out1_drv_str    },
-    { 45,  32, 28,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out1_freq       },
+    { 21,  32, 21,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out1_drv_str    },
+    { 43,  32, 28,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out1_freq       },
     { 81,  32, 21,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out2_drv_str    },
     { 103, 32, 56,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out2_freq       },
-    { 23,  44, 63,  10, UI_STYLE_FOCUSABLE,                            ui_proc_pwm             },
+    { 21,  44, 63,  10, UI_STYLE_FOCUSABLE,                            ui_proc_pwm             },
     // Trend
-    { 91,  44, 28,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_h         },
-    { 120, 44, 3,   10, UI_STYLE_NONE,                                 ui_proc_trend_separator },
+    { 88,  44, 35,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_h         },
     { 124, 44, 35,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_v         },
-    { 0,   55, 160, 25, UI_STYLE_NONE,                                 ui_proc_trend_graph     },
+    { 0,   55, 160, 21, UI_STYLE_NONE,                                 ui_proc_trend_graph     },
+    { 1,   77, 158,  2, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_timeline  },
 };
 
 UIScreen ui_main_screen = {
@@ -1534,71 +1535,166 @@ static void ui_proc_pwm(const UIElement* element, UICommand command, int32_t enc
 //------------------------------------------------------------------------------
 // Trend
 //------------------------------------------------------------------------------
-static void ui_proc_trend_h(const UIElement* element, UICommand command, int32_t encoder_step)
+void ui_init_trend()
 {
-    if (!ui_is_captured(element)) {
-        if (command & (UICommand_Init | UICommand_Release)) {
-            // todo
-            ST7735_FillRectangleFast(element->x, element->y, element->width, 1, UI_COLOR_TREND_BG);
-            ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "H:", Font_7x10, UI_COLOR_TREND_BAR, UI_COLOR_TREND_BG);
-            ST7735_WriteStringNoWrap(element->x + 2 * 7, element->y + 1, element->height - 1, "10", Font_7x10, UI_COLOR_TREND_BAR, UI_COLOR_TREND_BG);
+    ui_trend_active_h_scale = (ee_storage.trend_h_scale == UI_Trend_HScale_Auto)
+        ? UI_Trend_HScale_2min
+        : (UI_Trend_HScale) ee_storage.trend_h_scale;
+    ui_trend_active_v_scale = (ee_storage.trend_v_scale == UI_Trend_VScale_Auto)
+        ? UI_Trend_VScale_2ppb
+        : (UI_Trend_VScale) ee_storage.trend_v_scale;
+
+    memset(ui_ppb_trend, TREND_ENCODED_UNSET_VALUE, UI_TREND_SIZE);
+}
+
+static void ui_proc_edit_trend_param(const UIElement* element, UICommand command, int32_t encoder_step,
+    const char* label, uint8_t* ui_cache, uint8_t* ui_edit, uint8_t value_to_display, uint8_t *ee_setting, uint8_t max_value, const char* (*value_to_string)(uint8_t))
+{
+    const uint8_t *value_to_draw = NULL;
+    bool is_captured = ui_is_captured(element);
+
+    if (command & UICommand_Release) {
+        // Apply changes
+        if (*ee_setting != *ui_edit) {
+            *ee_setting = *ui_edit;
+            ee_is_changed = true;
         }
     }
 
-    if (command & UICommand_Capture) {
-        // todo
+    if (command & UICommand_Init) {
+        // Draw label
+        ST7735_FillRectangleFast(element->x, element->y, element->width, 1, UI_COLOR_TREND_BG);
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, label, Font_7x10, UI_COLOR_TREND_BAR, UI_COLOR_TREND_BG);
+
+        // Draw value
+        if (!is_captured) {
+            value_to_draw = &value_to_display;
+        } else {
+            value_to_draw = ui_edit;
+        }
     }
-    if (command & UICommand_EncoderStep) {
-        // todo
+
+    if (!is_captured && (value_to_display != *ui_cache)) {
+        value_to_draw = &value_to_display;
     }
-    if (command & UICommand_Release) {
-        // todo
+
+    // Value edit
+    {
+        if (command & UICommand_Capture) {
+            *ui_edit = *ee_setting;
+            value_to_draw = ui_edit;
+        }
+
+        if (command & UICommand_EncoderStep) {
+            // Modify setting
+            ui_change_setting_u8(ui_edit, encoder_step, 0, max_value, false);
+
+            // Draw new value
+            value_to_draw = ui_edit;
+        }
+    }
+
+    // Draw value
+    if (value_to_draw) {
+        *ui_cache = *value_to_draw;
+        ST7735_WriteStringNoWrap(element->x + 2 * 7, element->y + 1, element->height - 1,
+            value_to_string(*ui_cache), Font_7x10, UI_COLOR_TREND_BAR, UI_COLOR_TREND_BG);
     }
 
     ui_default_element_proc(element, command, encoder_step);
 }
 
-static void ui_proc_trend_separator(const UIElement* element, UICommand command, int32_t encoder_step)
+static const char* ui_trend_h_scale_to_string(uint8_t h_scale)
 {
-    if (command & UICommand_Init) {
-        ST7735_FillRectangle(element->x, element->y, element->width, element->height, UI_COLOR_TREND_BG);
+    switch (h_scale) {
+    case UI_Trend_HScale_Auto:
+        return "AUT";
+
+    case UI_Trend_HScale_2min:
+        return "2m ";
+
+    case UI_Trend_HScale_5min:
+        return "5m ";
+
+    case UI_Trend_HScale_10min:
+        return "10m";
+
+    case UI_Trend_HScale_20min:
+        return "20m";
+
+    case UI_Trend_HScale_40min:
+        return "40m";
+
+    case UI_Trend_HScale_1h:
+        return "1h ";
+
+    default:
+    case UI_Trend_HScale_2h:
+        return "2h ";
+    }
+}
+
+static const char* ui_trend_v_scale_to_string(uint8_t v_scale)
+{
+    switch (v_scale) {
+    case UI_Trend_VScale_Auto:
+        return "AUT";
+
+    case UI_Trend_VScale_2ppb:
+        return "2  ";
+
+    case UI_Trend_VScale_5ppb:
+        return "5  ";
+
+    case UI_Trend_VScale_10ppb:
+        return "10 ";
+
+    case UI_Trend_VScale_20ppb:
+        return "20 ";
+
+    case UI_Trend_VScale_50ppb:
+        return "50 ";
+
+    case UI_Trend_VScale_100ppb:
+        return "100";
+
+    case UI_Trend_VScale_200ppb:
+        return "200";
+
+    case UI_Trend_VScale_500ppb:
+        return "500";
+
+    default:
+    case UI_Trend_VScale_1000ppb:
+        return "1K ";
     }
 
-    ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_proc_trend_h(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    static uint8_t ui_cache_trend_h_scale = UI_Trend_HScale_Auto;
+    static uint8_t ui_edit_trend_h_scale  = UI_Trend_HScale_Auto;
+    ui_proc_edit_trend_param(element, command, encoder_step, "H:",
+        &ui_cache_trend_h_scale, &ui_edit_trend_h_scale, ui_trend_active_h_scale, &ee_storage.trend_h_scale,
+        UI_Trend_HScale_Max, ui_trend_h_scale_to_string);
 }
 
 static void ui_proc_trend_v(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-    if (!ui_is_captured(element)) {
-        if (command & (UICommand_Init | UICommand_Release)) {
-            // todo
-            ST7735_FillRectangleFast(element->x, element->y, element->width, 1, UI_COLOR_TREND_BG);
-            ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "V:", Font_7x10, UI_COLOR_TREND_BAR, UI_COLOR_TREND_BG);
-            ST7735_WriteStringNoWrap(element->x + 2 * 7, element->y + 1, element->height - 1, "120", Font_7x10, UI_COLOR_TREND_BAR, UI_COLOR_TREND_BG);
-        }
-    }
-
-    if (command & UICommand_Capture) {
-        // todo
-    }
-    if (command & UICommand_EncoderStep) {
-        // todo
-    }
-    if (command & UICommand_Release) {
-        // todo
-    }
-
-    ui_default_element_proc(element, command, encoder_step);
+    static uint8_t ui_cache_trend_v_scale = UI_Trend_VScale_Auto;
+    static uint8_t ui_edit_trend_v_scale  = UI_Trend_VScale_Auto;
+    ui_proc_edit_trend_param(element, command, encoder_step, "V:",
+        &ui_cache_trend_v_scale, &ui_edit_trend_v_scale, ui_trend_active_v_scale, &ee_storage.trend_v_scale,
+        UI_Trend_VScale_Max, ui_trend_v_scale_to_string);
 }
 
 static void ui_proc_trend_graph(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-    if (command & UICommand_Init) {
-        // todo
-        ST7735_FillRectangleFast(element->x, element->y, element->width, element->height, UI_COLOR_TREND_BG);
-    }
-    // TODO: draw
-    ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_proc_trend_timeline(const UIElement* element, UICommand command, int32_t encoder_step)
+{
 }
 
 

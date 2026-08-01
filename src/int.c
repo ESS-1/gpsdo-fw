@@ -270,7 +270,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
         first            = 0;
 
         // Update last PPS time
-        last_pps         = current_tick;
+        last_pps     = current_tick;
         update_trend = allow_adjustment;
         if(!gps_lock_status)
         {   // Update GPS lock status

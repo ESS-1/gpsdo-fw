@@ -1,5 +1,7 @@
 
-#include "trend8_t.h"
+// Char codes for trend view
+// #define TREND_LEFT_CODE         0x7F
+// #define TREND_RIGHT_CODE        0x7E
 
 //#define TREND_SCREEN_SIZE   40
 //#define TREND_MAX_H_SCALE   64
@@ -11,14 +13,6 @@
 //
 //uint32_t    trend_shift = 0; 
 //uint8_t     trend_arrow = TREND_LEFT_CODE;
-//
-//void init_trend_values()
-//{
-//    for(int i = 0 ; i < TREND_MAX_SIZE ; i++)
-//    {
-//        ppb_trend_values[i] = TREND_ENCODED_UNSET_VALUE;
-//    }
-//}
 //
 //static uint32_t get_trend_data(uint32_t offset)
 //{
@@ -90,52 +84,6 @@
 //    }
 //}
 //
-//static uint32_t menu_round_v_scale(uint32_t scale)
-//{
-//    uint32_t rounded_scale;
-//    if(scale < 70)
-//    {   // 70 is the lower possible scale (0.1 ppb = 1px)
-//        rounded_scale = 70;
-//    }
-//    else if(scale > 2000)
-//    {   // For large values round scale to 10 ppb
-//        rounded_scale = round(((double)scale)/1000)*1000;
-//    }
-//    else if(scale > 200)
-//    {   // For medium values round scale to 1 ppb
-//        rounded_scale = round(((double)scale)/100)*100;
-//    }
-//    else
-//    {   // For smaller values, round scale to 0.1 ppb
-//        rounded_scale = round(((double)scale)/10)*10;
-//    }
-//    return rounded_scale;
-//}
-//
-//static uint32_t menu_round_h_scale(uint32_t scale)
-//{
-//    uint32_t rounded_scale = 0;
-//    if(scale >= TREND_MAX_H_SCALE)
-//    {
-//        rounded_scale = TREND_MAX_H_SCALE;
-//    }
-//    else if(scale <= 1)
-//    {
-//        rounded_scale = 1;
-//    }
-//    else
-//    {   // Ceil to power of 2
-//        rounded_scale = scale - 1;
-//
-//        rounded_scale |= rounded_scale >> 1;
-//        rounded_scale |= rounded_scale >> 2;
-//        rounded_scale |= rounded_scale >> 4;
-//
-//        ++rounded_scale;
-//    }
-//    return rounded_scale;
-//}
-//
 //static void menu_draw_trend(uint32_t shift)
 //{   // Horizontal autoscale
 //    if(ee_storage.trend_auto_h)
@@ -199,26 +147,6 @@
 //                        menu_draw_trend(trend_shift);
 //                    }
 //                    break;
-//                case SCREEN_TREND_AUTO_V:
-//                    LCD_Puts(1, 0, menu_level == 1 ? "Auto-V:":"Auto-V?");
-//                    LCD_Puts(0, 1, ee_storage.trend_auto_v ? "      ON" : "     OFF");
-//                    break;
-//                case SCREEN_TREND_AUTO_H:
-//                    LCD_Puts(1, 0, menu_level == 1 ? "Auto-H:":"Auto-H?");
-//                    LCD_Puts(0, 1, ee_storage.trend_auto_h ? "      ON" : "     OFF");
-//                    break;
-//                case SCREEN_TREND_V_SCALE:
-//                    LCD_Puts(1, 0, menu_level == 1 ? "V-Scal:":"V-Scal?");
-//                    LCD_Puts(0, 1, "        ");
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld.%02ld", ee_storage.trend_v_scale / 100, ee_storage.trend_v_scale % 100);
-//                    LCD_Puts(0, 1, screen_buffer);
-//                    break;
-//                case SCREEN_TREND_H_SCALE:
-//                    LCD_Puts(1, 0, menu_level == 1 ? "H-Scal:":"H-Scal?");
-//                    LCD_Puts(0, 1, "        ");
-//                    snprintf(screen_buffer, SCREEN_BUFFER_SIZE, "%ld", ee_storage.trend_h_scale);
-//                    LCD_Puts(0, 1, screen_buffer);
-//                    break;
 //            }
 //        }
 //        break;
@@ -234,7 +162,6 @@
 //            switch(current_menu_trend_screen)
 //            {
 //                case SCREEN_TREND_MAIN:
-//                    {
 //                    // Update position
 //                    int32_t new_trend_shift = trend_shift + (encoder_increment * ee_storage.trend_h_scale);
 //                    trend_arrow = encoder_increment < 0 ? TREND_LEFT_CODE : TREND_RIGHT_CODE;
@@ -252,44 +179,6 @@
 //                    {
 //                        trend_shift = new_trend_shift;
 //                    }
-//                    break;
-//                    }
-//                case SCREEN_TREND_AUTO_V:
-//                    // Update mode
-//                    ee_storage.trend_auto_v = !ee_storage.trend_auto_v;
-//                    ee_is_changed = true;
-//                    break;
-//                case SCREEN_TREND_AUTO_H:
-//                    // Update mode
-//                    ee_storage.trend_auto_h = !ee_storage.trend_auto_h;
-//                    ee_is_changed = true;
-//                    break;
-//                case SCREEN_TREND_V_SCALE:
-//                    {
-//                    // Update v scale
-//                    uint32_t multiplier;
-//                    if(ee_storage.trend_v_scale > 2000 || ((ee_storage.trend_v_scale == 2000) && (encoder_increment > 0)))
-//                    {
-//                        multiplier = 1000;
-//                    }
-//                    else if(ee_storage.trend_v_scale > 200 || ((ee_storage.trend_v_scale == 200) && (encoder_increment > 0)))
-//                    {
-//                        multiplier = 100;
-//                    }
-//                    else
-//                    {
-//                        multiplier = 10;
-//                    }
-//                    ee_storage.trend_v_scale += (multiplier*encoder_increment);
-//                    ee_storage.trend_v_scale = menu_round_v_scale(ee_storage.trend_v_scale);
-//                    ee_is_changed = true;
-//                    break;
-//                    }
-//                case SCREEN_TREND_H_SCALE:
-//                    // Update v scale
-//                    ee_storage.trend_h_scale = encoder_increment > 0 ? ee_storage.trend_h_scale * 2 : ee_storage.trend_h_scale/2;
-//                    ee_storage.trend_h_scale = menu_round_h_scale(ee_storage.trend_h_scale);
-//                    ee_is_changed = true;
 //                    break;
 //            }
 //        }

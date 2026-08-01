@@ -104,7 +104,7 @@ void load_settings(bool restore_defaults)
     }
 
     // Read OCXO model first since we'll use it to choose PWM starting point
-    if (restore_defaults || ee_storage.ocxo_model == 0xff) {
+    if (restore_defaults || ee_storage.ocxo_model > OCXO_MODEL_MAX) {
         ee_storage.ocxo_model = OCXO_MODEL_UNKNOWN;
         ee_is_changed         = true;
     }
@@ -150,23 +150,13 @@ void load_settings(bool restore_defaults)
         ee_is_changed                   = true;
     }
 
-    if (restore_defaults || ee_storage.trend_auto_h == 0xff) {
-        ee_storage.trend_auto_h = true;
-        ee_is_changed           = true;
-    }
-
-    if (restore_defaults || ee_storage.trend_auto_v == 0xff) {
-        ee_storage.trend_auto_v = true;
-        ee_is_changed           = true;
-    }
-
-    if (restore_defaults || ee_storage.trend_h_scale == 0xffffffff) {
-        ee_storage.trend_h_scale = 1;
+    if (restore_defaults || ee_storage.trend_h_scale > UI_Trend_HScale_Max) {
+        ee_storage.trend_h_scale = UI_Trend_HScale_Auto;
         ee_is_changed            = true;
     }
 
-    if (restore_defaults || ee_storage.trend_v_scale == 0xffffffff) {
-        ee_storage.trend_v_scale = 70;
+    if (restore_defaults || ee_storage.trend_v_scale > UI_Trend_VScale_Max) {
+        ee_storage.trend_v_scale = UI_Trend_VScale_Auto;
         ee_is_changed            = true;
     }
 
@@ -181,7 +171,7 @@ void load_settings(bool restore_defaults)
         ee_is_changed              = true;
     }
 
-    if (restore_defaults || ee_storage.gps_model == 0xff) {
+    if (restore_defaults || ee_storage.gps_model > GPS_MODEL_MAX) {
         ee_storage.gps_model = GPS_MODEL_UNKNOWN;
         ee_is_changed        = true;
     }
@@ -193,7 +183,7 @@ void load_settings(bool restore_defaults)
     }
 
     // Correction algorithm
-    if (restore_defaults || ee_storage.correction_algorithm == 0xff) {
+    if (restore_defaults || ee_storage.correction_algorithm > CORRECTION_ALGO_MAX) {
         ee_storage.correction_algorithm = CORRECTION_ALGO_ERIC_H_PLUS;
         ee_is_changed                   = true;
     }
@@ -258,7 +248,7 @@ void gpsdo()
 
     load_settings(false);
 
-//todo    init_trend_values();
+    ui_init_trend();
     ui_show_screen(&ui_main_screen);
 
     HAL_Delay(100);
