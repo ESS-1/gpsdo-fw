@@ -22,8 +22,7 @@ void ui_format_ppb_5char(int32_t ppb_signed, char* buffer, size_t bufferSize)
         return;
     }
 
-    // Absolute value of ppb_signed as uint32_t (handles INT32_MIN)
-    uint32_t ppb = (ppb_signed < 0) ? -(uint32_t)ppb_signed : (uint32_t)ppb_signed;
+    uint32_t ppb = ABS_U32(ppb_signed);
 
     if (ppb < 9995u) {
         // Add sign
@@ -73,7 +72,7 @@ void ui_format_ppb_9char(int32_t ppb_signed, char* buffer, size_t bufferSize)
         return;
     }
 
-    uint32_t ppb_abs = (ppb_signed < 0) ? -(uint32_t)ppb_signed : (uint32_t)ppb_signed;
+    uint32_t ppb_abs = ABS_U32(ppb_signed);
     if (ppb_signed < 0 && ppb_signed > -100) {
         snprintf(buffer, bufferSize, "    -0.%02" PRIu32, ppb_abs);
     } else {

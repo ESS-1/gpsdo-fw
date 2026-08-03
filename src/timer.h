@@ -11,8 +11,9 @@ void timer_reset(uint32_t* last_execution_time);
 
 // Checks if the specified interval has elapsed.
 // If the interval has elapsed, this function automatically updates the
-// referenced timestamp to the current tick.
+// referenced timestamp. In strict mode, it increments by the exact
+// interval to prevent drift; otherwise, it syncs to the current tick.
 // Returns true if the interval has elapsed, false otherwise.
-bool timer_is_elapsed(uint32_t* last_execution_time, uint32_t interval_ms);
+bool timer_is_elapsed(uint32_t* last_execution_time, uint32_t interval_ms, bool strict_mode);
 
 #endif

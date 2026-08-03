@@ -248,7 +248,7 @@ void gpsdo()
 
     load_settings(false);
 
-    ui_init_trend();
+    ui_trend_init();
     ui_show_screen(&ui_main_screen);
 
     HAL_Delay(100);
@@ -276,6 +276,7 @@ void gpsdo()
         
         gps_run();
         pll_run();
+        ui_trend_run();
         ui_run();
 
         // Check if we need resync PPS output

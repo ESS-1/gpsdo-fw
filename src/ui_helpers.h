@@ -6,6 +6,9 @@
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
+// Absolute value of int32_t as uint32_t (handles INT32_MIN)
+#define ABS_U32(v) (((v) < 0) ? -(uint32_t)(v) : (uint32_t)(v))
+
 void ui_format_ppb_5char(int32_t ppb_signed, char* buffer, size_t bufferSize);
 void ui_format_ppb_9char(int32_t ppb_signed, char* buffer, size_t bufferSize);
 const char* ui_get_month_name_3char(uint8_t month_num);

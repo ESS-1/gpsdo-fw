@@ -28,7 +28,7 @@ volatile int32_t         pps_millis          = 0;
 static volatile uint32_t pps_shift_count     = 0;
 volatile uint32_t        pps_sync_count      = 0;
 volatile bool            sync_pps_out        = false;
-volatile bool            update_trend        = false;
+volatile bool            is_ppb_current      = false;
 volatile bool            gps_lock_status     = false;
 bool                     suppress_adjustment = false;
 
@@ -58,6 +58,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
                 gps_lock_status = false;
                 HAL_GPIO_WritePin(GPS_LOCK_OUTPUT_GPIO_Port, GPS_LOCK_OUTPUT_Pin, 1);
             }
+
+            is_ppb_current = false;
         }
     }
 }
@@ -262,6 +264,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
                     num_samples++;
                 }
                 frequency_update_ppb_and_stability();
+                is_ppb_current = true;
             }
         }
 
@@ -271,7 +274,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
 
         // Update last PPS time
         last_pps     = current_tick;
-        update_trend = allow_adjustment;
+
         if(!gps_lock_status)
         {   // Update GPS lock status
             gps_lock_status = true;

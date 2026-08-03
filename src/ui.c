@@ -24,6 +24,50 @@
 #define UI_MENU_STR_LEN (22u)
 
 
+typedef struct {
+    uint16_t samples_per_bar;
+    uint16_t bars_per_grid;
+    uint32_t samples_per_grid;
+} TrendHScale;
+
+static uint8_t ui_trend_active_h_scale = UI_Trend_HScale_2min;
+static uint8_t ui_trend_active_v_scale = UI_Trend_VScale_2ppb;
+
+#define UI_TREND_BUFFER_SIZE      7200 // 2 hours
+#define UI_TREND_UPDATE_PERIOD_MS 1000 // 1 second
+
+#define UI_TREND_HEIGHT           21
+
+static trend8_t ui_trend_data[UI_TREND_BUFFER_SIZE] = { 0 };
+static uint32_t ui_trend_data_end_idx               = 0;
+static uint32_t ui_trend_data_size                  = 0;
+static uint32_t ui_trend_last_update                = 0;
+static bool     ui_trend_sample_added               = false;
+
+static const TrendHScale ui_trend_h_scales[UI_Trend_HScale_Max + 1] = {
+    { 1,  1,   1  * 1   }, // UI_Trend_HScale_Auto - dummy entry
+    { 1,  120, 1  * 120 }, // UI_Trend_HScale_2min
+    { 2,  150, 2  * 150 }, // UI_Trend_HScale_5min
+    { 4,  150, 4  * 150 }, // UI_Trend_HScale_10min
+    { 8,  150, 8  * 150 }, // UI_Trend_HScale_20min
+    { 15, 160, 15 * 160 }, // UI_Trend_HScale_40min
+    { 24, 150, 24 * 150 }, // UI_Trend_HScale_1h
+    { 48, 150, 48 * 150 }, // UI_Trend_HScale_2h
+};
+static const uint32_t ui_trend_v_scales[UI_Trend_VScale_Max + 1] = {
+    1,       // UI_Trend_VScale_Auto - dummy entry
+    2'00,    // UI_Trend_VScale_2ppb
+    5'00,    // UI_Trend_VScale_5ppb
+    10'00,   // UI_Trend_VScale_10ppb
+    20'00,   // UI_Trend_VScale_20ppb
+    50'00,   // UI_Trend_VScale_50ppb
+    100'00,  // UI_Trend_VScale_100ppb
+    200'00,  // UI_Trend_VScale_200ppb
+    500'00,  // UI_Trend_VScale_500ppb
+    1000'00, // UI_Trend_VScale_1000ppb
+};
+
+
 static void ui_menu_draw_right_aligned(const UIElement* element, int offset_chars, const char* str, uint16_t text_color);
 static void ui_proc_icon_navigation_btn(const UIElement* element, UICommand command, int32_t encoder_step,
     uint16_t icon_width, uint16_t icon_height, const uint16_t* icon, UIScreen* target_screen);
@@ -100,9 +144,9 @@ static const UIElement ui_main_screen_elements[] = {
     { 103, 32, 56,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out2_freq       },
     { 21,  44, 63,  10, UI_STYLE_FOCUSABLE,                            ui_proc_pwm             },
     // Trend
-    { 88,  44, 35,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_h         },
+    { 87,  44, 35,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_h         },
     { 124, 44, 35,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_v         },
-    { 0,   55, 160, 21, UI_STYLE_NONE,                                 ui_proc_trend_graph     },
+    { 0,   55, 160, UI_TREND_HEIGHT, UI_STYLE_NONE,                    ui_proc_trend_graph     },
     { 1,   77, 158,  2, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_timeline  },
 };
 
@@ -1160,12 +1204,12 @@ static void ui_proc_pps(const UIElement* element, UICommand command, int32_t enc
     static bool     ui_cache_pps_active    = false;
 
     if (command & UICommand_Init) {
-        ui_spinner_last_update = 0;
+        timer_reset(&ui_spinner_last_update);
         ui_spinner_frame       = 0;
     }
 
     // Draw spinner
-    if (timer_is_elapsed(&ui_spinner_last_update, 125)) {
+    if (timer_is_elapsed(&ui_spinner_last_update, 125, false)) {
         ST7735_DrawImage(element->x + 9, element->y + 1, 7, 7, icon_spinner_12st_7x7[ui_spinner_frame]);
 
         if (++ui_spinner_frame > 11) {
@@ -1535,7 +1579,7 @@ static void ui_proc_pwm(const UIElement* element, UICommand command, int32_t enc
 //------------------------------------------------------------------------------
 // Trend
 //------------------------------------------------------------------------------
-void ui_init_trend()
+void ui_trend_init()
 {
     ui_trend_active_h_scale = (ee_storage.trend_h_scale == UI_Trend_HScale_Auto)
         ? UI_Trend_HScale_2min
@@ -1544,7 +1588,50 @@ void ui_init_trend()
         ? UI_Trend_VScale_2ppb
         : (UI_Trend_VScale) ee_storage.trend_v_scale;
 
-    memset(ui_ppb_trend, TREND_ENCODED_UNSET_VALUE, UI_TREND_SIZE);
+    memset(ui_trend_data, TREND_ENCODED_UNSET_VALUE, UI_TREND_BUFFER_SIZE);
+    timer_reset(&ui_trend_last_update);
+}
+
+static void ui_trend_add_value(uint32_t ppb)
+{
+    ui_trend_data[ui_trend_data_end_idx++] = encode_trend8_t(ppb);
+    if (ui_trend_data_end_idx >= UI_TREND_BUFFER_SIZE) {
+        ui_trend_data_end_idx = 0;
+    }
+
+    if (ui_trend_data_size < UI_TREND_BUFFER_SIZE) {
+        ++ui_trend_data_size;
+    }
+}
+
+void ui_trend_run()
+{
+    if (!timer_is_elapsed(&ui_trend_last_update, UI_TREND_UPDATE_PERIOD_MS, true)) {
+        return;
+    }
+
+    // Add new values
+    uint32_t trend_ppb = TREND_UNSET_VALUE;
+    if (is_ppb_current) {
+        int32_t ppb = frequency_ppb_x100;
+        if (ppb != PPB_UNSET_VALUE) {
+            trend_ppb = ABS_U32(ppb);
+        }
+    }
+    ui_trend_add_value(trend_ppb);
+    ui_trend_sample_added = true;
+
+    // Adjust H scale
+    if (ee_storage.trend_h_scale == UI_Trend_HScale_Auto) {
+        if ((ui_trend_data_size > ui_trend_h_scales[ui_trend_active_h_scale].samples_per_grid) && (ui_trend_active_h_scale < UI_Trend_HScale_Max)) {
+            ++ui_trend_active_h_scale;
+        }
+        if ((ui_trend_active_h_scale > UI_Trend_HScale_2min) && (ui_trend_data_size <= ui_trend_h_scales[ui_trend_active_h_scale - 1].samples_per_grid)) {
+            --ui_trend_active_h_scale;
+        }
+    } else {
+        ui_trend_active_h_scale = ee_storage.trend_h_scale;
+    }
 }
 
 static void ui_proc_edit_trend_param(const UIElement* element, UICommand command, int32_t encoder_step,
@@ -1689,8 +1776,141 @@ static void ui_proc_trend_v(const UIElement* element, UICommand command, int32_t
         UI_Trend_VScale_Max, ui_trend_v_scale_to_string);
 }
 
+static void ui_trend_draw_bar(uint16_t x, uint16_t y_top, uint16_t height, uint32_t v_scale, uint32_t value)
+{
+    // Safety check against division by zero
+    if (v_scale == 0) {
+        return;
+    }
+
+    // Draw NODATA sample
+    if (value == TREND_UNSET_VALUE) {
+        ST7735_FillRectangle(x, y_top, 1, height, UI_COLOR_TREND_NODATA);
+        return;
+    }
+
+    // Clamp value to vertical scale maximum
+    if (value > v_scale) {
+        value = v_scale;
+    }
+
+    // Calculate bar height in pixels
+    uint32_t bar_height = (value * (uint32_t)height) / v_scale;
+
+    // Ensure non-zero valid sample is rendered with at least 1 pixel
+    if (value > 0 && bar_height == 0) {
+        bar_height = 1;
+    }
+
+    uint16_t empty_height = height - bar_height;
+
+    // Clear background space above the bar
+    if (empty_height > 0) {
+        ST7735_FillRectangle(x, y_top, 1, empty_height, UI_COLOR_TREND_BG);
+    }
+
+    // Draw trend bar
+    if (bar_height > 0) {
+        ST7735_FillRectangle(x, y_top + empty_height, 1, bar_height, UI_COLOR_TREND_BAR);
+    }
+}
+
+static void ui_trend_draw_graph(const UIElement* element)
+{
+    TrendHScale h_scale = ui_trend_h_scales[ui_trend_active_h_scale];
+    uint32_t    v_scale = ui_trend_v_scales[ui_trend_active_v_scale];
+
+    uint16_t total_bars      = h_scale.bars_per_grid;
+    uint16_t samples_per_bar = h_scale.samples_per_bar;
+
+    // Determine sample count for the newest "in-progress" bar
+    uint16_t samples_in_newest_bar = ui_trend_data_end_idx % samples_per_bar;
+    if (samples_in_newest_bar == 0) {
+        samples_in_newest_bar = samples_per_bar;
+    }
+
+    // Index of the most recently written sample in the ring buffer
+    int32_t buf_idx = (int32_t)ui_trend_data_end_idx - 1;
+    if (buf_idx < 0) {
+        buf_idx += UI_TREND_BUFFER_SIZE;
+    }
+
+    // Start at the rightmost screen column for the newest bar
+    uint16_t x = (element->x + element->width - 1);
+
+    uint32_t max_val = TREND_UNSET_VALUE;
+
+    for (uint16_t bar = 0; bar < total_bars; bar++) {
+        // The newest bar may be partial, older bars always span full samples_per_bar
+        uint16_t count = (bar == 0) ? samples_in_newest_bar : samples_per_bar;
+        trend8_t bar_val = TREND_ENCODED_UNSET_VALUE;
+
+        // Traverse samples backward and find the maximum value
+        for (uint16_t i = 0; i < count; i++) {
+            trend8_t val = ui_trend_data[buf_idx];
+
+            if ((val != TREND_ENCODED_UNSET_VALUE) && ((bar_val == TREND_ENCODED_UNSET_VALUE) || (val > bar_val))) {
+                bar_val = val;
+            }
+
+            // Move pointer backward in ring buffer with wrap-around
+            if (--buf_idx < 0) {
+                buf_idx += UI_TREND_BUFFER_SIZE;
+            }
+        }
+
+        // Draw the bar column at screen coordinate x
+        uint32_t decoded_val = decode_trend8_t(bar_val);
+        ui_trend_draw_bar(x, element->y, element->height, v_scale, decoded_val);
+
+        // Update 'max_val' for dynamic V-scale adjustment
+        if ((decoded_val != TREND_UNSET_VALUE) && ((max_val == TREND_UNSET_VALUE) || (decoded_val > max_val))) {
+            max_val = decoded_val;
+        }
+
+        // Move to the previous column on the left
+        --x;
+    }
+
+    // Adjust V scale
+    if (ee_storage.trend_v_scale == UI_Trend_VScale_Auto) {
+        if ((max_val > v_scale) && (ui_trend_active_v_scale < UI_Trend_VScale_Max)) {
+            ++ui_trend_active_v_scale;
+        }
+        if ((ui_trend_active_v_scale > UI_Trend_VScale_2ppb) && (max_val <= ui_trend_v_scales[ui_trend_active_v_scale - 1])) {
+            --ui_trend_active_v_scale;
+        }
+    } else {
+        ui_trend_active_v_scale = ee_storage.trend_v_scale;
+    }
+}
+
 static void ui_proc_trend_graph(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static uint8_t ui_cache_trend_active_h_scale = UI_Trend_HScale_Auto;
+
+    // Clear unused space on the left
+    if (ui_trend_active_h_scale != ui_cache_trend_active_h_scale) {
+        ui_cache_trend_active_h_scale = ui_trend_active_h_scale;
+
+        TrendHScale h_scale = ui_trend_h_scales[ui_trend_active_h_scale];
+        if (element->width > h_scale.bars_per_grid) {
+            uint16_t width = element->width - h_scale.bars_per_grid;
+            ST7735_FillRectangle(element->x, element->y, width, element->height, UI_COLOR_BG);
+        }
+    }
+
+    // Update trend graph
+    if ((command & UICommand_Init) || ui_trend_sample_added ||
+        (ui_trend_active_h_scale != ui_cache_trend_active_h_scale) ||
+        (ui_trend_active_v_scale != ui_cache_trend_active_v_scale)) {
+
+        ui_trend_sample_added         = false;
+        ui_cache_trend_active_h_scale = ui_trend_active_h_scale;
+        ui_cache_trend_active_v_scale = ui_trend_active_v_scale;
+
+    }
+    ui_default_element_proc(element, command, encoder_step);
 }
 
 static void ui_proc_trend_timeline(const UIElement* element, UICommand command, int32_t encoder_step)
@@ -2479,7 +2699,7 @@ static void ui_proc_menu_pps_shift_ms(const UIElement* element, UICommand comman
     if ((command & UICommand_Init) || (err != ui_cache_pps_millis)) {
         ui_cache_pps_millis = err;
 
-        uint32_t err_abs = (err < 0) ? -(uint32_t)err : (uint32_t)err;
+        uint32_t err_abs = ABS_U32(err);
         char sign = err < 0 ? '-' : ' ';
 
         char s[16] = { '\0' };

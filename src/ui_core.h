@@ -12,8 +12,6 @@ extern bool ui_show_performance_timer;
 #define UI_COLOR_INACTIVE_BUTTON_BG (ST7735_COLOR565(160, 160, 160))
 #define UI_COLOR_FOCUS_FRAME        (ST7735_COLOR565(195, 205, 205))
 #define UI_COLOR_CAPTURE_FRAME      (ST7735_COLOR565(255, 115, 21))
-#define UI_COLOR_TREND_BAR          (ST7735_COLOR565(250, 170, 80))
-#define UI_COLOR_TREND_BG           (ST7735_COLOR565(30, 30, 30))
 #define UI_COLOR_OUT_LABEL          (ST7735_COLOR565(34, 177, 76))
 #define UI_COLOR_PPS_INDICATOR      (ST7735_GREEN)
 #define UI_COLOR_TEXT               (ST7735_WHITE)
@@ -22,6 +20,10 @@ extern bool ui_show_performance_timer;
 #define UI_COLOR_ERROR              (ST7735_RED)
 #define UI_COLOR_MAP_MARKER         (ST7735_COLOR565(255, 0, 255))
 #define UI_COLOR_LINK               (ST7735_WHITE)
+
+#define UI_COLOR_TREND_BAR          (ST7735_COLOR565(250, 170, 80))
+#define UI_COLOR_TREND_BG           (ST7735_COLOR565(70, 70, 70))
+#define UI_COLOR_TREND_NODATA       (ST7735_COLOR565(8, 8, 8))
 
 typedef enum {
     UICommand_None           = 0x00000000,

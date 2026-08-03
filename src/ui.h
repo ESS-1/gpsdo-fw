@@ -33,6 +33,7 @@ typedef enum {
     UI_Trend_VScale_Max = UI_Trend_VScale_1000ppb,
 } UI_Trend_VScale;
 
-void ui_init_trend();
+void ui_trend_init();
+void ui_trend_run();
 
 #endif
