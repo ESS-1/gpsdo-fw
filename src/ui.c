@@ -35,14 +35,18 @@ static uint8_t ui_trend_active_v_scale = UI_Trend_VScale_2ppb;
 
 #define UI_TREND_BUFFER_SIZE      7200 // 2 hours
 #define UI_TREND_UPDATE_PERIOD_MS 1000 // 1 second
-
-#define UI_TREND_HEIGHT           21
+#define UI_TREND_HEIGHT           21   // 21 pixel
 
 static trend8_t ui_trend_data[UI_TREND_BUFFER_SIZE] = { 0 };
 static uint32_t ui_trend_data_end_idx               = 0;
 static uint32_t ui_trend_data_size                  = 0;
 static uint32_t ui_trend_last_update                = 0;
 static bool     ui_trend_sample_added               = false;
+
+// 'bars_per_grid' of all supported H Scales must be evenly divisible by UI_TREND_FRAME_BUFFER_NUM_BARS,
+// otherwise the trend will not be fully rendered.
+#define UI_TREND_FRAME_BUFFER_NUM_BARS 10 // Can be reduced to 5 to save memory with minimal performance degradation
+static uint16_t ui_trend_frame_buffer[UI_TREND_HEIGHT * UI_TREND_FRAME_BUFFER_NUM_BARS] = { 0 };
 
 static const TrendHScale ui_trend_h_scales[UI_Trend_HScale_Max + 1] = {
     { 1,  1,   1  * 1   }, // UI_Trend_HScale_Auto - dummy entry
@@ -72,6 +76,7 @@ static void ui_menu_draw_right_aligned(const UIElement* element, int offset_char
 static void ui_proc_icon_navigation_btn(const UIElement* element, UICommand command, int32_t encoder_step,
     uint16_t icon_width, uint16_t icon_height, const uint16_t* icon, UIScreen* target_screen);
 static void ui_proc_back_to_main(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_back_to_main_menu_p2(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_menu_label(const UIElement* element, UICommand command, int32_t encoder_step, const char* label);
 static void ui_proc_menu_label_page_1of2(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_menu_label_page_2of2(const UIElement* element, UICommand command, int32_t encoder_step);
@@ -479,7 +484,7 @@ static void ui_proc_menu_all_settings_to_page3(const UIElement* element, UIComma
 // Page 1
 static const UIElement ui_all_settings_screen_elements_page1[] = {
     // Header
-    { 1,   1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main                     },
+    { 1,   1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main_menu_p2             },
     { 27,  6, 56, 10, UI_STYLE_NONE,      ui_proc_menu_all_settings_label          },
     { 116, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_page_left_inactive          },
     { 127, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_label_page_1of3             },
@@ -502,7 +507,7 @@ static UIScreen ui_all_settings_screen_page1 = {
 // Page 2
 static const UIElement ui_all_settings_screen_elements_page2[] = {
     // Header
-    { 1,   1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main               },
+    { 1,   1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main_menu_p2       },
     { 27,  6, 56, 10, UI_STYLE_NONE,      ui_proc_menu_all_settings_label    },
     { 116, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_all_settings_to_page1 },
     { 127, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_label_page_2of3       },
@@ -525,7 +530,7 @@ static UIScreen ui_all_settings_screen_page2 = {
 // Page 3
 static const UIElement ui_all_settings_screen_elements_page3[] = {
     // Header
-    { 1,   1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main                    },
+    { 1,   1, 15, 16, UI_STYLE_FOCUSABLE, ui_proc_back_to_main_menu_p2            },
     { 27,  6, 56, 10, UI_STYLE_NONE,      ui_proc_menu_all_settings_label         },
     { 116, 2, 10, 15, UI_STYLE_FOCUSABLE, ui_proc_menu_all_settings_to_page2_left },
     { 127, 6, 21, 10, UI_STYLE_NONE,      ui_proc_menu_label_page_3of3            },
@@ -563,17 +568,17 @@ static void ui_proc_debug_pwm_edt_1000(const UIElement* element, UICommand comma
 
 static const UIElement ui_debug_screen_elements[] = {
     // Header
-    { 1,   1,  15,  16, UI_STYLE_FOCUSABLE,                            ui_proc_back_to_main        },
-    { 27,  6,  35,  10, UI_STYLE_NONE,                                 ui_proc_menu_debug_label    },
+    { 1,   1,  15,  16, UI_STYLE_FOCUSABLE,                            ui_proc_back_to_main_menu_p2 },
+    { 27,  6,  35,  10, UI_STYLE_NONE,                                 ui_proc_menu_debug_label     },
     // Content
-    { 1,   20, 154, 11, UI_STYLE_FOCUSABLE,                            ui_proc_debug_perf_timer    },
-    { 1,   32, 154, 11, UI_STYLE_FOCUSABLE,                            ui_proc_debug_manual_pwm    },
-    { 1,   45, 63,  10, UI_STYLE_FOCUSABLE,                            ui_proc_pwm                 },
-    { 71,  45, 14,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_debug_pwm_edt_1     },
-    { 92,  45, 21,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_debug_pwm_edt_50    },
-    { 120, 45, 35,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_debug_pwm_edt_1000  },
-    { 1,   56, 154, 11, UI_STYLE_NONE,                                 ui_proc_menu_ppb_mean       },
-    { 1,   68, 154, 11, UI_STYLE_NONE,                                 ui_proc_menu_ppb_inst       },
+    { 1,   20, 154, 11, UI_STYLE_FOCUSABLE,                            ui_proc_debug_perf_timer     },
+    { 1,   32, 154, 11, UI_STYLE_FOCUSABLE,                            ui_proc_debug_manual_pwm     },
+    { 1,   45, 63,  10, UI_STYLE_FOCUSABLE,                            ui_proc_pwm                  },
+    { 71,  45, 14,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_debug_pwm_edt_1      },
+    { 92,  45, 21,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_debug_pwm_edt_50     },
+    { 120, 45, 35,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_debug_pwm_edt_1000   },
+    { 1,   56, 154, 11, UI_STYLE_NONE,                                 ui_proc_menu_ppb_mean        },
+    { 1,   68, 154, 11, UI_STYLE_NONE,                                 ui_proc_menu_ppb_inst        },
 };
 
 static UIScreen ui_debug_screen = {
@@ -613,6 +618,11 @@ static void ui_proc_icon_navigation_btn(const UIElement* element, UICommand comm
 static void ui_proc_back_to_main(const UIElement* element, UICommand command, int32_t encoder_step)
 {
     ui_proc_icon_navigation_btn(element, command, encoder_step, 15, 16, icon_back_15x16, &ui_main_screen);
+}
+
+static void ui_proc_back_to_main_menu_p2(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    ui_proc_icon_navigation_btn(element, command, encoder_step, 15, 16, icon_back_15x16, &ui_menu_screen_page2);
 }
 
 static void ui_proc_menu_label(const UIElement* element, UICommand command, int32_t encoder_step, const char* label)
@@ -1776,16 +1786,22 @@ static void ui_proc_trend_v(const UIElement* element, UICommand command, int32_t
         UI_Trend_VScale_Max, ui_trend_v_scale_to_string);
 }
 
-static void ui_trend_draw_bar(uint16_t x, uint16_t y_top, uint16_t height, uint32_t v_scale, uint32_t value)
+static void ui_trend_frm_buf_fill(uint32_t bar, uint32_t bar_height, uint16_t color_bg, uint16_t color_bar)
 {
-    // Safety check against division by zero
-    if (v_scale == 0) {
-        return;
-    }
+    uint32_t idx = bar;
+    uint32_t bg_height = UI_TREND_HEIGHT - bar_height;
 
+    for (uint32_t y = 0; y < UI_TREND_HEIGHT; ++y) {
+        ui_trend_frame_buffer[idx] = (y < bg_height) ? color_bg : color_bar;
+        idx += UI_TREND_FRAME_BUFFER_NUM_BARS;
+    }
+}
+
+static void ui_trend_frm_buf_draw_bar(uint32_t bar, uint32_t v_scale, uint32_t value)
+{
     // Draw NODATA sample
-    if (value == TREND_UNSET_VALUE) {
-        ST7735_FillRectangle(x, y_top, 1, height, UI_COLOR_TREND_NODATA);
+    if ((v_scale == 0) || (value == TREND_UNSET_VALUE)) {
+        ui_trend_frm_buf_fill(bar, 0, UI_COLOR_TREND_NODATA, 0);
         return;
     }
 
@@ -1795,24 +1811,14 @@ static void ui_trend_draw_bar(uint16_t x, uint16_t y_top, uint16_t height, uint3
     }
 
     // Calculate bar height in pixels
-    uint32_t bar_height = (value * (uint32_t)height) / v_scale;
+    uint32_t bar_height = (value * (uint32_t)UI_TREND_HEIGHT) / v_scale;
 
     // Ensure non-zero valid sample is rendered with at least 1 pixel
     if (value > 0 && bar_height == 0) {
         bar_height = 1;
     }
 
-    uint16_t empty_height = height - bar_height;
-
-    // Clear background space above the bar
-    if (empty_height > 0) {
-        ST7735_FillRectangle(x, y_top, 1, empty_height, UI_COLOR_TREND_BG);
-    }
-
-    // Draw trend bar
-    if (bar_height > 0) {
-        ST7735_FillRectangle(x, y_top + empty_height, 1, bar_height, UI_COLOR_TREND_BAR);
-    }
+    ui_trend_frm_buf_fill(bar, bar_height, UI_COLOR_TREND_BG, UI_COLOR_TREND_BAR);
 }
 
 static void ui_trend_draw_graph(const UIElement* element)
@@ -1839,14 +1845,15 @@ static void ui_trend_draw_graph(const UIElement* element)
     uint16_t x = (element->x + element->width - 1);
 
     uint32_t max_val = TREND_UNSET_VALUE;
+    uint32_t  frame_buf_bar = UI_TREND_FRAME_BUFFER_NUM_BARS - 1;
 
-    for (uint16_t bar = 0; bar < total_bars; bar++) {
+    for (uint16_t bar = 0; bar < total_bars; ++bar) {
         // The newest bar may be partial, older bars always span full samples_per_bar
         uint16_t count = (bar == 0) ? samples_in_newest_bar : samples_per_bar;
         trend8_t bar_val = TREND_ENCODED_UNSET_VALUE;
 
         // Traverse samples backward and find the maximum value
-        for (uint16_t i = 0; i < count; i++) {
+        for (uint16_t i = 0; i < count; ++i) {
             trend8_t val = ui_trend_data[buf_idx];
 
             if ((val != TREND_ENCODED_UNSET_VALUE) && ((bar_val == TREND_ENCODED_UNSET_VALUE) || (val > bar_val))) {
@@ -1861,7 +1868,7 @@ static void ui_trend_draw_graph(const UIElement* element)
 
         // Draw the bar column at screen coordinate x
         uint32_t decoded_val = decode_trend8_t(bar_val);
-        ui_trend_draw_bar(x, element->y, element->height, v_scale, decoded_val);
+        ui_trend_frm_buf_draw_bar(frame_buf_bar, v_scale, decoded_val);
 
         // Update 'max_val' for dynamic V-scale adjustment
         if ((decoded_val != TREND_UNSET_VALUE) && ((max_val == TREND_UNSET_VALUE) || (decoded_val > max_val))) {
@@ -1869,6 +1876,14 @@ static void ui_trend_draw_graph(const UIElement* element)
         }
 
         // Move to the previous column on the left
+        if (frame_buf_bar == 0) {
+            frame_buf_bar = UI_TREND_FRAME_BUFFER_NUM_BARS - 1;
+
+            // Draw frame buffer
+            ST7735_DrawImage(x, element->y, UI_TREND_FRAME_BUFFER_NUM_BARS, UI_TREND_HEIGHT, ui_trend_frame_buffer);
+        } else {
+            --frame_buf_bar;
+        }
         --x;
     }
 
@@ -1888,6 +1903,7 @@ static void ui_trend_draw_graph(const UIElement* element)
 static void ui_proc_trend_graph(const UIElement* element, UICommand command, int32_t encoder_step)
 {
     static uint8_t ui_cache_trend_active_h_scale = UI_Trend_HScale_Auto;
+    static uint8_t ui_cache_trend_active_v_scale = UI_Trend_VScale_Auto;
 
     // Clear unused space on the left
     if (ui_trend_active_h_scale != ui_cache_trend_active_h_scale) {
