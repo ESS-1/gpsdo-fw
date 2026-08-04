@@ -1765,7 +1765,6 @@ static const char* ui_trend_v_scale_to_string(uint8_t v_scale)
     case UI_Trend_VScale_1000ppb:
         return "1K ";
     }
-
 }
 
 static void ui_proc_trend_h(const UIElement* element, UICommand command, int32_t encoder_step)
@@ -1786,22 +1785,37 @@ static void ui_proc_trend_v(const UIElement* element, UICommand command, int32_t
         UI_Trend_VScale_Max, ui_trend_v_scale_to_string);
 }
 
-static void ui_trend_frm_buf_fill(uint32_t bar, uint32_t bar_height, uint16_t color_bg, uint16_t color_bar)
+static inline void ui_trend_frm_buf_fill(uint32_t bar, uint32_t bar_height, uint16_t color_bg, uint16_t color_bar)
 {
-    uint32_t idx = bar;
-    uint32_t bg_height = UI_TREND_HEIGHT - bar_height;
+    if (bar_height > UI_TREND_HEIGHT) {
+        bar_height = UI_TREND_HEIGHT;
+    }
 
-    for (uint32_t y = 0; y < UI_TREND_HEIGHT; ++y) {
-        ui_trend_frame_buffer[idx] = (y < bg_height) ? color_bg : color_bar;
+    uint32_t idx       = bar;
+    uint32_t bg_height = UI_TREND_HEIGHT - bar_height;
+    uint32_t y         = 0;
+
+    // Fill background
+    for (; y < bg_height; ++y) {
+        ui_trend_frame_buffer[idx] = color_bg;
+        idx += UI_TREND_FRAME_BUFFER_NUM_BARS;
+    }
+
+    // Fill bar
+    for (; y < UI_TREND_HEIGHT; ++y) {
+        ui_trend_frame_buffer[idx] = color_bar;
         idx += UI_TREND_FRAME_BUFFER_NUM_BARS;
     }
 }
+
+// Swap bytes for ST7735 SPI format; used over __REV16 to evaluate constants at compile time
+#define ST7735_CLR2MEM(x) ((((uint16_t)(x) & 0x00FF) << 8) | (((uint16_t)(x) & 0xFF00) >> 8))
 
 static void ui_trend_frm_buf_draw_bar(uint32_t bar, uint32_t v_scale, uint32_t value)
 {
     // Draw NODATA sample
     if ((v_scale == 0) || (value == TREND_UNSET_VALUE)) {
-        ui_trend_frm_buf_fill(bar, 0, UI_COLOR_TREND_NODATA, 0);
+        ui_trend_frm_buf_fill(bar, 0, ST7735_CLR2MEM(UI_COLOR_TREND_NODATA), 0);
         return;
     }
 
@@ -1818,7 +1832,7 @@ static void ui_trend_frm_buf_draw_bar(uint32_t bar, uint32_t v_scale, uint32_t v
         bar_height = 1;
     }
 
-    ui_trend_frm_buf_fill(bar, bar_height, UI_COLOR_TREND_BG, UI_COLOR_TREND_BAR);
+    ui_trend_frm_buf_fill(bar, bar_height, ST7735_CLR2MEM(UI_COLOR_TREND_BG), ST7735_CLR2MEM(UI_COLOR_TREND_BAR));
 }
 
 static void ui_trend_draw_graph(const UIElement* element)
@@ -1861,9 +1875,7 @@ static void ui_trend_draw_graph(const UIElement* element)
             }
 
             // Move pointer backward in ring buffer with wrap-around
-            if (--buf_idx < 0) {
-                buf_idx += UI_TREND_BUFFER_SIZE;
-            }
+            buf_idx = (buf_idx == 0) ? (UI_TREND_BUFFER_SIZE - 1) : (buf_idx - 1);
         }
 
         // Draw the bar column at screen coordinate x
