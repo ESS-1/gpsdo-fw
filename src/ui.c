@@ -40,6 +40,7 @@ static uint8_t ui_trend_active_v_scale = UI_Trend_VScale_2ppb;
 static trend8_t ui_trend_data[UI_TREND_BUFFER_SIZE] = { 0 };
 static uint32_t ui_trend_data_end_idx               = 0;
 static uint32_t ui_trend_data_size                  = 0;
+static uint32_t ui_trend_scroll_offset              = 0;
 static uint32_t ui_trend_last_update                = 0;
 static bool     ui_trend_sample_added               = false;
 
@@ -1849,8 +1850,14 @@ static void ui_trend_draw_graph(const UIElement* element)
         samples_in_newest_bar = samples_per_bar;
     }
 
-    // Index of the most recently written sample in the ring buffer
-    int32_t buf_idx = (int32_t)ui_trend_data_end_idx - 1;
+    uint32_t scroll_offset = ui_trend_scroll_offset;
+    if (scroll_offset >= UI_TREND_BUFFER_SIZE) {
+        // Incorrect offset
+        return;
+    }
+
+    // Index of the most recent sample in the ring buffer
+    int32_t buf_idx = (int32_t)ui_trend_data_end_idx - (int32_t)scroll_offset - 1;
     if (buf_idx < 0) {
         buf_idx += UI_TREND_BUFFER_SIZE;
     }
@@ -1858,8 +1865,8 @@ static void ui_trend_draw_graph(const UIElement* element)
     // Start at the rightmost screen column for the newest bar
     uint16_t x = (element->x + element->width - 1);
 
-    uint32_t max_val = TREND_UNSET_VALUE;
-    uint32_t  frame_buf_bar = UI_TREND_FRAME_BUFFER_NUM_BARS - 1;
+    uint32_t max_val       = TREND_UNSET_VALUE;
+    uint32_t frame_buf_bar = UI_TREND_FRAME_BUFFER_NUM_BARS - 1;
 
     for (uint16_t bar = 0; bar < total_bars; ++bar) {
         // The newest bar may be partial, older bars always span full samples_per_bar
@@ -1912,15 +1919,27 @@ static void ui_trend_draw_graph(const UIElement* element)
     }
 }
 
+static void ui_trend_coerce_scroll_offset()
+{
+    TrendHScale scale      = ui_trend_h_scales[ui_trend_active_h_scale];
+    uint32_t    max_offset = UI_TREND_BUFFER_SIZE - scale.samples_per_grid;
+
+    if (ui_trend_scroll_offset > max_offset) {
+        ui_trend_scroll_offset = max_offset;
+    } else {
+        uint32_t step          = scale.samples_per_bar;
+        ui_trend_scroll_offset = (ui_trend_scroll_offset / step) * step;
+    }
+}
+
 static void ui_proc_trend_graph(const UIElement* element, UICommand command, int32_t encoder_step)
 {
     static uint8_t ui_cache_trend_active_h_scale = UI_Trend_HScale_Auto;
     static uint8_t ui_cache_trend_active_v_scale = UI_Trend_VScale_Auto;
+    static uint8_t ui_cache_trend_scroll_offset  = 0;
 
     // Clear unused space on the left
     if (ui_trend_active_h_scale != ui_cache_trend_active_h_scale) {
-        ui_cache_trend_active_h_scale = ui_trend_active_h_scale;
-
         TrendHScale h_scale = ui_trend_h_scales[ui_trend_active_h_scale];
         if (element->width > h_scale.bars_per_grid) {
             uint16_t width = element->width - h_scale.bars_per_grid;
@@ -1931,18 +1950,96 @@ static void ui_proc_trend_graph(const UIElement* element, UICommand command, int
     // Update trend graph
     if ((command & UICommand_Init) || ui_trend_sample_added ||
         (ui_trend_active_h_scale != ui_cache_trend_active_h_scale) ||
-        (ui_trend_active_v_scale != ui_cache_trend_active_v_scale)) {
+        (ui_trend_active_v_scale != ui_cache_trend_active_v_scale) ||
+        (ui_trend_scroll_offset != ui_cache_trend_scroll_offset))
+    {
+        ui_trend_coerce_scroll_offset();
 
         ui_trend_sample_added         = false;
         ui_cache_trend_active_h_scale = ui_trend_active_h_scale;
         ui_cache_trend_active_v_scale = ui_trend_active_v_scale;
+        ui_cache_trend_scroll_offset  = ui_trend_scroll_offset;
 
+        ui_trend_draw_graph(element);
     }
+
     ui_default_element_proc(element, command, encoder_step);
+}
+
+static void ui_trend_draw_scroll(const UIElement* element)
+{
+    TrendHScale scale      = ui_trend_h_scales[ui_trend_active_h_scale];
+    uint32_t    max_offset = UI_TREND_BUFFER_SIZE - scale.samples_per_grid;
+
+    // Clamp offset to prevent drawing out of bounds
+    uint32_t offset = ui_trend_scroll_offset;
+    if (offset > max_offset) {
+        offset = max_offset;
+    }
+
+    // Do not draw slider if offset is 0
+    if (offset == 0) {
+        ST7735_FillRectangleFast(element->x, element->y, element->width, element->height, UI_COLOR_BG);
+        return;
+    }
+
+    // Calculate slider width (proportional to visible data)
+    uint16_t slider_w = (element->width * scale.samples_per_grid) / UI_TREND_BUFFER_SIZE;
+
+    // Ensure minimum slider width of 3 pixels
+    if (slider_w < 3) {
+        slider_w = 3;
+    }
+
+    // Calculate slider X coordinate.
+    uint32_t move_area = element->width - slider_w;
+    uint16_t slider_x  = element->x + ((max_offset - offset) * move_area) / max_offset;
+
+    // Draw left background
+    if (slider_x > element->x) {
+        ST7735_FillRectangleFast(element->x, element->y, slider_x - element->x, element->height, UI_COLOR_TREND_BG);
+    }
+
+    // Draw the slider
+    ST7735_FillRectangleFast(slider_x, element->y, slider_w, element->height, UI_COLOR_TREND_SCROLL);
+
+    // Right background
+    uint16_t right_bg_x = slider_x + slider_w;
+    uint16_t end_x      = element->x + element->width;
+
+    if (end_x > right_bg_x) {
+        ST7735_FillRectangleFast(right_bg_x, element->y, end_x - right_bg_x, element->height, UI_COLOR_TREND_BG);
+    }
 }
 
 static void ui_proc_trend_timeline(const UIElement* element, UICommand command, int32_t encoder_step)
 {
+    static uint8_t ui_cache_trend_active_h_scale = UI_Trend_HScale_Auto;
+    static uint8_t ui_cache_trend_scroll_offset  = 0;
+
+    // Scroll trend
+    if (command & UICommand_EncoderStep) {
+        ui_trend_coerce_scroll_offset();
+
+        TrendHScale scale = ui_trend_h_scales[ui_trend_active_h_scale];
+        uint32_t max_offset = UI_TREND_BUFFER_SIZE - scale.samples_per_grid;
+
+        // Modify offset
+        ui_change_setting_u32(&ui_trend_scroll_offset, -encoder_step * scale.samples_per_bar, 0, max_offset, false);
+    }
+
+    // Draw scroll
+    if ((command & UICommand_Init) ||
+        (ui_trend_active_h_scale != ui_cache_trend_active_h_scale) ||
+        (ui_trend_scroll_offset != ui_cache_trend_scroll_offset))
+    {
+        ui_cache_trend_active_h_scale = ui_trend_active_h_scale;
+        ui_cache_trend_scroll_offset  = ui_trend_scroll_offset;
+
+        ui_trend_draw_scroll(element);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
 }
 
 

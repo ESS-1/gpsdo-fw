@@ -24,6 +24,7 @@ extern bool ui_show_performance_timer;
 #define UI_COLOR_TREND_BAR          (ST7735_COLOR565(250, 170, 80))
 #define UI_COLOR_TREND_BG           (ST7735_COLOR565(70, 70, 70))
 #define UI_COLOR_TREND_NODATA       (ST7735_COLOR565(8, 8, 8))
+#define UI_COLOR_TREND_SCROLL       (ST7735_COLOR565(30, 230, 30))
 
 typedef enum {
     UICommand_None           = 0x00000000,
