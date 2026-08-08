@@ -28,6 +28,9 @@ typedef struct {
     uint16_t samples_per_bar;
     uint16_t bars_per_grid;
     uint32_t samples_per_grid;
+
+    uint16_t major_tick_step;
+    uint16_t minor_tick_step;
 } TrendHScale;
 
 static uint8_t ui_trend_active_h_scale = UI_Trend_HScale_2min;
@@ -50,15 +53,16 @@ static bool     ui_trend_sample_added               = false;
 static uint16_t ui_trend_frame_buffer[UI_TREND_HEIGHT * UI_TREND_FRAME_BUFFER_NUM_BARS] = { 0 };
 
 static const TrendHScale ui_trend_h_scales[UI_Trend_HScale_Max + 1] = {
-    { 1,  1,   1  * 1   }, // UI_Trend_HScale_Auto - dummy entry
-    { 1,  120, 1  * 120 }, // UI_Trend_HScale_2min
-    { 2,  150, 2  * 150 }, // UI_Trend_HScale_5min
-    { 4,  150, 4  * 150 }, // UI_Trend_HScale_10min
-    { 8,  150, 8  * 150 }, // UI_Trend_HScale_20min
-    { 15, 160, 15 * 160 }, // UI_Trend_HScale_40min
-    { 24, 150, 24 * 150 }, // UI_Trend_HScale_1h
-    { 48, 150, 48 * 150 }, // UI_Trend_HScale_2h
+    { 1,  1,   1  * 1,   1,  1  }, // UI_Trend_HScale_Auto - dummy entry
+    { 1,  120, 1  * 120, 30, 10 }, // UI_Trend_HScale_2min
+    { 2,  150, 2  * 150, 30, 15 }, // UI_Trend_HScale_5min
+    { 4,  150, 4  * 150, 30, 15 }, // UI_Trend_HScale_10min
+    { 8,  150, 8  * 150, 75, 15 }, // UI_Trend_HScale_20min
+    { 15, 160, 15 * 160, 40, 8  }, // UI_Trend_HScale_40min
+    { 24, 150, 24 * 150, 75, 25 }, // UI_Trend_HScale_1h
+    { 48, 150, 48 * 150, 75, 25 }, // UI_Trend_HScale_2h
 };
+
 static const uint32_t ui_trend_v_scales[UI_Trend_VScale_Max + 1] = {
     1,       // UI_Trend_VScale_Auto - dummy entry
     2'00,    // UI_Trend_VScale_2ppb
@@ -129,8 +133,9 @@ static void ui_proc_out2_freq(const UIElement* element, UICommand command, int32
 static void ui_proc_pwm(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_trend_h(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_trend_v(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_trend_timemarks(const UIElement* element, UICommand command, int32_t encoder_step);
 static void ui_proc_trend_graph(const UIElement* element, UICommand command, int32_t encoder_step);
-static void ui_proc_trend_timeline(const UIElement* element, UICommand command, int32_t encoder_step);
+static void ui_proc_trend_scroll(const UIElement* element, UICommand command, int32_t encoder_step);
 
 static const UIElement ui_main_screen_elements[] = {
     // Top line
@@ -142,18 +147,19 @@ static const UIElement ui_main_screen_elements[] = {
     // Main part
     { 1,   19, 140, 11, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_datetime        },
     { 142, 20, 17,  9,  UI_STYLE_FOCUSABLE,                            ui_proc_pps             },
-    { 1,   33, 17,  12, UI_STYLE_FOCUSABLE,                            ui_proc_status          },
-//  { 1,   46, 17,  7 } - empty space reserved for the warm-up countdown timer drawn by 'ui_proc_status'
-    { 21,  32, 21,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out1_drv_str    },
-    { 43,  32, 28,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out1_freq       },
-    { 81,  32, 21,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out2_drv_str    },
-    { 103, 32, 56,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out2_freq       },
-    { 21,  44, 63,  10, UI_STYLE_FOCUSABLE,                            ui_proc_pwm             },
+    { 1,   31, 17,  12, UI_STYLE_FOCUSABLE,                            ui_proc_status          },
+//  { 1,   44, 17,  7 } - empty space reserved for the warm-up countdown timer drawn by 'ui_proc_status'
+    { 21,  31, 21,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out1_drv_str    },
+    { 43,  31, 28,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out1_freq       },
+    { 81,  31, 21,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out2_drv_str    },
+    { 103, 31, 56,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_out2_freq       },
+    { 21,  42, 63,  10, UI_STYLE_FOCUSABLE,                            ui_proc_pwm             },
     // Trend
-    { 87,  44, 35,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_h         },
-    { 124, 44, 35,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_v         },
+    { 87,  42, 35,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_h         },
+    { 124, 42, 35,  10, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_v         },
+    { 0,   53, 160,  2, UI_STYLE_NONE,                                 ui_proc_trend_timemarks },
     { 0,   55, 160, UI_TREND_HEIGHT, UI_STYLE_NONE,                    ui_proc_trend_graph     },
-    { 1,   77, 158,  2, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_timeline  },
+    { 1,   77, 158,  2, UI_STYLE_FOCUSABLE | UI_STYLE_INPUT_CAPTURING, ui_proc_trend_scroll    },
 };
 
 UIScreen ui_main_screen = {
@@ -1786,6 +1792,45 @@ static void ui_proc_trend_v(const UIElement* element, UICommand command, int32_t
         UI_Trend_VScale_Max, ui_trend_v_scale_to_string);
 }
 
+static void ui_trend_draw_timemarks(const UIElement* element)
+{
+    TrendHScale scale = ui_trend_h_scales[ui_trend_active_h_scale];
+    int32_t     max_x = (element->x + element->width - 1);
+    int32_t     min_x = max_x - scale.bars_per_grid; // Points to the bar just to the left of the leftmost bar
+
+    // Clear old marks
+    ST7735_FillRectangleFast(element->x, element->y, element->width, element->height, UI_COLOR_BG);
+
+    // Draw minor marks
+    uint16_t y    = element->y + 1;
+    int32_t  step = scale.minor_tick_step;
+    for (int32_t i = max_x; i >= min_x; i -= step) {
+        uint16_t x = (uint16_t)((i == min_x) ? i + 1 : i);
+        ST7735_DrawPixel(x, y, UI_COLOR_TREND_MINOR_MARKS);
+    }
+
+    // Draw major marks
+    y    = element->y;
+    step = scale.major_tick_step;
+    for (int32_t i = max_x; i >= min_x; i -= step) {
+        uint16_t x = (uint16_t)((i == min_x) ? i + 1 : i);
+        ST7735_FillRectangle(x, y, 1, 2, UI_COLOR_TREND_MAJOR_MARKS);
+    }
+}
+
+static void ui_proc_trend_timemarks(const UIElement* element, UICommand command, int32_t encoder_step)
+{
+    static uint8_t ui_cache_trend_active_h_scale = UI_Trend_HScale_Auto;
+
+    // Draw time marks
+    if ((command & UICommand_Init) || (ui_trend_active_h_scale != ui_cache_trend_active_h_scale)) {
+        ui_cache_trend_active_h_scale = ui_trend_active_h_scale;
+        ui_trend_draw_timemarks(element);
+    }
+
+    ui_default_element_proc(element, command, encoder_step);
+}
+
 static inline void ui_trend_frm_buf_fill(uint32_t bar, uint32_t bar_height, uint16_t color_bg, uint16_t color_bar)
 {
     if (bar_height > UI_TREND_HEIGHT) {
@@ -2012,7 +2057,7 @@ static void ui_trend_draw_scroll(const UIElement* element)
     }
 }
 
-static void ui_proc_trend_timeline(const UIElement* element, UICommand command, int32_t encoder_step)
+static void ui_proc_trend_scroll(const UIElement* element, UICommand command, int32_t encoder_step)
 {
     static uint8_t ui_cache_trend_active_h_scale = UI_Trend_HScale_Auto;
     static uint8_t ui_cache_trend_scroll_offset  = 0;
