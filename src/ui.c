@@ -599,6 +599,13 @@ static UIScreen ui_debug_screen = {
 //------------------------------------------------------------------------------
 // Helpers
 //------------------------------------------------------------------------------
+static inline void ui_static_label(const UIElement* element, UICommand command, const char* label, uint16_t color)
+{
+    if (command & UICommand_Init) {
+        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, label, Font_7x10, color, UI_COLOR_BG);
+    }
+}
+
 static void ui_menu_draw_right_aligned(const UIElement* element, int offset_chars, const char* str, uint16_t text_color)
 {
     size_t len = strlen(str);
@@ -668,8 +675,11 @@ static void ui_proc_menu_label_page_3of3(const UIElement* element, UICommand com
 
 static void ui_proc_menu_readonly_entry(const UIElement* element, UICommand command, int32_t encoder_step, const char* label, int32_t value_offset, const char* value)
 {
+    // Draw label
+    ui_static_label(element, command, label, UI_COLOR_MENU_LABEL);
+
+    // Draw value
     if (command & UICommand_Init) {
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, label, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
         ST7735_WriteStringNoWrap(element->x + value_offset * 7, element->y + 1, element->height - 1, value, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
     }
 
@@ -711,9 +721,7 @@ static void ui_proc_menu_page_right_inactive(const UIElement* element, UICommand
 static void ui_proc_checkbox_ee(const UIElement* element, UICommand command, int32_t encoder_step, const char* label, uint8_t* ee_setting)
 {
     // Draw label
-    if (command & UICommand_Init) {
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, label, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
-    }
+    ui_static_label(element, command, label, UI_COLOR_MENU_LABEL);
 
     if (command & UICommand_Click) {
         (*ee_setting) = !(*ee_setting);
@@ -731,9 +739,7 @@ static void ui_proc_checkbox_ee(const UIElement* element, UICommand command, int
 static void ui_proc_checkbox_local(const UIElement* element, UICommand command, int32_t encoder_step, const char* label, bool* setting)
 {
     // Draw label
-    if (command & UICommand_Init) {
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, label, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
-    }
+    ui_static_label(element, command, label, UI_COLOR_MENU_LABEL);
 
     if (command & UICommand_Click) {
         (*setting) = !(*setting);
@@ -751,9 +757,7 @@ static void ui_proc_menu_readonly_u32(const UIElement* element, UICommand comman
     const char* label, uint32_t* ui_cache, uint32_t value, uint16_t value_offset, const char* fmt)
 {
     // Draw label
-    if (command & UICommand_Init) {
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, label, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
-    }
+    ui_static_label(element, command, label, UI_COLOR_MENU_LABEL);
 
     // Draw value
     if ((command & UICommand_Init) || (value != *ui_cache)) {
@@ -792,10 +796,10 @@ static void ui_proc_menu_edit_custom_u32(const UIElement* element, UICommand com
         }
     }
 
-    if (command & UICommand_Init) {
-        // Draw label
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, label, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    // Draw label
+    ui_static_label(element, command, label, UI_COLOR_MENU_LABEL);
 
+    if (command & UICommand_Init) {
         // Draw value
         if (!is_captured) {
             value_to_draw = ee_setting;
@@ -874,10 +878,10 @@ static void ui_proc_menu_edit_enum_u8(const UIElement* element, UICommand comman
         }
     }
 
-    if (command & UICommand_Init) {
-        // Draw label
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, label, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    // Draw label
+    ui_static_label(element, command, label, UI_COLOR_MENU_LABEL);
 
+    if (command & UICommand_Init) {
         // Draw value
         if (!ui_is_captured(element)) {
             value_to_draw = ee_setting;
@@ -913,9 +917,7 @@ static void ui_proc_menu_string_parameter(const UIElement* element, UICommand co
     const char* label, uint32_t* ui_cache_gga, const char* value, size_t value_char_count)
 {
     // Draw label
-    if (command & UICommand_Init) {
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, label, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
-    }
+    ui_static_label(element, command, label, UI_COLOR_MENU_LABEL);
 
     // Draw the value on every GGA frame to avoid expensive string comparisons
     uint32_t frames = gga_frames;
@@ -929,9 +931,8 @@ static void ui_proc_menu_string_parameter(const UIElement* element, UICommand co
 
 static void ui_proc_menu_link(const UIElement* element, UICommand command, int32_t encoder_step, const char* label, UIScreen* screen)
 {
-    if (command & UICommand_Init) {
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, label, Font_7x10, UI_COLOR_LINK, UI_COLOR_BG);
-    }
+    // Draw label
+    ui_static_label(element, command, label, UI_COLOR_LINK);
 
     if (command & UICommand_Click) {
         ui_show_screen(screen);
@@ -1562,9 +1563,7 @@ static void ui_proc_pwm(const UIElement* element, UICommand command, int32_t enc
     static uint16_t ui_cache_pwm = 0;
 
     // Draw label
-    if (command & UICommand_Init) {
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "PWM:", Font_7x10, UI_COLOR_TEXT, UI_COLOR_BG);
-    }
+    ui_static_label(element, command, "PWM:", UI_COLOR_TEXT);
 
     // Draw value
     uint16_t pwm = TIM1->CCR2;
@@ -2109,7 +2108,6 @@ static void ui_proc_menu_main_to_page2(const UIElement* element, UICommand comma
 static void ui_proc_menu_main_brightness(const UIElement* element, UICommand command, int32_t encoder_step)
 {
     static uint8_t ui_edit_brightness = 0;
-
     const uint8_t* brightness_to_draw = NULL;
 
     if (command & UICommand_Release) {
@@ -2120,10 +2118,10 @@ static void ui_proc_menu_main_brightness(const UIElement* element, UICommand com
         }
     }
 
-    if (command & UICommand_Init) {
-        // Draw label
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "Brightness:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    // Draw label
+    ui_static_label(element, command, "Brightness:", UI_COLOR_MENU_LABEL);
 
+    if (command & UICommand_Init) {
         // Draw value
         if (!ui_is_captured(element)) {
             brightness_to_draw = &(ee_storage.brightness);
@@ -2170,10 +2168,10 @@ static void ui_proc_menu_main_model(const UIElement* element, UICommand command,
 
 static void ui_proc_menu_main_sn(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-    if (command & UICommand_Init) {
-        // Draw label
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "S/N:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    // Draw label
+    ui_static_label(element, command, "S/N:", UI_COLOR_MENU_LABEL);
 
+    if (command & UICommand_Init) {
         // Draw value
         uint32_t uid_w0 = *(volatile uint32_t*)UID_BASE;
         uint32_t uid_w1 = *(volatile uint32_t*)(UID_BASE + 4);
@@ -2192,10 +2190,10 @@ static void ui_proc_menu_main_version(const UIElement* element, UICommand comman
 
 static void ui_proc_menu_main_mcu_flash(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-    if (command & UICommand_Init) {
-        // Draw label
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "MCU FLASH:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
+    // Draw label
+    ui_static_label(element, command, "MCU FLASH:", UI_COLOR_MENU_LABEL);
 
+    if (command & UICommand_Init) {
         // Draw value
         char s[8] = { '\0' };
         snprintf(s, ARRAY_SIZE(s), "%5" PRIu16 "KB", *(uint16_t*)FLASHSIZE_BASE);
@@ -2234,9 +2232,8 @@ static void ui_restore_defaults_handler(UI_MsgBoxButton result)
 
 static void ui_proc_menu_main_restore_defaults(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-    if (command & UICommand_Init) {
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "> Restore Defaults", Font_7x10, UI_COLOR_LINK, UI_COLOR_BG);
-    }
+    // Draw label
+    ui_static_label(element, command, "> Restore Defaults", UI_COLOR_LINK);
 
     if (command & UICommand_Click) {
         static const char* const msg[] = {
@@ -2456,9 +2453,7 @@ static void ui_draw_coord_ddm_right_aligned(const UIElement* element, const char
 static void ui_proc_menu_gps_coordinate_dd(const UIElement* element, UICommand command, int32_t encoder_step, const char* label, int32_t *ui_cache, int32_t coord)
 {
     // Draw label
-    if (command & UICommand_Init) {
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, label, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
-    }
+    ui_static_label(element, command, label, UI_COLOR_MENU_LABEL);
 
     // Draw value
     if ((command & UICommand_Init) || (coord != *ui_cache)) {
@@ -2609,9 +2604,7 @@ static void ui_proc_menu_gps_errors(const UIElement* element, UICommand command,
     static uint32_t ui_cache_gps_fifo_overflow_comm = 0;
 
     // Draw label
-    if (command & UICommand_Init) {
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "GPS Err/GPS OVF/PC OVF", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
-    }
+    ui_static_label(element, command, "GPS Err/GPS OVF/PC OVF", UI_COLOR_MENU_LABEL);
 
     if (command & UICommand_Click)
     {
@@ -2667,9 +2660,7 @@ static void ui_proc_menu_ppb_9char(const UIElement* element, UICommand command, 
     const char* label, int32_t *ui_cache, int32_t ppb_x100)
 {
     // Draw label
-    if (command & UICommand_Init) {
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, label, Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
-    }
+    ui_static_label(element, command, label, UI_COLOR_MENU_LABEL);
 
     // Draw value
     if ((command & UICommand_Init) || (ppb_x100 != *ui_cache)) {
@@ -2700,9 +2691,7 @@ static void ui_proc_menu_ppb_freq(const UIElement* element, UICommand command, i
     static int32_t ui_cache_ppb_frequency = 0;
 
     // Draw label
-    if (command & UICommand_Init) {
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "Core Freq.:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
-    }
+    ui_static_label(element, command, "Core Freq.:", UI_COLOR_MENU_LABEL);
 
     // Draw value
     int32_t freq = ppb_frequency;
@@ -2735,9 +2724,7 @@ static void ui_proc_menu_ppb_pwm_corr(const UIElement* element, UICommand comman
     static bool     ui_cache_warmup_done    = false;
 
     // Draw label
-    if (command & UICommand_Init) {
-        ST7735_WriteStringNoWrap(element->x, element->y + 1, element->height - 1, "PWM/Corr.:", Font_7x10, UI_COLOR_MENU_LABEL, UI_COLOR_BG);
-    }
+    ui_static_label(element, command, "PWM/Corr.:", UI_COLOR_MENU_LABEL);
 
     // Draw value
     uint16_t pwm = TIM1->CCR2;

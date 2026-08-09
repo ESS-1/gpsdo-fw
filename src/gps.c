@@ -17,7 +17,7 @@
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
-#define MAX_GPS_LINE        512
+#define MAX_GPS_LINE    512
 
 static char gps_line[MAX_GPS_LINE];
 PackedTime  gps_time                          = { .raw = GPS_EMPTY_DATE_TIME };
