@@ -1639,10 +1639,10 @@ void ui_trend_run()
 
     // Adjust H scale
     if (ee_storage.trend_h_scale == UI_Trend_HScale_Auto) {
-        if ((ui_trend_data_size > ui_trend_h_scales[ui_trend_active_h_scale].samples_per_grid) && (ui_trend_active_h_scale < UI_Trend_HScale_Max)) {
+        while ((ui_trend_data_size > ui_trend_h_scales[ui_trend_active_h_scale].samples_per_grid) && (ui_trend_active_h_scale < UI_Trend_HScale_Max)) {
             ++ui_trend_active_h_scale;
         }
-        if ((ui_trend_active_h_scale > UI_Trend_HScale_2min) && (ui_trend_data_size <= ui_trend_h_scales[ui_trend_active_h_scale - 1].samples_per_grid)) {
+        while ((ui_trend_active_h_scale > UI_Trend_HScale_2min) && (ui_trend_data_size <= ui_trend_h_scales[ui_trend_active_h_scale - 1].samples_per_grid)) {
             --ui_trend_active_h_scale;
         }
     } else {
@@ -1675,9 +1675,7 @@ static void ui_proc_edit_trend_param(const UIElement* element, UICommand command
         } else {
             value_to_draw = ui_edit;
         }
-    }
-
-    if (!is_captured && (value_to_display != *ui_cache)) {
+    } else if (!is_captured && (value_to_display != *ui_cache)) {
         value_to_draw = &value_to_display;
     }
 
@@ -1952,11 +1950,15 @@ static void ui_trend_draw_graph(const UIElement* element)
 
     // Adjust V scale
     if (ee_storage.trend_v_scale == UI_Trend_VScale_Auto) {
-        if ((max_val > v_scale) && (ui_trend_active_v_scale < UI_Trend_VScale_Max)) {
-            ++ui_trend_active_v_scale;
-        }
-        if ((ui_trend_active_v_scale > UI_Trend_VScale_2ppb) && (max_val <= ui_trend_v_scales[ui_trend_active_v_scale - 1])) {
-            --ui_trend_active_v_scale;
+        if (max_val == TREND_UNSET_VALUE) {
+            ui_trend_active_v_scale = UI_Trend_VScale_2ppb;
+        } else {
+            while ((max_val > v_scale) && (ui_trend_active_v_scale < UI_Trend_VScale_Max)) {
+                ++ui_trend_active_v_scale;
+            }
+            while ((ui_trend_active_v_scale > UI_Trend_VScale_2ppb) && (max_val <= ui_trend_v_scales[ui_trend_active_v_scale - 1])) {
+                --ui_trend_active_v_scale;
+            }
         }
     } else {
         ui_trend_active_v_scale = ee_storage.trend_v_scale;
@@ -2929,9 +2931,7 @@ static void ui_proc_menu_auto_sync_param_edit(const UIElement* element, UIComman
         } else {
             value_to_draw = ui_edit;
         }
-    }
-
-    if (!is_captured && (ee_storage.pps_auto_sync != *ui_cache_auto_sync)) {
+    } else if (!is_captured && (ee_storage.pps_auto_sync != *ui_cache_auto_sync)) {
         value_to_draw = ee_setting;
     }
 
