@@ -2,7 +2,6 @@
 #include "ui_helpers.h"
 #include "ui_msgbox.h"
 
-#include "version.h"
 #include "int.h"
 #include "gps.h"
 #include "cdcio.h"
@@ -2165,7 +2164,7 @@ static void ui_proc_menu_main_uptime(const UIElement* element, UICommand command
 
 static void ui_proc_menu_main_model(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-    ui_proc_menu_readonly_entry(element, command, encoder_step, "Model:", 16, DEVICE_MODEL);
+    ui_proc_menu_readonly_entry(element, command, encoder_step, "Model:", 16, BUILD_FW_MODEL);
 }
 
 static void ui_proc_menu_main_sn(const UIElement* element, UICommand command, int32_t encoder_step)
@@ -2187,7 +2186,7 @@ static void ui_proc_menu_main_sn(const UIElement* element, UICommand command, in
 
 static void ui_proc_menu_main_version(const UIElement* element, UICommand command, int32_t encoder_step)
 {
-    ui_proc_menu_readonly_entry(element, command, encoder_step, "Version:", 12, FIRMWARE_VERSION);
+    ui_proc_menu_readonly_entry(element, command, encoder_step, "Version:", 12, BUILD_FW_VERSION "/" BUILD_FW_TYPE);
 }
 
 static void ui_proc_menu_main_mcu_flash(const UIElement* element, UICommand command, int32_t encoder_step)

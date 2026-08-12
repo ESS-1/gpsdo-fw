@@ -17,11 +17,12 @@ set(CMAKE_PROJECT_NAME gpsdo)
 # Enable compile command to ease indexing with e.g. clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
+# Core project settings
+project(${CMAKE_PROJECT_NAME})
+
 # Enable CMake support for ASM and C languages
 enable_language(C ASM)
 
-# Core project settings
-project(${CMAKE_PROJECT_NAME})
 message("Build type: " ${CMAKE_BUILD_TYPE})
 
 # Create an executable object type
@@ -67,4 +68,29 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     eeprom
     st7735
     si5351
+)
+
+# Include firmware version and type definition file
+include("${CMAKE_CURRENT_SOURCE_DIR}/version.cmake")
+
+# Construct output filename
+set(OUTPUT_FILE_NAME "${FW_MODEL}--${FW_VERSION}-${FW_TYPE}-${CMAKE_BUILD_TYPE}")
+
+# Set the output filename for the executable target (.elf)
+set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES 
+    OUTPUT_NAME "${OUTPUT_FILE_NAME}"
+)
+
+target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
+    # Pass the model, FW version, and FW type to compiler
+    BUILD_FW_VERSION="${FW_VERSION}"
+    BUILD_FW_TYPE="${FW_TYPE}"
+    BUILD_FW_MODEL="${FW_MODEL}"
+)
+
+# Generate '.bin' from the compiled '.elf'
+add_custom_command(
+    TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${CMAKE_PROJECT_NAME}> ${CMAKE_CURRENT_BINARY_DIR}/${OUTPUT_FILE_NAME}.bin
+    COMMENT "Generating BIN file: ${OUTPUT_FILE_NAME}.bin"
 )

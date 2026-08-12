@@ -5,7 +5,6 @@
 #include "eeprom.h"
 #include "frequency.h"
 #include "gps.h"
-#include "version.h"
 #include "ui.h"
 #include "int.h"
 #include "tim.h"
@@ -35,7 +34,7 @@ void init_ext_clock()
     MX_SPI1_Init();
 
     bootlog_init();
-    bootlog_add("Micro-DO " FIRMWARE_VERSION);
+    bootlog_add(BUILD_FW_MODEL "   ver. " BUILD_FW_VERSION);
     bootlog_add("Initializing...");
     bootlog_add("Enable OCXO");
 
