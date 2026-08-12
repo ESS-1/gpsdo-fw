@@ -2215,12 +2215,12 @@ static void ui_proc_menu_main_all_settings(const UIElement* element, UICommand c
     ui_proc_menu_link(element, command, encoder_step, "> All Settings...", &ui_all_settings_screen_page1);
 }
 
-extern void load_settings(bool restore_defaults);
-static void ui_restore_defaults_handler(UI_MsgBoxButton result)
+extern void load_settings(bool restore_defaults, bool apply_settings);
+void ui_restore_defaults_handler(UI_MsgBoxButton result)
 {
     if (result == UI_MsgBoxButton_Yes) {
         // Restore defaults
-        load_settings(true);
+        load_settings(true, true);
 
         static const char* const msg[] = {
             "Settings restored.",

@@ -10,8 +10,9 @@
 
 bool ui_show_performance_timer = false;
 
-static UIScreen* ui_current_screen = NULL;
-static UIScreen* ui_screen_to_show = NULL;
+static UIScreen* ui_current_screen         = NULL;
+static UIScreen* ui_screen_to_show         = NULL;
+static bool      ui_screen_to_show_pending = false;
 
 #define UI_PERF_TIMER_MEASUREMENT_WINDOW 1000
 
@@ -83,7 +84,7 @@ bool ui_is_captured(const UIElement* element)
 
 UIScreen* ui_get_active_screen()
 {
-    return (ui_screen_to_show != NULL)
+    return ui_screen_to_show_pending
         ? ui_screen_to_show
         : ui_current_screen;
 }
@@ -119,14 +120,16 @@ static void ui_force_set_screen(UIScreen* screen)
 void ui_show_screen(UIScreen* screen)
 {
     ui_screen_to_show = screen;
+    ui_screen_to_show_pending = true;
 }
 
 void ui_run()
 {
-    if (ui_screen_to_show != NULL) {
+    if (ui_screen_to_show_pending) {
         // Activate new screen
         ui_force_set_screen(ui_screen_to_show);
         ui_screen_to_show = NULL;
+        ui_screen_to_show_pending = false;
     }
 
     if (ui_current_screen == NULL) {
@@ -164,7 +167,7 @@ void ui_run()
         }
     }
 
-    if (ui_screen_to_show != NULL) {
+    if (ui_screen_to_show_pending) {
         // We will show a new screen; no need to update the current controls
         return;
     }

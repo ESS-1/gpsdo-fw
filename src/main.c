@@ -6,6 +6,7 @@
 #include "frequency.h"
 #include "gps.h"
 #include "ui.h"
+#include "ui_msgbox.h"
 #include "int.h"
 #include "tim.h"
 #include "pll.h"
@@ -16,7 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-/// All times in ms
+// All times in ms
 #define PPS_PULSE_WIDTH         100
 #define GPS_FRAME_WAIT_DELAY    10000
 
@@ -94,7 +95,7 @@ void enable_usb()
     HAL_GPIO_Init(USB_DP_PULLUP_GPIO_Port, &gpio_init);
 }
 
-void load_settings(bool restore_defaults)
+void load_settings(bool restore_defaults, bool apply_settings)
 {
     // Do NOT reset 'total_writes' on 'restore_defaults == true'
     if (ee_storage.total_writes == 0xffffffff) {
@@ -224,37 +225,72 @@ void load_settings(bool restore_defaults)
     }
 
 
-    // Apply settings
-    TIM1->CCR2 = ee_storage.pwm;
-    set_brightness(ee_storage.brightness);
-    gps_time_offset = ee_storage.gps_time_offset+GPS_MIN_TIME_OFFSET;
+    if (apply_settings) {
+        // Apply settings
+        TIM1->CCR2 = ee_storage.pwm;
+        set_brightness(ee_storage.brightness);
+        gps_time_offset = ee_storage.gps_time_offset+GPS_MIN_TIME_OFFSET;
 
-    pll_configure_output(1, &(pll_out1_presets[ee_storage.pll_out1_preset]), ee_storage.pll_out1_drive_strength);
-    pll_configure_output(2, &(pll_out2_presets[ee_storage.pll_out2_preset]), ee_storage.pll_out2_drive_strength);
+        pll_configure_output(1, &(pll_out1_presets[ee_storage.pll_out1_preset]), ee_storage.pll_out1_drive_strength);
+        pll_configure_output(2, &(pll_out2_presets[ee_storage.pll_out2_preset]), ee_storage.pll_out2_drive_strength);
 
-    gps_setbaudrate(ee_storage.gps_baudrate);
+        gps_setbaudrate(ee_storage.gps_baudrate);
+    }
+}
+
+static void restore_defaults_handler(UI_MsgBoxButton result)
+{
+    if (result == UI_MsgBoxButton_Yes) {
+        // Reset defaults without applying
+        load_settings(true, false);
+    }
 }
 
 void gpsdo()
 {
+    // Set the status of the latest message in init_ext_clock()
+    bootlog_set_status(true);
+
     HAL_TIM_Base_Start_IT(&htim2);
 
     EE_Init(&ee_storage, sizeof(ee_storage_t));
     EE_Read();
 
+    frequency_start_backlight();
+
+    HAL_TIM_Base_Start(&htim4);
+    HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
+
+    // If the encoder button is held, prompt to restore defaults
+    if (HAL_GPIO_ReadPin(ROTARY_PRESS_GPIO_Port, ROTARY_PRESS_Pin) == GPIO_PIN_RESET) {
+        // Wait for the button to be released
+        while (HAL_GPIO_ReadPin(ROTARY_PRESS_GPIO_Port, ROTARY_PRESS_Pin) == GPIO_PIN_RESET) { }
+        // Debounce
+        HAL_Delay(50);
+
+        static const char* const msg[] = {
+            "Encoder held",
+            "on boot.",
+            "Reset settings?",
+            NULL };
+        ui_msgbox(msg, UI_MsgBoxType_YesNo, UI_MsgBoxButton_No, restore_defaults_handler);
+
+        // Run the UI loop while the message box is active
+        while (ui_get_active_screen() != NULL) {
+            ui_run();
+        }
+    }
+
     enable_usb();
     gps_start_it();
 
-    load_settings(false);
+    load_settings(false, true);
 
     ui_trend_init();
     ui_show_screen(&ui_main_screen);
 
     HAL_Delay(100);
-    frequency_start();
-
-    HAL_TIM_Base_Start(&htim4);
-    HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
+    frequency_start_tracking();
 
     while (1) {
         uint32_t now = HAL_GetTick();
@@ -272,7 +308,7 @@ void gpsdo()
             gps_reset_uart();
             last_frame_receive_time = now;
         }
-        
+
         gps_run();
         pll_run();
         ui_trend_run();

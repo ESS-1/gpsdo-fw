@@ -30,11 +30,15 @@ int32_t circbuf_sum(volatile circbuf_t* circbuf)
     return sum;
 }
 
-void frequency_start()
+void frequency_start_backlight()
+{
+    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+}
+
+void frequency_start_tracking()
 {
     HAL_TIM_Base_Start_IT(&htim1);
     HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
     HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_1);
 }
 
