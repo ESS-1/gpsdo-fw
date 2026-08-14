@@ -208,7 +208,7 @@ void load_settings(bool restore_defaults, bool apply_settings)
 
     // PLL output 2 preset
     if (restore_defaults || ee_storage.pll_out2_preset >= pll_out2_preset_count) {
-        ee_storage.pll_out2_preset = 0;
+        ee_storage.pll_out2_preset = 1;
         ee_is_changed              = true;
     }
 

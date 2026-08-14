@@ -6,6 +6,7 @@
 typedef struct {
     uint16_t    out_div;
     uint8_t     pll_mult;
+    bool        direct_xo;
     const char* label;
 } OutFreqConfig;
 

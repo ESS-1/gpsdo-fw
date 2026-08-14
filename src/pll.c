@@ -22,9 +22,9 @@ static void pll_enable_output(uint8_t output, bool enable)
 
 bool pll_init_primary_pll()
 {
-    si5351_Init(0, SI5351_CRYSTAL_LOAD_6PF);
+    si5351_Init(0, SI5351_CRYSTAL_LOAD_6PF, true);
 
-    // Init PLL A (VCO = 10M * 88 = 880M
+    // Init PLL A (VCO = 10M * 88 = 880M)
     si5351PLLConfig_t pll_config = { 0 };
     pll_config.mult  = 88;
     pll_config.num   = 0;
@@ -80,15 +80,19 @@ void pll_configure_output(uint8_t output, const OutFreqConfig* config, uint8_t d
     bool enableOutput = (config->out_div != 0);
 
     if (enableOutput) {
-        si5351OutputConfig_t out_config = {
-            .allowIntegerMode = 1,
-            .div = config->out_div,
-            .num = 0,
-            .denom = 1,
-            .rdiv = SI5351_R_DIV_1 };
+        if (config->direct_xo) {
+            si5351_SetupChannelBypass(output, drive_strength);
+        } else {
+            si5351OutputConfig_t out_config = {
+                .allowIntegerMode = 1,
+                .div = config->out_div,
+                .num = 0,
+                .denom = 1,
+                .rdiv = SI5351_R_DIV_1 };
 
-        si5351PLL_t pll = output == 1 ? SI5351_PLL_A : SI5351_PLL_B;
-        si5351_SetupChannel(output, pll, drive_strength, &out_config, 0);
+            si5351PLL_t pll = (output == 1) ? SI5351_PLL_A : SI5351_PLL_B;
+            si5351_SetupChannel(output, pll, drive_strength, &out_config, 0);
+        }
     } else {
         si5351_DisableChannel(output);
     }
