@@ -62,7 +62,8 @@ _Min_Stack_Size = 0x600; /* required amount of stack */
 MEMORY
 {
 RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 20K
-FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 64K
+FLASH (rx)     : ORIGIN = 0x8000000, LENGTH = 63K /* 1K reserved for the bootloader */
+EEPROM (r)     : ORIGIN = 0x800FC00, LENGTH = 1K  /* Reserved for EEPROM emulation */
 }
 
 /* Define output sections */
@@ -173,7 +174,14 @@ SECTIONS
     . = ALIGN(8);
   } >RAM
 
-  
+  .eeprom_section (NOLOAD) :
+  {
+    . = ALIGN(4);
+    *(.eeprom_data)
+    . = ALIGN(4);
+  } > EEPROM
+
+
 
   /* Remove information from the standard libraries */
   /DISCARD/ :
