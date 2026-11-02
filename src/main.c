@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-/// All times in ms
+// All times in ms
 #define PPS_PULSE_WIDTH         100
 #define GPS_FRAME_WAIT_DELAY    10000
 

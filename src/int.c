@@ -244,9 +244,9 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
             int32_t current_error = frequency_get_error();
 
             if (allow_adjustment) 
-            {   // No crrection during warmup
+            {   // No correction during warmup
 
-                // Choos from 3 correction algorithms :
+                // Choose from 4 correction algorithms :
                 // - Dankar (original code from Dankar + added correction factor defaulted to values that match the original code)
                 // - Fredzo (same logic as dankar's algo, but with faster correction when frequency error is >= 2)
                 // - Eric-H (algo based on ppm value rather than frequency error (uses 128s rolling average rather than instant values))

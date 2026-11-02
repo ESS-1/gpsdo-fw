@@ -105,6 +105,7 @@ static void gps_start_gps_rx()
         Error_Handler();
     }
 }
+
 static void gps_start_comm_rx()
 {
     // 'comm_it_buf' is only 1 byte long, so DMA overhead is unnecessary
@@ -462,7 +463,7 @@ void gps_parse(char* line)
                 int month = m0 * 10 + m1;
                 int year  = y0 * 10 + y1;
                 day += gps_day_offset;
-                // Quick and dirty poor man's gregorian calendar handling
+                // Quick and dirty poor man's Gregorian calendar handling
                 bool is_leap_year = ((year % 4) == 0);
                 if((day > (is_leap_year ? 29 : 28)) && month == 2)
                 {   // Case of February
