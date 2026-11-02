@@ -49,6 +49,11 @@ uint32_t gps_fifo_overflow_comm  = 0;
 volatile bool gps_comm_send_pgdox = true;
 uint32_t gps_last_pgdos_generated_sec = 0;
 
+// Indicates whether this is the first GPS UART RX after an MCU or UART reset.
+// When 'true', errors are cleared because the GPS module sends data before
+// UART initialization, which causes frame or noise errors.
+static volatile bool gps_first_gps_uart_rx = false;
+
 #define FIFO_BUFFER_SIZE 1024
 
 typedef struct {
@@ -59,8 +64,8 @@ typedef struct {
 
 typedef enum { FIFO_WRITE, FIFO_READ } fifo_operation;
 
-volatile fifo_buffer_t fifo_buffer_gps  = { 0 };
-volatile fifo_buffer_t fifo_buffer_comm = { 0 };
+static volatile fifo_buffer_t fifo_buffer_gps  = { 0 };
+static volatile fifo_buffer_t fifo_buffer_comm = { 0 };
 
 static size_t fifo_next(volatile const fifo_buffer_t* fifo, fifo_operation op)
 {
@@ -71,7 +76,7 @@ static size_t fifo_next(volatile const fifo_buffer_t* fifo, fifo_operation op)
     }
 }
 
-bool fifo_write(volatile fifo_buffer_t* fifo, const uint8_t c)
+static bool fifo_write(volatile fifo_buffer_t* fifo, const uint8_t c)
 {
     size_t next = fifo_next(fifo, FIFO_WRITE);
     if (next == fifo->read) {
@@ -82,7 +87,7 @@ bool fifo_write(volatile fifo_buffer_t* fifo, const uint8_t c)
     return true;
 }
 
-bool fifo_read(volatile fifo_buffer_t* fifo, uint8_t* c)
+static bool fifo_read(volatile fifo_buffer_t* fifo, uint8_t* c)
 {
     if (fifo->read == fifo->write) {
         return false;
@@ -127,7 +132,7 @@ static void gps_sendcommand(const char* cmd, size_t len)
 {
     while (huart3.gState != HAL_UART_STATE_READY);
     HAL_UART_Transmit_DMA(&huart3, (const uint8_t*)cmd, len);
-    // wait for transfer completed
+    // Wait for transfer completed
     while (huart3.gState != HAL_UART_STATE_READY);
 }
 
@@ -181,20 +186,22 @@ static void gps_reconfigure_uart(UART_HandleTypeDef *huart, uint32_t baudrate)
 {
     // Wait for HAL to finish transmission
     while (huart->gState != HAL_UART_STATE_READY);
+
     // Wait for the hardware transmitter to physically send the last bit
     while (__HAL_UART_GET_FLAG(huart, UART_FLAG_TC) == RESET);
 
+    // De-initialize UART
     HAL_UART_DeInit(huart);
 
-    huart->Init.BaudRate = baudrate;
-    huart->Init.WordLength = UART_WORDLENGTH_8B;
-    huart->Init.StopBits = UART_STOPBITS_1;
-    huart->Init.Parity = UART_PARITY_NONE;
-    huart->Init.Mode = UART_MODE_TX_RX;
-    huart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    // Configure new baud rate
+    huart->Init.BaudRate     = baudrate;
+    huart->Init.WordLength   = UART_WORDLENGTH_8B;
+    huart->Init.StopBits     = UART_STOPBITS_1;
+    huart->Init.Parity       = UART_PARITY_NONE;
+    huart->Init.Mode         = UART_MODE_TX_RX;
+    huart->Init.HwFlowCtl    = UART_HWCONTROL_NONE;
     huart->Init.OverSampling = UART_OVERSAMPLING_16;
-    if (HAL_UART_Init(huart) != HAL_OK)
-    {
+    if (HAL_UART_Init(huart) != HAL_OK) {
       Error_Handler();
     }
 }
@@ -202,6 +209,7 @@ static void gps_reconfigure_uart(UART_HandleTypeDef *huart, uint32_t baudrate)
 void gps_reconfigure_gps_uart(uint32_t baudrate)
 {
     gps_reconfigure_uart(&huart3, baudrate);
+    gps_first_gps_uart_rx = true;
     gps_start_gps_rx();
 }
 
@@ -219,6 +227,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
                 ++gps_fifo_overflow_gps;
             }
         }
+        gps_first_gps_uart_rx = false;
         gps_start_gps_rx();
     } else if (huart == &huart2) {
         for (size_t i = 0; i < COMM_RX_BUFFER_SIZE; i++) {
@@ -230,8 +239,20 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
     }
 }
 
+void HAL_UART_ErrorCallback(UART_HandleTypeDef* huart)
+{
+    if (huart == &huart3 && gps_first_gps_uart_rx) {
+        // This is the first GPS UART RX after an MCU or UART reset.
+        // Error likely occurred because the GPS module sent data before UART initialization.
+        // This is an expected situation, so we only need to restart the RX.
+        HAL_UART_DMAStop(huart);
+        gps_start_gps_rx();
+    }
+}
+
 void gps_start_it()
 {
+    gps_first_gps_uart_rx = true;
     gps_start_gps_rx();
     gps_start_comm_rx();
 }
@@ -316,7 +337,7 @@ static bool change_time(char* time_source, char* time_dest, int correction, int 
 }
 
 // Maybe use X-CUBE-GNSS here?
-void gps_parse(char* line)
+static void gps_parse(char* line)
 {
     if (strstr(line, "GGA") == line+3) 
     {
@@ -587,7 +608,7 @@ void gps_parse(char* line)
     }
 }
 
-bool gps_is_valid(const char* line)
+static bool gps_is_valid(const char* line)
 {
     // Check the basic structure
     if (line == NULL || line[0] != '$') {
@@ -618,7 +639,7 @@ bool gps_is_valid(const char* line)
     return (unsigned char)received_checksum == calculated_checksum;
 }
 
-void gps_process(char* line)
+static void gps_process(char* line)
 {
     // Validate and parse the frame
     if (gps_is_valid(line)) {
@@ -718,9 +739,9 @@ static void gps_run_pgdos(uint8_t* buf, size_t* buf_offset, size_t buf_size)
 }
 
 #define SEND_BUFFER_SIZE FIFO_BUFFER_SIZE
-uint8_t send_buf[SEND_BUFFER_SIZE];
-uint8_t gps_send_buf[SEND_BUFFER_SIZE];
-uint8_t comm_send_buf[SEND_BUFFER_SIZE];
+static uint8_t send_buf[SEND_BUFFER_SIZE];
+static uint8_t gps_send_buf[SEND_BUFFER_SIZE];
+static uint8_t comm_send_buf[SEND_BUFFER_SIZE];
 
 void gps_read()
 {
