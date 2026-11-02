@@ -77,3 +77,9 @@ set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
     OUTPUT_NAME "${OUTPUT_FILE_NAME}"
 )
 
+# Generate '.bin' from the compiled '.elf'
+add_custom_command(
+    TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O binary --gap-fill 0xff $<TARGET_FILE:${CMAKE_PROJECT_NAME}> ${CMAKE_CURRENT_BINARY_DIR}/${OUTPUT_FILE_NAME}.bin
+    COMMENT "Generating BIN file: ${OUTPUT_FILE_NAME}.bin"
+)
